@@ -12,13 +12,13 @@ harnesses the agent, records everything locally, and hands you one live page to 
 [![The console (command and control) beside Claude Code (interaction)](../docs/assets/hero.png)](https://sdamirsa.github.io/dot-claude-iff/demo/console.html)
 
 <p align="center">
-  <a href="https://sdamirsa.github.io/dot-claude-iff/demo/console.html"><img src="../docs/assets/btn-demo.svg" alt="Open the demo - the real console, real data, zero setup" width="240"></a>
-  <a href="../../releases/latest"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="240"></a>
-  <a href="https://sdamirsa.github.io/dot-claude-iff/"><img src="../docs/assets/btn-tour.svg" alt="Take the tour - understand, set up, learn by doing" width="240"></a>
+  <a href="https://sdamirsa.github.io/dot-claude-iff/demo/console.html"><img src="../docs/assets/btn-demo.svg" alt="Open the demo - the real console, real data, zero setup" width="31%"></a>
+  <a href="../../releases/latest"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="31%"></a>
+  <a href="https://sdamirsa.github.io/dot-claude-iff/"><img src="../docs/assets/btn-tour.svg" alt="Take the tour - understand, set up, learn by doing" width="31%"></a>
 </p>
 
 <p align="center">
-  <a href="../.claude/README.md#for-humans-how-to-collaborate-with-the-ai"><img src="../docs/assets/banner-human.svg" alt="The agent's harness and communication are built in. Your half is five learnable habits: read the human manual." width="860"></a>
+  <a href="../.claude/README.md#for-humans-how-to-collaborate-with-the-ai"><img src="../docs/assets/banner-human.svg" alt="The agent's harness and communication are built in. Your half is five learnable habits: read the human manual." width="92%"></a>
 </p>
 
 **Have an agent adopt it for you** - paste this to Claude Code (or any capable coding agent)
