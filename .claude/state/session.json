@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-08-25T14:29:55Z",
-  "last_event_ts": "2026-08-25T14:25:47Z",
+  "generated_at": "2026-08-25T14:59:38Z",
+  "last_event_ts": "2026-08-25T14:59:38Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "prepared for first push: squash to one commit, push, then tag v0.1.0",
+  "resume_pointer": "system is live at v0.1.1; next: real use, second-repo adoption, analysis engine setup",
   "open_loops": [],
   "open_intents": [],
   "tasks": [],
   "counts": {
-    "events": 17,
+    "events": 19,
     "tasks_total": 0,
     "tasks_done": 0,
     "tasks_open": 0,
@@ -21,7 +21,7 @@
     "tooling": 0
   },
   "heartbeat": {
-    "ts": "2026-08-25T14:17:38Z",
+    "ts": "2026-08-25T14:57:29Z",
     "note": "turn ended"
   },
   "recent_milestones": [

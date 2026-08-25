@@ -10,7 +10,13 @@
   ],
   "system_version": "0.1.0",
   "lint": {
-    "watched_files": ["memory", "policy", "observe", "console", "model-prices"],
+    "watched_files": [
+      "memory",
+      "policy",
+      "observe",
+      "console",
+      "model-prices"
+    ],
     "exempt_keys": [
       "version",
       "_comment",
@@ -33,7 +39,8 @@
       "roots",
       "lint",
       "system_version",
-      "entries"
+      "entries",
+      "billing_options"
     ]
   },
   "entries": [
@@ -42,9 +49,17 @@
       "title": "Push policy",
       "description": "Whether PUBLISH pushes after committing. always: push without asking. ask (default): one question per ritual. never: commit only.",
       "layer": "MEMORY",
-      "target": {"kind": "config", "file": "memory", "path": "push"},
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "push"
+      },
       "type": "string",
-      "enum": ["always", "ask", "never"],
+      "enum": [
+        "always",
+        "ask",
+        "never"
+      ],
       "default": "ask"
     },
     {
@@ -52,7 +67,11 @@
       "title": "Vault snapshots",
       "description": "Take a git-bundle + chat snapshot into RECORD_ROOT/vault at PUBLISH.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "memory", "path": "snapshot.enabled"},
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "snapshot.enabled"
+      },
       "type": "bool",
       "default": false
     },
@@ -61,7 +80,11 @@
       "title": "Vault retention count",
       "description": "How many snapshots to keep. Older ones are reported as prunable, never auto-deleted.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "memory", "path": "snapshot.keep"},
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "snapshot.keep"
+      },
       "type": "int",
       "default": 8
     },
@@ -70,7 +93,11 @@
       "title": "Snapshot disk guard",
       "description": "Refuse a snapshot unless free disk is at least this multiple of the estimated size.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "memory", "path": "snapshot.min_free_multiple"},
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "snapshot.min_free_multiple"
+      },
       "type": "float",
       "default": 2.0
     },
@@ -79,7 +106,11 @@
       "title": "Snapshot includes chat transcripts",
       "description": "Include ~/.claude/projects/<slug>/ transcripts in the vault snapshot.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "memory", "path": "snapshot.include_claude_projects"},
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "snapshot.include_claude_projects"
+      },
       "type": "bool",
       "default": true
     },
@@ -88,7 +119,11 @@
       "title": "Record root override",
       "description": "Absolute path for RECORD_ROOT. null uses the sibling default <parent>/<repo>_claude_iff.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "policy", "path": "record_root"},
+      "target": {
+        "kind": "config",
+        "file": "policy",
+        "path": "record_root"
+      },
       "type": "string|null",
       "default": null
     },
@@ -97,7 +132,11 @@
       "title": "Capture enabled",
       "description": "Master switch for the capture lane. Off means no spool writes at all.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "enabled"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "enabled"
+      },
       "type": "bool",
       "default": true
     },
@@ -106,7 +145,11 @@
       "title": "Capture breadth",
       "description": "false: the lean event set in capture_events. true: every hook event (heavier; the source system measured ~21 MB/session).",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "capture_all_events"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "capture_all_events"
+      },
       "type": "bool",
       "default": false
     },
@@ -115,7 +158,11 @@
       "title": "Raw retention",
       "description": "0 keeps raw forever (the default: raw is the agent's ground truth). A positive value expires sealed raw older than N days.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "retention_days"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "retention_days"
+      },
       "type": "int",
       "default": 0
     },
@@ -124,7 +171,11 @@
       "title": "Compact sealed raw",
       "description": "gzip sealed raw files (~10x smaller) instead of leaving them plain.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "compact_sealed_raw"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "compact_sealed_raw"
+      },
       "type": "bool",
       "default": true
     },
@@ -133,7 +184,11 @@
       "title": "Record size warning",
       "description": "CHECK reports the record size loudly above this many MB. Reporting, never deleting.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "size_warn_mb"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "size_warn_mb"
+      },
       "type": "int",
       "default": 2048
     },
@@ -142,7 +197,11 @@
       "title": "Copy transcripts verbatim",
       "description": "Copy transcript files into RECORD_ROOT/raw/transcripts as the completeness backstop. Segments stay metadata-only either way.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "ingest.copy_verbatim"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "ingest.copy_verbatim"
+      },
       "type": "bool",
       "default": true
     },
@@ -151,7 +210,11 @@
       "title": "Ingest file cap",
       "description": "0 means no cap. A positive value bounds a single ingest run (cursors make the next run resume).",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "ingest.max_files_per_run"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "ingest.max_files_per_run"
+      },
       "type": "int",
       "default": 0
     },
@@ -160,9 +223,18 @@
       "title": "Retrospective analysis provider",
       "description": "Which model service obsctl analyze calls over the raw record. none disables it.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "analyze.provider"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "analyze.provider"
+      },
       "type": "string",
-      "enum": ["none", "ollama", "openrouter", "claude"],
+      "enum": [
+        "none",
+        "ollama",
+        "openrouter",
+        "claude"
+      ],
       "default": "none"
     },
     {
@@ -170,7 +242,11 @@
       "title": "Analysis model",
       "description": "Model id for the analysis provider.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "analyze.model"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "analyze.model"
+      },
       "type": "string|null",
       "default": null
     },
@@ -179,7 +255,11 @@
       "title": "Analysis base URL",
       "description": "OpenAI-compatible endpoint for the analysis engine, e.g. https://openrouter.ai/api/v1 or http://localhost:11434/v1 (Ollama). Key comes from env ANALYZE_API_KEY, never from config.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "analyze.base_url"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "analyze.base_url"
+      },
       "type": "string|null",
       "default": null
     },
@@ -188,7 +268,11 @@
       "title": "Analysis parallelism",
       "description": "How many chunks are sent to the analysis endpoint concurrently.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "analyze.parallel"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "analyze.parallel"
+      },
       "type": "int",
       "default": 4
     },
@@ -197,7 +281,11 @@
       "title": "Analysis call timeout",
       "description": "Per-chunk HTTP timeout in seconds.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "analyze.timeout_s"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "analyze.timeout_s"
+      },
       "type": "int",
       "default": 90
     },
@@ -206,7 +294,11 @@
       "title": "Analysis batch size",
       "description": "How many raw events go into one model call.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "observe", "path": "analyze.max_events_per_batch"},
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "analyze.max_events_per_batch"
+      },
       "type": "int",
       "default": 200
     },
@@ -215,9 +307,16 @@
       "title": "Billing mode",
       "description": "api: per-token dollar cost applies and the price table prices it. subscription: usage is included in a plan, dollar cost reads 'in plan' and the empty-table warning goes quiet. Token counts are tracked either way.",
       "layer": "OBSERVE",
-      "target": {"kind": "config", "file": "model-prices", "path": "billing"},
+      "target": {
+        "kind": "config",
+        "file": "model-prices",
+        "path": "billing"
+      },
       "type": "string",
-      "enum": ["api", "subscription"],
+      "enum": [
+        "api",
+        "subscription"
+      ],
       "default": "subscription"
     },
     {
@@ -225,7 +324,11 @@
       "title": "Console bind host",
       "description": "Always a loopback address. The console serves live state; it must never be reachable off-box.",
       "layer": "CONSOLE",
-      "target": {"kind": "config", "file": "console", "path": "host"},
+      "target": {
+        "kind": "config",
+        "file": "console",
+        "path": "host"
+      },
       "type": "string",
       "default": "127.0.0.1"
     },
@@ -234,7 +337,11 @@
       "title": "Console port",
       "description": "Port for console.py.",
       "layer": "CONSOLE",
-      "target": {"kind": "config", "file": "console", "path": "port"},
+      "target": {
+        "kind": "config",
+        "file": "console",
+        "path": "port"
+      },
       "type": "int",
       "default": 7717
     },
@@ -243,7 +350,11 @@
       "title": "Console autostart",
       "description": "Start console.py from the SessionStart hook, guarded by a pidfile.",
       "layer": "CONSOLE",
-      "target": {"kind": "config", "file": "console", "path": "autostart"},
+      "target": {
+        "kind": "config",
+        "file": "console",
+        "path": "autostart"
+      },
       "type": "bool",
       "default": true
     },
@@ -252,7 +363,11 @@
       "title": "Poll interval (active)",
       "description": "Client poll cadence while the heartbeat is fresh.",
       "layer": "CONSOLE",
-      "target": {"kind": "config", "file": "console", "path": "poll_active_seconds"},
+      "target": {
+        "kind": "config",
+        "file": "console",
+        "path": "poll_active_seconds"
+      },
       "type": "int",
       "default": 5
     },
@@ -261,7 +376,11 @@
       "title": "Poll interval (idle)",
       "description": "Client poll cadence when the heartbeat is stale.",
       "layer": "CONSOLE",
-      "target": {"kind": "config", "file": "console", "path": "poll_idle_seconds"},
+      "target": {
+        "kind": "config",
+        "file": "console",
+        "path": "poll_idle_seconds"
+      },
       "type": "int",
       "default": 30
     },
@@ -270,7 +389,11 @@
       "title": "Active window",
       "description": "Heartbeat age below which the session counts as active.",
       "layer": "CONSOLE",
-      "target": {"kind": "config", "file": "console", "path": "active_window_minutes"},
+      "target": {
+        "kind": "config",
+        "file": "console",
+        "path": "active_window_minutes"
+      },
       "type": "int",
       "default": 10
     },
@@ -279,7 +402,11 @@
       "title": "Anatomist model",
       "description": "The .claude anatomy expert: reads components, traces relations, maintains cards, implements approved evolution changes.",
       "layer": "EVOLVE",
-      "target": {"kind": "agent-frontmatter", "file": "anatomist", "path": "model"},
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "anatomist",
+        "path": "model"
+      },
       "type": "string",
       "default": "sonnet"
     },
@@ -288,7 +415,11 @@
       "title": "Retro-analyst model",
       "description": "Evidence-gated evolution proposals, propose-only (tool-restricted, cannot write).",
       "layer": "EVOLVE",
-      "target": {"kind": "agent-frontmatter", "file": "retro-analyst", "path": "model"},
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "retro-analyst",
+        "path": "model"
+      },
       "type": "string",
       "default": "sonnet"
     },
@@ -297,7 +428,11 @@
       "title": "Verifier model",
       "description": "Adversarial claim checker; inherits the main session's model so it is never weaker than the work it checks.",
       "layer": "GOVERN",
-      "target": {"kind": "agent-frontmatter", "file": "verifier", "path": "model"},
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "verifier",
+        "path": "model"
+      },
       "type": "string",
       "default": "inherit"
     }
