@@ -1,24 +1,24 @@
 {
-  "run_id": "20260825T142546Z-f69c4a",
-  "started": "2026-08-25T14:25:46Z",
+  "run_id": "20260825T142955Z-8f4b36",
+  "started": "2026-08-25T14:29:55Z",
   "status": "done",
   "phase": "publish",
   "step": null,
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-08-25T14:25:46Z",
+      "ts": "2026-08-25T14:29:55Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "16 events parse",
+          "message": "17 events parse",
           "details": []
         },
         {
           "name": "heartbeat_present",
           "status": "OK",
-          "message": "last turn ended 8 min ago",
+          "message": "last turn ended 12 min ago",
           "details": []
         },
         {
@@ -37,7 +37,8 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 2 warning(s)",
+            "MAP LINT: 0 error(s), 3 warning(s)",
+            "  WARN   console.template: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
             "  WARN   tool._lib: layer is null (unplaced)"
           ]
@@ -59,10 +60,10 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 20.8 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "message": "record is 21.5 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
-            "raw: 20.2 MB",
-            "spool: 360.9 KB",
+            "raw: 21.0 MB",
+            "spool: 365.6 KB",
             "segments: 202.4 KB",
             "sealed-raw: 20.1 KB",
             "cursors.json: 4.7 KB"
@@ -90,7 +91,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-08-25T14:25:47Z",
+      "ts": "2026-08-25T14:29:56Z",
       "results": [
         {
           "name": "map_scan",
@@ -132,7 +133,7 @@
     },
     "publish": {
       "status": "OK",
-      "ts": "2026-08-25T14:25:47Z",
+      "ts": "2026-08-25T14:29:56Z",
       "results": [
         {
           "name": "polish_complete",
@@ -167,6 +168,6 @@
       ]
     }
   },
-  "last_completed": "2026-08-25T14:25:47Z",
-  "updated": "2026-08-25T14:25:47Z"
+  "last_completed": "2026-08-25T14:29:56Z",
+  "updated": "2026-08-25T14:29:56Z"
 }

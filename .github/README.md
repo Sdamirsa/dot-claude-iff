@@ -12,9 +12,9 @@ harnesses the agent, records everything locally, and hands you one live page to 
 [![The console (command and control) beside Claude Code (interaction)](../docs/assets/hero.png)](https://sdamirsa.github.io/dot-claude-iff/demo/console.html)
 
 <p align="center">
-  <a href="https://sdamirsa.github.io/dot-claude-iff/demo/console.html"><img src="../docs/assets/btn-demo.svg" alt="Open the demo - the real console, real data, zero setup" width="280"></a>
-  <a href="../../releases/latest"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="280"></a>
-  <a href="https://sdamirsa.github.io/dot-claude-iff/"><img src="../docs/assets/btn-tour.svg" alt="Take the tour - understand, set up, learn by doing" width="280"></a>
+  <a href="https://sdamirsa.github.io/dot-claude-iff/demo/console.html"><img src="../docs/assets/btn-demo.svg" alt="Open the demo - the real console, real data, zero setup" width="240"></a>
+  <a href="../../releases/latest"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="240"></a>
+  <a href="https://sdamirsa.github.io/dot-claude-iff/"><img src="../docs/assets/btn-tour.svg" alt="Take the tour - understand, set up, learn by doing" width="240"></a>
 </p>
 
 <p align="center">

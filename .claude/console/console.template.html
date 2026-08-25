@@ -354,6 +354,11 @@ body {
 .copy-note { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
 /* ---------------------------------------------------------------- MAP tab */
+.analysis-info { border: 1px dashed var(--border-strong); border-radius: 9px;
+  padding: 10px 14px; margin-bottom: 12px; font-size: 12.5px; color: var(--text-dim); }
+.analysis-info p { margin: 2px 0 8px; line-height: 1.55; }
+.analysis-info .ai-title { font-weight: 700; color: var(--text); font-size: 11.5px;
+  text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
 .map-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 10px;
   font-size: 12px; color: var(--text-dim); }
 .legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -1141,11 +1146,10 @@ function urlHost(u) {
 
 function renderSetupGuide(analysis) {
   const wrap = el("div", {});
+  // The what/how lives in the card's info box above; this guide is only the actionable steps.
   wrap.appendChild(el("div", { class: "kv-row" }, [
-    "This labels your raw observability record with an OpenAI-compatible model, tagging events "
-    + "(" + ((analysis.taxonomy || []).join(", ") || "no taxonomy configured yet") + ") so the "
-    + "lane below can plot them. Nothing is sent anywhere until you configure an endpoint and "
-    + "run it yourself."
+    "Taxonomy: " + ((analysis.taxonomy || []).join(", ") || "none configured yet")
+    + ". Nothing is sent anywhere until you configure an endpoint and run it yourself."
   ]));
   wrap.appendChild(el("ul", {}, [
     el("li", { class: "kv-row" }, ["OpenRouter - get a key at openrouter.ai/keys"]),
@@ -1229,6 +1233,21 @@ function renderAnalysisCard() {
   const analysis = DATA.analysis;
   if (!analysis) return null;
   const card = el("div", { class: "card" }, [sectionHead("Retrospective analysis", "analysis")]);
+  const info = el("div", { class: "analysis-info" });
+  info.appendChild(el("div", { class: "ai-title" }, ["What this is"]));
+  info.appendChild(el("p", {}, [
+    "An optional engine that reads the raw record (every captured event, kept in the " +
+    "sibling folder outside this repo) and labels it with a model YOU configure: " +
+    "errors, decisions, system evolution, data evolution."]));
+  info.appendChild(el("div", { class: "ai-title" }, ["How it works"]));
+  info.appendChild(el("p", {}, [
+    "Raw events are sent in parallel chunks to an OpenAI-compatible endpoint with a strict " +
+    "JSON schema; every reply is validated mechanically (an off-taxonomy label fails its " +
+    "whole chunk - nothing is judged by Claude). Plain code then aggregates the labels " +
+    "per day into the Analysis-labels lane above. The API key lives only in your " +
+    "environment; with a local Ollama endpoint nothing leaves this machine, and products " +
+    "stay in the record until a human promotes them into the repo."]));
+  card.appendChild(info);
   card.appendChild(analysis.configured ? renderConfiguredStatus(analysis) : renderSetupGuide(analysis));
   return card;
 }
@@ -1261,9 +1280,6 @@ function storyAnalysisLane(story) {
 function renderStory() {
   const panel = document.getElementById("panel-story");
   clear(panel);
-
-  const analysisCard = renderAnalysisCard();
-  if (analysisCard) panel.appendChild(analysisCard);
 
   panel.appendChild(el("div", { class: "card" }, [sectionHead("Story", "story")]));
 
@@ -1305,6 +1321,9 @@ function renderStory() {
 
   panel.appendChild(storyDataLane(story, xScale));
   panel.appendChild(storyAnalysisLane(story));
+
+  const analysisCard = renderAnalysisCard();
+  if (analysisCard) panel.appendChild(analysisCard);
 }
 
 function buildXScale(story) {

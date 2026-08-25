@@ -7,7 +7,7 @@
       <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0F172A" flood-opacity="0.22"/>
     </filter>
   </defs>
-  <rect x="4" y="4" width="1052" height="86" rx="15" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5" filter="url(#s2)"/>
+  <rect x="4" y="4" width="1052" height="86" rx="15" fill="#FFFFFF" stroke="#2563EB" stroke-width="2.5" stroke-dasharray="10 7" filter="url(#s2)"/>
   <text x="34" y="42" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="21" font-weight="800" fill="#0F172A">The agent's harness and communication are built in.</text>
   <text x="34" y="68" font-family="system-ui, sans-serif" font-size="16.5" fill="#64748B">Partnership is two-sided - your half is five learnable habits.</text>
   <g filter="url(#s2)">
