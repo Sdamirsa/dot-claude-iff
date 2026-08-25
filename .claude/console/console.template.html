@@ -48,11 +48,12 @@ table { border-collapse: collapse; width: 100%; }
   --color-human: #b8922e;
   --color-external: #8a8f98;
 
-  /* connection colors: deliberately a different family (purples/pink) from the node kinds,
-     so edge hue encodes the RELATION and can never be misread as a node's role */
-  --edge-write: #6D28D9;
-  --edge-read: #A855F7;
-  --edge-invoke: #DB2777;
+  /* connection colors: monochrome, deliberately outside the node-kind palette so a line can
+     never be misread as a node's role. write = black solid (the strongest claim), read = the
+     same black dashed (the dash is the differentiator), invoke = gray solid. */
+  --edge-write: #1b1f24;
+  --edge-read: #1b1f24;
+  --edge-invoke: #8a8f98;
 
   --sev0-bg: #c0392b;
   --sev0-fg: #ffffff;
@@ -79,9 +80,9 @@ table { border-collapse: collapse; width: 100%; }
     --border: #2b2f36;
     --border-strong: #3b414b;
     --accent: #6ea8f0;
-    --edge-write: #A78BFA;
-    --edge-read: #C4B5FD;
-    --edge-invoke: #F472B6;
+    --edge-write: #e6e8eb;
+    --edge-read: #e6e8eb;
+    --edge-invoke: #9aa0a8;
     --accent-contrast: #0b1220;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
   }
@@ -96,9 +97,9 @@ table { border-collapse: collapse; width: 100%; }
   --border: #2b2f36;
   --border-strong: #3b414b;
   --accent: #6ea8f0;
-  --edge-write: #A78BFA;
-  --edge-read: #C4B5FD;
-  --edge-invoke: #F472B6;
+  --edge-write: #e6e8eb;
+  --edge-read: #e6e8eb;
+  --edge-invoke: #9aa0a8;
   --accent-contrast: #0b1220;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
 }
