@@ -198,7 +198,8 @@ footer { margin-top: 70px; padding-top: 20px; border-top: 1px solid var(--line);
 .tour-progressbar-fill { height: 100%; background: var(--accent); width: 0%; }
 
 #tour-top { padding-top: 14px; }
-.tour-dots { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tour-dots { display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  padding: 12px 0 2px; }
 .tour-dots .dot { width: 11px; height: 11px; border-radius: 50%; border: 1.6px solid var(--line-strong);
   background: transparent; display: inline-block; padding: 0; text-decoration: none; }
 .tour-dots .dot:hover { border-color: var(--accent); }

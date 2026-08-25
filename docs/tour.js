@@ -105,8 +105,12 @@
     bar.appendChild(fill);
     document.body.insertBefore(bar, document.body.firstChild);
 
+    // The dot strip is NAVIGATION, so it lives with the navigation: directly below the
+    // topbar's separating line, not floating above the brand. Falls back to the #tour-top
+    // slot only if a page somehow lacks a topbar.
+    var topbar = document.querySelector(".topbar");
     var host = document.getElementById("tour-top");
-    if (!host) return;
+    if (!topbar && !host) return;
 
     var nav = document.createElement("nav");
     nav.className = "tour-dots";
@@ -125,7 +129,8 @@
       a.setAttribute("aria-current", isCurrent ? "page" : "false");
       nav.appendChild(a);
     }
-    host.appendChild(nav);
+    if (topbar) topbar.insertAdjacentElement("afterend", nav);
+    else host.appendChild(nav);
   }
 
   function renderBottomNav(currentIndex) {
