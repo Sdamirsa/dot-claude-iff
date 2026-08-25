@@ -17,3 +17,6 @@ settings.local.json
 # compiled python
 __pycache__/
 *.pyc
+
+# Private reference material (personal brand guides, drafts) - reusable locally, never published
+.claude/reference/private/

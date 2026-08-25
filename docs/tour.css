@@ -1,26 +1,40 @@
 /* dot-claude-iff guided tour - shared styles for every page under docs/.
-   Extracted from the original single-page tour. The token system below is
-   deliberately unchanged: a full light palette on bare :root, the same
-   overrides repeated in both the prefers-color-scheme dark query and the
-   explicit [data-theme="dark"] selector, and one reduced-motion rule. */
+
+   SOFT am-tribe BRAND ADOPTION (docs site only; see .claude/reference/brand-identity.md):
+   the light theme takes the am-tribe neutrals (warm off-white #FAF9F6, slate ink) and its
+   three brand hues - Ocean Blue #2563EB as the accent, Earth Green #059669 for ok/growth,
+   Moon Amber #D97706 for warm callouts - in roughly the brand's 80/12/8 hierarchy. Nunito
+   carries the text, JetBrains Mono the code, both from Google Fonts WITH full system-stack
+   fallbacks: if the font host is unreachable the page renders fine. The console and the
+   distribution zips deliberately do NOT carry this brand - they install into other people's
+   repos and stay brand-neutral and zero-fetch.
+
+   The system's four semantic kind colors (agent orange, code blue, data green, human gold)
+   are load-bearing meaning, not decoration, and stay as they are - they happen to echo the
+   brand's ocean/earth/moon family anyway. Dark mode is this docs site's own addition (the
+   brand is light-only) and keeps its existing values. */
+
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 h1,h2,h3,h4,p,ul,ol { margin: 0; }
 
 :root {
-  --bg: #f7f6f3; --panel: #ffffff; --sunken: #eeece7; --ink: #23262b; --dim: #5d636d;
-  --line: #ddd9d1; --line-strong: #b9b4a9;
+  --bg: #FAF9F6; --panel: #ffffff; --sunken: #F1F5F9; --ink: #1E293B; --dim: #64748B;
+  --line: #E2E8F0; --line-strong: #b9c0cc; --heading: #0F172A;
   --agent: #d97a2b; --code: #3272c8; --data: #4a8f4e; --human: #b8922e; --ext: #8a8f98;
-  --accent: #3272c8; --ok: #3d7d41; --warn: #a9541f;
-  --agent-t: rgba(217,122,43,.10); --code-t: rgba(50,114,200,.08);
-  --data-t: rgba(74,143,78,.10); --human-t: rgba(184,146,46,.12); --ext-t: rgba(138,143,152,.12);
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --accent: #2563EB; --ok: #059669; --warn: #D97706;
+  --agent-t: rgba(217,122,43,.10); --code-t: rgba(37,99,235,.08);
+  --data-t: rgba(5,150,105,.10); --human-t: rgba(217,119,6,.12); --ext-t: rgba(138,143,152,.12);
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: "Nunito", "Vazirmatn", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
+h1, h2 { color: var(--heading, var(--ink)); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #15171b; --panel: #1c1f24; --sunken: #101214; --ink: #e5e4e0; --dim: #989ea8;
+    --heading: #f1f0ec;
     --line: #2c3037; --line-strong: #454b54;
     --agent: #e8955a; --code: #7aaeea; --data: #7bc47f; --human: #d9bc5e; --ext: #9aa0a8;
     --accent: #7aaeea; --ok: #7bc47f; --warn: #e08a63;
@@ -30,6 +44,7 @@ h1,h2,h3,h4,p,ul,ol { margin: 0; }
 }
 :root[data-theme="dark"] {
   --bg: #15171b; --panel: #1c1f24; --sunken: #101214; --ink: #e5e4e0; --dim: #989ea8;
+    --heading: #f1f0ec;
   --line: #2c3037; --line-strong: #454b54;
   --agent: #e8955a; --code: #7aaeea; --data: #7bc47f; --human: #d9bc5e; --ext: #9aa0a8;
   --accent: #7aaeea; --ok: #7bc47f; --warn: #e08a63;
@@ -202,3 +217,6 @@ footer { margin-top: 70px; padding-top: 20px; border-top: 1px solid var(--line);
 .btn-nav.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 .btn-nav.primary:hover { color: var(--bg); opacity: .9; }
 .btn-nav-spacer { flex: 0 0 1px; }
+
+/* the one adopted motto - small, quiet, in the footers only */
+.motto { font-style: italic; color: var(--dim); font-size: 13px; margin-bottom: 6px; }
