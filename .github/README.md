@@ -128,6 +128,11 @@ ask *you*.
 <details>
 <summary><b>The five habits of a good partner</b></summary>
 
+*(Writing this from personal experience and worldview - having ADHD, a wife with ADHD, and a
+2-year-old son, the most important philosophy is (1) to communicate with your partner with
+sufficient context, and (2) to communicate with your future self via notes and by wrapping up
+deliverable milestones.)*
+
 The agent's half of collaboration is built in; these five are yours. Full versions with
 examples live in [the Partner Guide](../.claude/README.md#for-humans-how-to-collaborate-with-the-ai).
 
