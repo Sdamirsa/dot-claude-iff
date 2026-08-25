@@ -105,12 +105,27 @@
     bar.appendChild(fill);
     document.body.insertBefore(bar, document.body.firstChild);
 
-    // The dot strip is NAVIGATION, so it lives with the navigation: directly below the
-    // topbar's separating line, not floating above the brand. Falls back to the #tour-top
-    // slot only if a page somehow lacks a topbar.
+    // The whole top navigation is ONE row below the topbar's separating line:
+    // Prev at the far left, the dot strip dead-center, Next at the far right. The side
+    // zones are equal flex spacers, so the dots stay centered even when one side is empty
+    // (no Prev on the first page, no Next on the last).
     var topbar = document.querySelector(".topbar");
     var host = document.getElementById("tour-top");
     if (!topbar && !host) return;
+
+    var row = document.createElement("div");
+    row.className = "tour-topnav";
+
+    var left = document.createElement("div");
+    left.className = "tn-side tn-left";
+    if (currentIndex > 0) {
+      var prev = document.createElement("a");
+      prev.href = PAGES[currentIndex - 1][0];
+      prev.className = "tn-btn";
+      prev.textContent = "← " + PAGES[currentIndex - 1][1];
+      left.appendChild(prev);
+    }
+    row.appendChild(left);
 
     var nav = document.createElement("nav");
     nav.className = "tour-dots";
@@ -129,8 +144,21 @@
       a.setAttribute("aria-current", isCurrent ? "page" : "false");
       nav.appendChild(a);
     }
-    if (topbar) topbar.insertAdjacentElement("afterend", nav);
-    else host.appendChild(nav);
+    row.appendChild(nav);
+
+    var right = document.createElement("div");
+    right.className = "tn-side tn-right";
+    if (currentIndex !== -1 && currentIndex < PAGES.length - 1) {
+      var next = document.createElement("a");
+      next.href = PAGES[currentIndex + 1][0];
+      next.className = "tn-btn tn-next";
+      next.textContent = PAGES[currentIndex + 1][1] + " →";
+      right.appendChild(next);
+    }
+    row.appendChild(right);
+
+    if (topbar) topbar.insertAdjacentElement("afterend", row);
+    else host.appendChild(row);
   }
 
   function renderBottomNav(currentIndex) {
