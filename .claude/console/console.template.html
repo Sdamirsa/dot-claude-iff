@@ -188,8 +188,12 @@ body {
 .panel.active { display: block; }
 
 #token-total { color: var(--sev1-bg); font-weight: 600; }
-#footer-links a { color: var(--text-dim); text-decoration: none; }
-#footer-links a:hover { color: var(--accent); text-decoration: underline; }
+#footer-links { white-space: nowrap; }
+#footer-links a { text-decoration: none; opacity: 0.9; }
+#footer-links a:hover { text-decoration: underline; opacity: 1; }
+#footer-links a.link-repo { color: var(--accent); }
+#footer-links a.link-tour { color: var(--live-color); }
+#footer-links a.link-guide { color: var(--sev2-bg); }
 #demo-banner {
   background: var(--bg-sunken); border-bottom: 1px solid var(--border);
   color: var(--text-dim); font-size: 12.5px; text-align: center; padding: 7px 12px;
@@ -338,6 +342,15 @@ body {
 .copy-note { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
 /* ---------------------------------------------------------------- MAP tab */
+.map-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-bottom: 10px;
+  font-size: 12px; color: var(--text-dim); }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.legend-swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+.legend-swatch.kind-agent { background: var(--color-agent); }
+.legend-swatch.kind-code { background: var(--color-code); }
+.legend-swatch.kind-data { background: var(--color-data); }
+.legend-swatch.kind-human { background: var(--color-human); }
+.legend-swatch.kind-external { background: var(--color-external); }
 .map-toolbar { display: flex; gap: 6px; margin-bottom: 10px; }
 .view-btn {
   background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 999px;
@@ -469,8 +482,8 @@ dialog#node-dialog::backdrop { background: rgba(0,0,0,0.4); }
   </main>
 
   <footer id="statusbar">
-    <span id="footer-meta"><span id="generated-at"></span><span id="token-total"></span><span id="footer-links"></span></span>
-    <span id="warnings-list"></span>
+    <span id="footer-meta"><span id="generated-at"></span><span id="token-total"></span><span id="warnings-list"></span></span>
+    <span id="footer-links"></span>
   </footer>
 </div>
 
@@ -808,6 +821,22 @@ function renderMap() {
     ]));
     return;
   }
+
+  // The color language, stated where the nodes are: what each hue MEANS. Kind is the
+  // component's role, and the legend is what lets a first-time reader decode the map
+  // without leaving the tab.
+  const legend = el("div", { class: "map-legend" });
+  [["agent", "agent - a sub-agent definition"],
+   ["code", "code - a tool, hook or skill that runs"],
+   ["data", "data - a store, config or contract"],
+   ["human", "human - a person in the loop"],
+   ["external", "external - outside this repo"]].forEach(function (pair) {
+    legend.appendChild(el("span", { class: "legend-item" }, [
+      el("span", { class: "legend-swatch kind-" + pair[0] }),
+      pair[1],
+    ]));
+  });
+  panel.appendChild(legend);
 
   const toolbar = el("div", { class: "map-toolbar" });
   ["backbone", "flows"].forEach(function (v) {
@@ -1426,14 +1455,14 @@ function renderChrome() {
     const p = DATA.project || {};
     const items = [];
     if (p.repo_url) {
-      items.push([p.repo_url, p.repo_url.replace(/^https?:\/\/(www\.)?/, "")]);
+      items.push([p.repo_url, p.repo_url.replace(/^https?:\/\/(www\.)?/, ""), "link-repo"]);
     }
-    if (p.tour_url) items.push([p.tour_url, "tour"]);
-    if (p.manual_url) items.push([p.manual_url, "partner guide"]);
-    items.forEach(function (pair) {
-      linksEl.appendChild(document.createTextNode(" · "));
+    if (p.tour_url) items.push([p.tour_url, "tour", "link-tour"]);
+    if (p.manual_url) items.push([p.manual_url, "partner guide", "link-guide"]);
+    items.forEach(function (it, i) {
+      if (i > 0) linksEl.appendChild(document.createTextNode(" · "));
       const a = document.createElement("a");
-      a.href = pair[0]; a.textContent = pair[1];
+      a.href = it[0]; a.textContent = it[1]; a.className = it[2];
       a.target = "_blank"; a.rel = "noopener";
       linksEl.appendChild(a);
     });

@@ -1,27 +1,29 @@
-# dot-claude-iff: what makes us human, built into Claude - adapt to context, evolve to challenge, communicate to partner
+# dot-claude-iff
 
-Agent sessions forget, work unseen, ask badly, and rot. You re-explain context every morning,
-discover problems three sessions late, and answer "should I?" questions that arrive with no
-situation attached. **dot-claude-iff** is a `.claude/` operating system that fixes this at the
-mechanism level: it harnesses the agent, records everything locally, and hands you one live
-page to command it all.
+**What makes us human, built into Claude:** *adapt to context · evolve to challenge · communicate to partner.*
 
-[![The console (command and control) beside Claude Code (interaction)](../docs/assets/hero.png)](https://sdamirsa.github.io/dot-claude-iff/demo/console.html)
+Agent sessions forget, work unseen, ask badly, and rot - so you re-explain context every
+morning, catch problems three sessions late, and answer "should I?" with no situation attached.
+**dot-claude-iff** is a `.claude/` operating system that fixes this at the mechanism level: it
+harnesses the agent, records everything locally, and hands you one live page to command it all.
 
 > **One place to interact** - Claude Code · **one place to control** - the console ·
 > **one command to evolve** - `/project-memory`
 
-<p align="center">
-  <a href="https://sdamirsa.github.io/dot-claude-iff/demo/console.html"><img src="../docs/assets/btn-demo.svg" alt="Open the demo - the real console, real data, zero setup" width="300"></a>
-  <a href="https://sdamirsa.github.io/dot-claude-iff/"><img src="../docs/assets/btn-tour.svg" alt="Take the tour - understand, set up, learn by doing" width="300"></a>
-  <a href="../../releases/latest"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="300"></a>
-</p>
+[![The console (command and control) beside Claude Code (interaction)](../docs/assets/hero.png)](https://sdamirsa.github.io/dot-claude-iff/demo/console.html)
 
-![What agent work usually does, versus what this system makes it do](../docs/assets/keywords.svg)
+<p align="center">
+  <a href="https://sdamirsa.github.io/dot-claude-iff/demo/console.html"><img src="../docs/assets/btn-demo.svg" alt="Open the demo - the real console, real data, zero setup" width="280"></a>
+  <a href="../../releases/latest"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="280"></a>
+  <a href="https://sdamirsa.github.io/dot-claude-iff/"><img src="../docs/assets/btn-tour.svg" alt="Take the tour - understand, set up, learn by doing" width="280"></a>
+</p>
 
 <p align="center">
   <a href="../.claude/README.md#for-humans-how-to-collaborate-with-the-ai"><img src="../docs/assets/banner-human.svg" alt="The agent's harness and communication are built in. Your half is five learnable habits: read the human manual." width="860"></a>
 </p>
+
+![What agent work usually does, versus what this system makes it do](../docs/assets/keywords.svg)
+
 
 **Have an agent adopt it for you** - paste this to Claude Code (or any capable coding agent)
 inside the repo you want it in:
@@ -129,4 +131,4 @@ ask *you*.
 
 ---
 
-<p align="center"><i>"Good unite hearts, cover all, break none."</i></p>
+<p align="center"><i>"We rise by lifting others."</i><br><i>"Good unite hearts, cover all, break none."</i></p>

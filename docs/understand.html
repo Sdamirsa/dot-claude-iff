@@ -57,7 +57,8 @@
   </table></div>
 
   <h3>Privacy, data sharing and telemetry - the honest version</h3>
-  <p>Three truths, stated plainly:</p>
+  <p>Three truths, stated plainly - then the risk map below turns them into exact file
+  locations and what each one is safe to share.</p>
   <ol>
     <li><b>This system phones home to no one.</b> There is no telemetry, no analytics, no
     update check, no CDN. The hooks and tools make exactly zero network calls. The one
@@ -91,7 +92,7 @@ python3 .claude/tools/tests/run_tests.py</code></pre>
   Claude Code will also ask you once whether to <em>trust</em> this project's hooks before
   running any of them - nothing here executes until you say yes.</div>
 
-  <h3>The risk map: where files live, and what each is safe to share</h3>
+  <h3 id="risk-map">The risk map: where files live, and what each is safe to share</h3>
   <p>Three places hold your data, with three very different sensitivities. Read the colors:
   <span class="risk-chip safe">safe to push</span> is committed by design,
   <span class="risk-chip careful">contains your words</span> is committed but carries text you

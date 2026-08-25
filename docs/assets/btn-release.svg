@@ -1,6 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 74" role="img" aria-label="Get the release">
-  <rect x="2" y="2" width="336" height="70" rx="14" fill="#D97706"/>
-  <rect x="2" y="2" width="336" height="70" rx="14" fill="none" stroke="rgba(15,23,42,.18)" stroke-width="1.5"/>
-  <text x="170" y="40" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" font-weight="800" fill="#ffffff">Get the release</text>
-  <text x="170" y="60" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12.5" fill="rgba(255,255,255,.85)">fresh-start zip · adopt-kit zip</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" role="img" aria-label="Get the release">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F59E0B"/><stop offset="1" stop-color="#B45309"/>
+    </linearGradient>
+    <filter id="s" x="-20%" y="-25%" width="140%" height="170%">
+      <feDropShadow dx="0" dy="3.5" stdDeviation="4" flood-color="#0F172A" flood-opacity="0.30"/>
+    </filter>
+  </defs>
+  <g filter="url(#s)">
+    <rect x="5" y="5" width="290" height="50" rx="13" fill="#B45309"/>
+    <rect x="5" y="3" width="290" height="47" rx="13" fill="url(#g)"/>
+    <rect x="7" y="5" width="286" height="12" rx="7" fill="#ffffff" opacity="0.17"/>
+  </g>
+  <text x="150" y="36" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" font-weight="800" fill="#ffffff">Get the release</text>
 </svg>

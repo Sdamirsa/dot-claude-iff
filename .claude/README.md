@@ -6,6 +6,11 @@
 **[Demo console](https://sdamirsa.github.io/dot-claude-iff/demo/console.html)** ·
 **[Guided tour](https://sdamirsa.github.io/dot-claude-iff/)**
 
+| You are | Start with |
+|---|---|
+| **A human partner** | [The daily shape](#the-daily-shape) (the half-screen habit), then [the five collaboration habits](#for-humans-how-to-collaborate-with-the-ai) - the whole learning path is ten minutes of reading and one session of practice. |
+| **An agent** | [The three laws](#three-laws), the session ritual in `CLAUDE.md`, and [the commands](#commands). The protocols in `.claude/protocols/` are your contracts. |
+
 ---
 
 A generalizable `.claude/` operating system for any project.
