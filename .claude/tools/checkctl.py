@@ -485,7 +485,7 @@ def check_no_machine_paths() -> Result:
     skip_dirs = {"__pycache__", "dist", ".git"}
     skip_suffixes = {".zip", ".pyc", ".gz"}
     offenders = []
-    scan_roots = [root / ".claude", root / ".claude-iff", root / ".github"]
+    scan_roots = [root / ".claude", root / ".claude-iff", root / ".github", root / "docs"]
     scan_files = [root / ".gitignore"]
     for base in scan_roots:
         if not base.is_dir():
