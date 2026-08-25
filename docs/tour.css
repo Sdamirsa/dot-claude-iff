@@ -52,6 +52,27 @@ h1 .iff { color: var(--accent); }
 .thesis b { font-weight: 650; }
 
 /* slim per-page top bar - every page except nothing, replaces the old stepnav */
+/* risk map: an annotated file tree with three sensitivity tiers */
+.risk-chip { display: inline-block; font-family: var(--sans); font-size: 10.5px;
+  font-weight: 700; letter-spacing: .03em; border-radius: 999px; padding: 1px 9px;
+  vertical-align: 1px; }
+.risk-chip.safe { color: var(--ok); background: var(--data-t); }
+.risk-chip.careful { color: var(--human); background: var(--human-t); }
+.risk-chip.never { color: #fff; background: #b8433a; }
+:root[data-theme="dark"] .risk-chip.never { background: #c0564f; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .risk-chip.never { background: #c0564f; }
+}
+.risktree { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  margin: 14px 0 18px; overflow-x: auto; }
+.risktree-pre { margin: 0; border: none; background: none; padding: 16px 18px;
+  font-size: 12.5px; line-height: 2; }
+.risktree-pre .rt-zone { color: var(--accent); font-size: 13px; }
+.risktree-pre .rt-note { color: var(--dim); font-style: italic; }
+
+.topbar-links { margin-left: auto; display: flex; gap: 14px; font-size: 13px; }
+.topbar-links a { color: var(--dim); text-decoration: none; }
+.topbar-links a:hover { color: var(--accent); text-decoration: underline; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px;
           padding: 16px 0; border-bottom: 1px solid var(--line); }
 .topbar .brand { font-weight: 700; font-size: 15px; text-decoration: none; color: var(--ink);

@@ -90,6 +90,57 @@ python3 -c "import json; print(json.load(open('.claude/config/observe.json'))['s
 python3 .claude/tools/tests/run_tests.py</code></pre>
   Claude Code will also ask you once whether to <em>trust</em> this project's hooks before
   running any of them - nothing here executes until you say yes.</div>
+
+  <h3>The risk map: where files live, and what each is safe to share</h3>
+  <p>Three places hold your data, with three very different sensitivities. Read the colors:
+  <span class="risk-chip safe">safe to push</span> is committed by design,
+  <span class="risk-chip careful">contains your words</span> is committed but carries text you
+  wrote, and <span class="risk-chip never">never share</span> holds verbatim history that no
+  push can reach - but a zip, a screen share, or a copied folder can.</p>
+
+  <div class="risktree" role="img" aria-label="Annotated file tree: the repo is safe to push, the state files contain your own words, and the sibling record folder plus Claude Code's home directory hold verbatim history that must never be shared.">
+<pre class="risktree-pre">
+<b class="rt-zone">your-repo/</b>                                <span class="risk-chip safe">safe to push</span>
+├─ .claude/                    <span class="rt-note">the system: tools, hooks, skills, config</span>
+│  ├─ state/journal.jsonl      <span class="risk-chip careful">contains your words</span> <span class="rt-note">pointers and notes you typed</span>
+│  ├─ state/needs-human.jsonl  <span class="risk-chip careful">contains your words</span> <span class="rt-note">questions, context, your answers</span>
+│  ├─ Project-log.jsonl        <span class="risk-chip careful">contains your words</span> <span class="rt-note">decisions and summaries</span>
+│  └─ everything else          <span class="risk-chip safe">safe to push</span> <span class="rt-note">code, config, protocols, map cards</span>
+├─ .claude-iff/                <span class="risk-chip safe">safe to push</span> <span class="rt-note">allowlisted totals + integrity anchor only</span>
+└─ .env                        <span class="risk-chip never">never share</span> <span class="rt-note">gitignored; machine paths, keys</span>
+
+<b class="rt-zone">your-repo_claude_iff/</b>  <span class="rt-note">(sibling folder - git cannot reach it)</span>
+├─ spool/ · sealed-raw/        <span class="risk-chip never">never share</span> <span class="rt-note">VERBATIM: prompts, file contents, tool output</span>
+├─ raw/transcripts/            <span class="risk-chip never">never share</span> <span class="rt-note">full conversation copies</span>
+├─ vault/                      <span class="risk-chip never">never share</span> <span class="rt-note">whole-repo + chat snapshots</span>
+├─ analysis/                   <span class="risk-chip careful">contains your words</span> <span class="rt-note">model-written summaries of raw events</span>
+└─ segments/                   <span class="risk-chip safe">metadata only</span> <span class="rt-note">allowlisted: names, times, counts</span>
+
+<b class="rt-zone">~/.claude/</b>  <span class="rt-note">(Claude Code's own home - not this system's, but part of your history)</span>
+└─ projects/&lt;your-repos&gt;/      <span class="risk-chip never">never share</span> <span class="rt-note">every conversation, verbatim, per project</span>
+</pre>
+  </div>
+
+  <p>What this means in practice:</p>
+  <ul>
+    <li><b>A <code>git push</code> is structurally safe.</b> The record and the chat history sit
+    outside the repo, so no push can carry them - and a CHECK gate fails the build if a
+    committed file even names your home directory. The residual risk in a push is the
+    <span class="risk-chip careful">contains your words</span> tier: whatever you typed into
+    pointers, notes, questions and answers IS committed and travels with the repo. Keep
+    secrets out of free text; the system cannot redact what you chose to write there.</li>
+    <li><b>Sharing a folder is not a push.</b> Zipping the project's parent directory, screen
+    sharing a file manager, or backing up to a shared drive can carry
+    <code>your-repo_claude_iff/</code> - which holds everything verbatim, forever, on purpose.
+    Treat that folder like a private diary that happens to sit next to your repo.</li>
+    <li><b>The history outlives the session.</b> <code>~/.claude/projects/</code> keeps full
+    conversations for every repo you have worked in. Anyone with this machine's user account
+    can read them; cloud-sync of your home directory uploads them. That is Claude Code's
+    normal behavior - this system just makes it visible instead of leaving it forgotten.</li>
+    <li><b>Check before you publish anything beyond git:</b>
+    <code>python3 .claude/tools/obsctl.py size</code> shows what the record holds, and the
+    ritual's CHECK phase reports it every run.</li>
+  </ul>
 </section>
 
 <footer>

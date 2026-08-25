@@ -236,13 +236,17 @@ class RenderedHtmlOfflineTests(FixtureCase):
 
         self.assertNotIn(consolectl.TEMPLATE_TOKEN, html)
 
-        # Real external-resource references (script src=, link href=, css url(), fetch to a
-        # remote host, ...) would show up as an http(s):// URL. The one legitimate exception
-        # is the SVG XML namespace URI, which browsers never fetch - it is a namespace name,
-        # not a locator - so it is excluded explicitly rather than by a blind substring check.
-        urls = re.findall(r'https?://[^\s"\'<>]+', html)
-        external = [u for u in urls if not u.startswith("http://www.w3.org/2000/svg")]
-        self.assertEqual(external, [])
+        # The offline guarantee is about what the page FETCHES, not what it links to: script
+        # src=, stylesheet link href=, css url(), and fetch() to a remote host would each make
+        # the page depend on the network. A plain <a href> navigation anchor (the footer's
+        # derived repo/tour/guide links) fetches nothing until a human clicks it, and is
+        # allowed. The SVG namespace URI is a name, never a locator, and never fetched.
+        fetchable = re.findall(
+            r'(?:\bsrc\s*=\s*["\']https?://|<link[^>]{0,200}href\s*=\s*["\']https?://'
+            r'|url\(\s*["\']?https?://|fetch\(\s*["\']https?://)',
+            html,
+        )
+        self.assertEqual(fetchable, [], "the console must fetch nothing external")
 
         data = consolectl.payload()
         rendered = consolectl.render(data)

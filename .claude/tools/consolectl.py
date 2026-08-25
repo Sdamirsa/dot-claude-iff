@@ -345,6 +345,29 @@ def _read_story():
 
 # --------------------------------------------------------------------------- payload
 
+def _repo_links() -> dict:
+    """Derive the repo, tour and manual URLs from the git remote - never hardcoded, because
+    this system installs into other repos. No remote (or a non-GitHub one) degrades each
+    link to None and the footer simply omits it."""
+    remote = _lib.git_output(["config", "--get", "remote.origin.url"]).strip()
+    repo = None
+    if remote.startswith("git@") and ":" in remote:
+        host, _, path = remote[4:].partition(":")
+        repo = f"https://{host}/{path}"
+    elif remote.startswith(("http://", "https://")):
+        repo = remote
+    if repo and repo.endswith(".git"):
+        repo = repo[:-4]
+    links = {"repo_url": repo, "tour_url": None, "manual_url": None}
+    if repo:
+        # /blob/HEAD/ resolves on GitHub regardless of the default branch's name.
+        links["manual_url"] = repo + "/blob/HEAD/.claude/README.md"
+        m = re.match(r"https://github\.com/([^/]+)/([^/]+)$", repo)
+        if m:
+            links["tour_url"] = f"https://{m.group(1).lower()}.github.io/{m.group(2)}/"
+    return links
+
+
 def payload(live: bool = False) -> dict:
     """Build the ONE console payload. Called by `build` (live=False) and by console.py's
     /live/console.json handler (live=True). Never raises on a missing/malformed source
@@ -389,6 +412,7 @@ def payload(live: bool = False) -> dict:
             # the only situation where those links work anyway.
             "root": None,
             "system_version": _lib.system_version(),
+            **_repo_links(),
         },
         "now": now,
         "tokens": tokens,

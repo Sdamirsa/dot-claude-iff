@@ -1,24 +1,24 @@
 {
-  "run_id": "20260825T132020Z-4a1255",
-  "started": "2026-08-25T13:20:20Z",
+  "run_id": "20260825T133141Z-000ed9",
+  "started": "2026-08-25T13:31:41Z",
   "status": "done",
   "phase": "publish",
   "step": null,
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-08-25T13:20:20Z",
+      "ts": "2026-08-25T13:31:41Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "11 events parse",
+          "message": "12 events parse",
           "details": []
         },
         {
           "name": "heartbeat_present",
           "status": "OK",
-          "message": "last turn ended 3 min ago",
+          "message": "last turn ended 9 min ago",
           "details": []
         },
         {
@@ -29,7 +29,7 @@
             "map_scan: inputs changed since the last run (POLISH will rebuild)",
             "story_build: inputs changed since the last run (POLISH will rebuild)",
             "console_build: inputs changed since the last run (POLISH will rebuild)",
-            "demo_build: has never run through the ritual",
+            "demo_build: inputs changed since the last run (POLISH will rebuild)",
             "dist_build: inputs changed since the last run (POLISH will rebuild)"
           ]
         },
@@ -38,12 +38,10 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 6 warning(s)",
-            "  WARN   config.memory: auto.hash is stale (source changed since last scan; description may be stale)",
+            "MAP LINT: 0 error(s), 4 warning(s)",
             "  WARN   console.template: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
             "  WARN   tool._lib: layer is null (unplaced)",
-            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   tool.consolectl: auto.hash is stale (source changed since last scan; description may be stale)"
           ]
         },
@@ -64,13 +62,13 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 15.2 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "message": "record is 16.0 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
-            "raw: 14.7 MB",
-            "spool: 241.5 KB",
+            "raw: 15.5 MB",
+            "spool: 268.1 KB",
             "segments: 202.4 KB",
             "sealed-raw: 20.1 KB",
-            "cursors.json: 4.3 KB"
+            "cursors.json: 4.5 KB"
           ]
         },
         {
@@ -95,7 +93,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-08-25T13:20:27Z",
+      "ts": "2026-08-25T13:31:42Z",
       "results": [
         {
           "name": "map_scan",
@@ -137,7 +135,7 @@
     },
     "publish": {
       "status": "OK",
-      "ts": "2026-08-25T13:20:27Z",
+      "ts": "2026-08-25T13:31:42Z",
       "results": [
         {
           "name": "polish_complete",
@@ -172,6 +170,6 @@
       ]
     }
   },
-  "last_completed": "2026-08-25T13:20:28Z",
-  "updated": "2026-08-25T13:20:28Z"
+  "last_completed": "2026-08-25T13:31:42Z",
+  "updated": "2026-08-25T13:31:42Z"
 }

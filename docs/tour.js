@@ -54,6 +54,26 @@
     } catch (e) {}
   }
 
+  // The three-surface navigation: every tour page links to the demo and the repo (and the
+  // demo banner links back here). Injected once into the shared topbar so all pages agree.
+  var REPO_URL = "https://github.com/Sdamirsa/dot-claude-iff";
+
+  function initTopbarLinks() {
+    var topbar = document.querySelector(".topbar");
+    var themeBtn = document.getElementById("theme");
+    if (!topbar || !themeBtn || topbar.querySelector(".topbar-links")) return;
+    var box = document.createElement("nav");
+    box.className = "topbar-links";
+    box.setAttribute("aria-label", "Site");
+    [["demo/console.html", "Demo ↗", true], [REPO_URL, "Repo ↗", true]].forEach(function (it) {
+      var a = document.createElement("a");
+      a.href = it[0]; a.textContent = it[1];
+      if (it[2]) { a.target = "_blank"; a.rel = "noopener"; }
+      box.appendChild(a);
+    });
+    topbar.insertBefore(box, themeBtn);
+  }
+
   function initTheme() {
     var btn = document.getElementById("theme");
     if (!btn) return;
@@ -162,6 +182,7 @@
 
   function init() {
     initTheme();
+    initTopbarLinks();
     initReset();
 
     var body = document.body;
