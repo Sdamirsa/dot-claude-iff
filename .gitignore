@@ -1,0 +1,19 @@
+# Source material under analysis - never commit or push these repos (one is private)
+temp-to-analyse/
+
+# Safety net: secrets and machine-local settings, wherever they appear
+.env
+*.env
+settings.local.json
+
+# The record itself lives OUTSIDE this repo, in the sibling <repo>_claude_iff/ folder, so it
+# needs no ignore rule: git cannot reach it at all. Only the anchor and the redacted daily
+# rollups live in .claude-iff/, and those are meant to be committed.
+#
+# Local console runtime, should it ever be pointed inside the tree:
+.claude/console/*.pid
+.claude/console/*.log
+
+# compiled python
+__pycache__/
+*.pyc

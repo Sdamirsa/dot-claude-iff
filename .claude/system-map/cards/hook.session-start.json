@@ -1,0 +1,27 @@
+{
+  "id": "hook.session-start",
+  "kind": "code",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "Session Start",
+  "path": ".claude/hooks/session-start.sh",
+  "description": "session-start.sh - the orientation hook. Its stdout is injected into the fresh session's context, which makes it the one place where \"where were we\" arrives without anyone asking. Three jobs, in order of importance: 1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts). 2. Nudge if the ritual has not run in a while. The nudge lives HERE rather than on SessionEnd because SessionStart's stdout->context path is the one we can prove works. 3. Optionally start the console server, guarded by a pidfile so N sessions start one server. Read-only with respect to project state: it never writes to the journal.",
+  "reads": [
+    "store.journal",
+    "store.memory_run",
+    "config.console"
+  ],
+  "writes": [],
+  "invokes": [
+    "tool.statectl",
+    "console.server"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "a5d72200221b89bbb9186fdb95b7eea6476c99cb78430a6c99895f447f22284f",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

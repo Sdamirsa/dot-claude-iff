@@ -1,0 +1,20 @@
+{
+  "id": "config.policy",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Policy",
+  "path": ".claude/config/policy.json",
+  "description": "Access policy enforced by hooks/policy-gate.sh (PreToolUse on Write|Edit|NotebookEdit|Bash).",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "a405f7d3add2c23bed27a65f61d8c601e9400d81f7df38bf516a223ddaddc8c4",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

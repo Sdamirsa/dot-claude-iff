@@ -1,0 +1,1 @@
+- [phase-2-implementation](20260825-phase-2-implementation.md) - archived 2026-08-25 - Phase 2 build complete and self-hosting; superseded by real use.

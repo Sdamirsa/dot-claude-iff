@@ -1,0 +1,23 @@
+{
+  "id": "store.rollups",
+  "kind": "data",
+  "layer": "OBSERVE",
+  "package": null,
+  "title": "Daily rollups",
+  "path": ".claude-iff/obs/rollups",
+  "description": "Daily allowlisted totals only, committed in-repo (the iff test).",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "read-only"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

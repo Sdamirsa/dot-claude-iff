@@ -1,0 +1,24 @@
+{
+  "id": "console.server",
+  "kind": "code",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Console Server",
+  "path": ".claude/console/console.py",
+  "description": "console.py - hardened stdlib HTTP server for the console.",
+  "reads": [
+    "config.console"
+  ],
+  "writes": [],
+  "invokes": [
+    "tool.consolectl"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "84d5b861273d840c42c9d7d15f912e5057300f9b8d0bdde37d68258ea130bd5a",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

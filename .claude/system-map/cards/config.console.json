@@ -1,0 +1,20 @@
+{
+  "id": "config.console",
+  "kind": "data",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Console",
+  "path": ".claude/config/console.json",
+  "description": "Console serving.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "418d48a02db332eeae40061b3959335795f87aac63d046a7b93e866a49c07520",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

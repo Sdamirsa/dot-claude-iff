@@ -1,0 +1,24 @@
+{
+  "id": "tool.distctl",
+  "kind": "code",
+  "layer": "EVOLVE",
+  "package": null,
+  "title": "Distctl",
+  "path": ".claude/tools/distctl.py",
+  "description": "distctl.py - build the distribution zips: the system, packaged for other repos.",
+  "reads": [
+    "store.cards"
+  ],
+  "writes": [
+    "store.dist"
+  ],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "dda98c6dcab60802786e7709c9ead6014949c523b1d4e64aa05c9959e83ec8dd",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

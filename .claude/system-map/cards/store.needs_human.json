@@ -1,0 +1,24 @@
+{
+  "id": "store.needs_human",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Needs-human queue",
+  "path": ".claude/state/needs-human.jsonl",
+  "description": "Async needs-human queue: SEV0-3 bands, queue-as-view. Bundles the append-only source (needs-human.jsonl) and its derived projection (needs-human.json).",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "append-only",
+    "derived"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "store.anchor",
+  "kind": "data",
+  "layer": "OBSERVE",
+  "package": null,
+  "title": "Seal anchor",
+  "path": ".claude-iff/obs/anchor.json",
+  "description": "SHA-256 chain over sealed segments; tamper evidence for the record.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-08-25T12:26:41Z",
+  "counts": {
+    "open": 0,
+    "resolved": 1,
+    "by_band": {
+      "SEV0": 0,
+      "SEV1": 0,
+      "SEV2": 0,
+      "SEV3": 0
+    }
+  },
+  "tasks": [],
+  "resolved_recent": [
+    {
+      "id": "NH-1",
+      "title": "Fill model-prices.json with verified prices",
+      "answer": "billing set to subscription: costs read 'in plan', token counts tracked; api mode with a filled price table stays one knob away",
+      "resolved": "2026-08-25T12:26:41Z"
+    }
+  ]
+}

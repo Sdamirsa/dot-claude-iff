@@ -1,0 +1,30 @@
+{
+  "id": "tool.mapctl",
+  "kind": "code",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Mapctl",
+  "path": ".claude/tools/mapctl.py",
+  "description": "",
+  "reads": [
+    "store.cards",
+    "map.layers"
+  ],
+  "writes": [
+    "store.cards",
+    "store.map"
+  ],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "625c8f68eaeda460657ff881907134047337917e03c129d60c62f63373059944",
+    "suggested_reads": [
+      "store.map"
+    ],
+    "suggested_writes": [
+      "store.map"
+    ]
+  }
+}

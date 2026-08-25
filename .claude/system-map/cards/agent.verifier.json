@@ -1,0 +1,22 @@
+{
+  "id": "agent.verifier",
+  "kind": "agent",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "verifier",
+  "path": ".claude/agents/verifier.md",
+  "description": "Adversarial quality-check agent. Given a claim, a deliverable, or done-criteria, independently verify it against reality (run tests, read outputs, recompute numbers) and return a verdict as a handshake envelope. Use after substantial work products, before reporting \"done\" on multi-step tasks, or whenever a skill's QC step calls for independent verification. NOT for producing or fixing work, it only checks.",
+  "reads": [],
+  "writes": [
+    "store.handshakes"
+  ],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "fd9ad5764e7cf0bca510f1ded00529627fba204abf3e6a3ffb9538d84d2a4d15",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

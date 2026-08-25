@@ -1,0 +1,21 @@
+{
+  "id": "store.heartbeat",
+  "kind": "data",
+  "layer": "OBSERVE",
+  "package": null,
+  "title": "Heartbeat",
+  "path": ".claude/state/heartbeat.json",
+  "description": "Liveness signal, overwritten once per turn by the Stop hook. Not the resume guarantee - the journal pointer is.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

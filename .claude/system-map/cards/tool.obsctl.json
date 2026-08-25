@@ -1,0 +1,43 @@
+{
+  "id": "tool.obsctl",
+  "kind": "code",
+  "layer": "OBSERVE",
+  "package": null,
+  "title": "Obsctl",
+  "path": ".claude/tools/obsctl.py",
+  "description": "",
+  "reads": [
+    "config.observe",
+    "config.model-prices",
+    "config.memory",
+    "store.record",
+    "store.rollups",
+    "store.journal"
+  ],
+  "writes": [
+    "store.record",
+    "store.rollups",
+    "store.anchor",
+    "store.story"
+  ],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "8699542a763243f52c3f32a34991117ff0932cbcd754a2b1aacc55885ecd8083",
+    "suggested_reads": [
+      "store.anchor",
+      "store.journal",
+      "store.record",
+      "store.rollups",
+      "store.story"
+    ],
+    "suggested_writes": [
+      "store.anchor",
+      "store.record",
+      "store.rollups",
+      "store.story"
+    ]
+  }
+}

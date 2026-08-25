@@ -1,0 +1,28 @@
+{
+  "id": "skill.project-memory",
+  "kind": "code",
+  "layer": "EVOLVE",
+  "package": null,
+  "title": "project-memory",
+  "path": ".claude/skills/project-memory/SKILL.md",
+  "description": "The one ritual - check, polish, publish, evolve. Invoke at the end of a working session, after a milestone, or when the user says \"update memory\", \"log this session\", \"update the log\", \"curate memory\", \"update status\", \"wrap up\", or \"run the ritual\". Add --hard for a dedicated maturation session that deeply refines the .claude system itself. NOT for planning or resuming work (use /plan-task), and NOT for a cold \"where were we\" (read .claude/STATUS.md).",
+  "reads": [],
+  "writes": [
+    "store.project_log",
+    "store.lessons"
+  ],
+  "invokes": [
+    "tool.checkctl",
+    "tool.statectl",
+    "agent.anatomist",
+    "agent.retro-analyst"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "089fb3274a86a739aa12c056811e2a4eaad1a6386f3ed3b26e79e390802e4b3e",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

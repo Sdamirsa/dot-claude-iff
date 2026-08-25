@@ -1,0 +1,41 @@
+{
+  "id": "tool.statectl",
+  "kind": "code",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "Statectl",
+  "path": ".claude/tools/statectl.py",
+  "description": "statectl.py - the continuity engine: journal in, projections out.",
+  "reads": [
+    "store.journal",
+    "store.needs_human",
+    "store.heartbeat"
+  ],
+  "writes": [
+    "store.journal",
+    "store.session",
+    "store.handoff",
+    "store.needs_human"
+  ],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "7ed1c2ad1cb2d8f9bc06b5cfd9ebcc932d0a0d8f4eaec7d4c1511f26cfcf7f64",
+    "suggested_reads": [
+      "store.handoff",
+      "store.heartbeat",
+      "store.journal",
+      "store.needs_human",
+      "store.session"
+    ],
+    "suggested_writes": [
+      "store.handoff",
+      "store.heartbeat",
+      "store.journal",
+      "store.needs_human",
+      "store.session"
+    ]
+  }
+}

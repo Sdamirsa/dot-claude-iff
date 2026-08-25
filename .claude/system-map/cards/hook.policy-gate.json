@@ -1,0 +1,22 @@
+{
+  "id": "hook.policy-gate",
+  "kind": "code",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Policy Gate",
+  "path": ".claude/hooks/policy-gate.sh",
+  "description": "policy-gate.sh - PreToolUse gate on Write|Edit|NotebookEdit|Bash. LAW 2, gate half: THIS HOOK FAILS CLOSED. If the policy file is unreadable or malformed, writes under the hardcoded fallback tree are DENIED and everything else is allowed - a broken policy can neither expose the protected tree nor brick the whole session. Two rings: 1. The record (RECORD_ROOT and .claude-iff/) is write-denied to EVERY identity, including the main session. It is written only by the capture hook's append and by obsctl. This is what \"append-only\" actually rests on; the committed anchor is what makes it evidence. 2. The protected tree (.claude/hooks, config, agents, protocols, settings) is main-session only. A sub-agent must never be able to edit the gate that polices it or the ritual registry it runs under. Identity comes from the payload's agent_type/agent_name; absent means the main session.",
+  "reads": [
+    "config.policy"
+  ],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "cefcd7533ef40c5517b28952ded8145402f8512fc6362fd01a2fae244e16649a",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

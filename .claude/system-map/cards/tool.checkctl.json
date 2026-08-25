@@ -1,0 +1,49 @@
+{
+  "id": "tool.checkctl",
+  "kind": "code",
+  "layer": "EVOLVE",
+  "package": null,
+  "title": "Checkctl",
+  "path": ".claude/tools/checkctl.py",
+  "description": "checkctl.py - the ritual runner: CHECK, POLISH, PUBLISH mechanics for /project-memory.",
+  "reads": [
+    "config.memory",
+    "config.registry",
+    "config.model-prices",
+    "config.observe",
+    "store.journal",
+    "store.heartbeat",
+    "store.memory_run",
+    "store.needs_human"
+  ],
+  "writes": [
+    "store.memory_run",
+    "store.generators"
+  ],
+  "invokes": [
+    "tool.mapctl",
+    "tool.obsctl",
+    "tool.consolectl",
+    "tool.statectl"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "002e79ad34a08ea728e52a5d8106e277a93816100221acdacf0653dde2da6346",
+    "suggested_reads": [
+      "store.generators",
+      "store.heartbeat",
+      "store.journal",
+      "store.memory_run",
+      "store.needs_human"
+    ],
+    "suggested_writes": [
+      "store.generators",
+      "store.heartbeat",
+      "store.journal",
+      "store.memory_run",
+      "store.needs_human"
+    ]
+  }
+}

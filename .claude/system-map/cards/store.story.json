@@ -1,0 +1,23 @@
+{
+  "id": "store.story",
+  "kind": "data",
+  "layer": "OBSERVE",
+  "package": null,
+  "title": "Story feed",
+  "path": ".claude/state/story-feed.json",
+  "description": "Dual-clock narrative feed: operations & errors, anatomy evolution, data evolution.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "derived"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

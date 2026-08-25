@@ -1,0 +1,20 @@
+{
+  "id": "protocol.evolution",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Evolution: how .claude changes",
+  "path": ".claude/protocols/evolution.md",
+  "description": "Evolution: how .claude changes. ## Principle `.claude` is a living system: the project teaches it what it needs.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "db36bbd1d498e121ae3ce40432c9e4042cd7b3c1a9b207b9b07d6be086ae18ae",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

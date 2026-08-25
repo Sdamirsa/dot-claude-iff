@@ -1,0 +1,62 @@
+{
+  "_comment": [
+    "The ritual registry: which steps /project-memory runs, in which phase, in order.",
+    "LAW 1 (anti-rot): every generator in this system is listed here and runs ONLY through",
+    "the ritual. A generator not registered here will silently rot - that is not a theory,",
+    "it is what happened to the source system's history timeline for 2.5 months.",
+    "",
+    "System steps are NAMES bound to argv in checkctl.py (CHECKS for check, GENERATORS for",
+    "polish, PUBLISH_STEPS for publish) - this file never carries a shell string for them.",
+    "Project steps DO carry an argv LIST (never a string,",
+    "never shell=True): a project must be able to run its own tests. This file lives in the",
+    "protected config tree, so adding one is a main-session, user-gated edit."
+  ],
+  "version": 1,
+  "push": "ask",
+  "push_options": ["always", "ask", "never"],
+  "phases": {
+    "check": [
+      "journal_parses",
+      "heartbeat_present",
+      "generator_freshness",
+      "cards_lint",
+      "config_registry_lint",
+      "price_table",
+      "record_size",
+      "needs_human_sync",
+      "task_reality",
+      "no_machine_paths"
+    ],
+    "polish": [
+      "map_scan",
+      "map_compile",
+      "story_build",
+      "console_build",
+      "dist_build"
+    ],
+    "publish": [
+      "obs_ingest",
+      "obs_seal",
+      "obs_rollup",
+      "obs_anchor"
+    ],
+    "evolve": []
+  },
+  "project_steps": {
+    "_comment": "Project-registered steps. kind: check|polish|generator. argv is a LIST, run without a shell. Example: {\"name\": \"pytest\", \"kind\": \"check\", \"argv\": [\"uv\", \"run\", \"pytest\", \"-q\"], \"required\": true}",
+    "check": [],
+    "polish": [],
+    "generator": []
+  },
+  "data_series": {
+    "_comment": "Project counters plotted on the STORY tab's data-evolution lane. Each entry: {\"name\": \"...\", \"kind\": \"file_count\"|\"jsonl_lines\", \"path\": \"relative/path\"}.",
+    "series": []
+  },
+  "snapshot": {
+    "_comment": "Vault snapshots at PUBLISH. Off by default; the vault lives in RECORD_ROOT, never in the repo.",
+    "enabled": false,
+    "include_claude_projects": true,
+    "keep": 8,
+    "min_free_multiple": 2.0
+  }
+}

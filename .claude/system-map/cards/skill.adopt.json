@@ -1,0 +1,29 @@
+{
+  "id": "skill.adopt",
+  "kind": "code",
+  "layer": "EVOLVE",
+  "package": null,
+  "title": "adopt",
+  "path": ".claude/skills/adopt/SKILL.md",
+  "description": "Install the dot-claude-iff system into a target project, or upgrade an already-installed one. Invoke on \"adopt this system into <path>\", \"set up my project like this\", \"install the claude system\", \"bootstrap .claude for <project>\", or \"/adopt --upgrade\" to bring an installed project's system up to date. A rare, high-blast-radius operation: runs only when the user explicitly asks for it.",
+  "reads": [],
+  "writes": [
+    "config.registry"
+  ],
+  "invokes": [
+    "tool._lib",
+    "tool.checkctl",
+    "tool.mapctl",
+    "tool.consolectl",
+    "tool.statectl",
+    "agent.anatomist"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "6d5f10c42d64b15ffdc0de51929c90d40d190f037dfae1333cdbb9b8e05892e1",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

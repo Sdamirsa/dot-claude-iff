@@ -1,0 +1,23 @@
+{
+  "id": "store.generators",
+  "kind": "data",
+  "layer": "EVOLVE",
+  "package": null,
+  "title": "Generator ledger",
+  "path": ".claude/state/generators.json",
+  "description": "Law-1 anti-rot ledger: content hash of each generator's inputs/output, stamped after it runs through the ritual.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "derived"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

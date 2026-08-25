@@ -1,0 +1,56 @@
+# Release workflow: tests gate, then the two distribution zips become a GitHub Release.
+#
+# This file lives outside .claude/ because GitHub mandates the .github/ path (the same
+# "iff it must" exception as the root .gitignore). The zips themselves are built by
+# .claude/tools/distctl.py, the same registered generator the ritual runs, so what a
+# release carries is byte-identical to what the repo ships.
+#
+# To cut a release:   git tag v0.1.0 && git push origin v0.1.0
+# Or run it by hand:  Actions tab -> release -> Run workflow
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # gh release create needs to write releases
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test (the gate - no release over a red suite)
+        run: |
+          python3 .claude/tools/tests/run_tests.py -q
+      - name: Build distribution zips
+        run: |
+          python3 .claude/tools/distctl.py build
+          ls -la .claude/dist/
+
+      - name: Create the GitHub Release with both zips
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_REF_TYPE}" != "tag" ]; then
+            TAG="manual-$(date -u +%Y%m%d-%H%M%S)"
+            git tag "$TAG" && git push origin "$TAG"
+          fi
+          {
+            echo "One place to interact (Claude Code), one place to control (the console), one command to evolve (/project-memory)."
+            echo ""
+            echo "**Fresh start**: unzip \`dot-claude-iff-fresh.zip\` into a new or empty repo root and follow its \`START-HERE.md\`."
+            echo "**Existing repo**: unzip \`dot-claude-iff-adopt-kit.zip\` anywhere outside your repo and follow its \`ADOPT.md\` - your files are merged, never overwritten."
+            echo ""
+            echo "Manual: \`.claude/README.md\` in either zip."
+          } > /tmp/release-notes.md
+          gh release create "$TAG" \
+            ".claude/dist/dot-claude-iff-fresh.zip#Fresh start (unzip into a new repo)" \
+            ".claude/dist/dot-claude-iff-adopt-kit.zip#Adopt kit (for an existing repo)" \
+            --title "dot-claude-iff $TAG" \
+            --notes-file /tmp/release-notes.md

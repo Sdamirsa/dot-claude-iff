@@ -1,0 +1,23 @@
+{
+  "id": "store.handoff",
+  "kind": "data",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "Handoff note",
+  "path": ".claude/state/HANDOFF.md",
+  "description": "Derived human-readable resume note, projected from the journal.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "derived"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

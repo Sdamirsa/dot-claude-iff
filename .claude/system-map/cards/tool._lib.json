@@ -1,0 +1,34 @@
+{
+  "id": "tool._lib",
+  "kind": "code",
+  "layer": null,
+  "package": null,
+  "title": "Lib",
+  "path": ".claude/tools/_lib.py",
+  "description": "_lib.py - shared foundation for the dot-claude-iff tools.",
+  "reads": [
+    "config.policy",
+    "config.observe",
+    "config.registry",
+    "store.journal"
+  ],
+  "writes": [
+    "store.journal",
+    "store.record"
+  ],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "d67a3f597fa453cd4c7a03ccdeb46530721ed0bb8020b9296cbcd7557165f1f1",
+    "suggested_reads": [
+      "store.journal",
+      "store.record"
+    ],
+    "suggested_writes": [
+      "store.journal",
+      "store.record"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "store.handshakes",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Handshake envelopes",
+  "path": ".claude/state/handshakes",
+  "description": "Agent-to-agent Structured Return envelopes (stub at dispatch, envelope at delivery).",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "envelope"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

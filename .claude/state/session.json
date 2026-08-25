@@ -1,0 +1,42 @@
+{
+  "generated_at": "2026-08-25T12:49:19Z",
+  "last_event_ts": "2026-08-25T12:26:09Z",
+  "session": {
+    "id": "phase2-build",
+    "phase": "implementation",
+    "started": "2026-08-25T08:32:09Z"
+  },
+  "resume_pointer": "prepared for first push: squash to one commit, push, then tag v0.1.0",
+  "open_loops": [],
+  "open_intents": [],
+  "tasks": [],
+  "counts": {
+    "events": 10,
+    "tasks_total": 0,
+    "tasks_done": 0,
+    "tasks_open": 0,
+    "open_loops": 0,
+    "milestones": 2,
+    "decisions": 0,
+    "tooling": 0
+  },
+  "heartbeat": {
+    "ts": "2026-08-25T12:44:19Z",
+    "note": "turn ended"
+  },
+  "recent_milestones": [
+    {
+      "id": "M1",
+      "title": "foundation, hooks and ritual runner landed",
+      "ts": "2026-08-25T08:32:09Z"
+    },
+    {
+      "id": "M2",
+      "title": "Phase 2 complete: system self-hosting, 140 tests green, review triaged",
+      "ts": "2026-08-25T09:11:25Z"
+    }
+  ],
+  "recent_decisions": [],
+  "recent_tooling": [],
+  "open_gates": []
+}

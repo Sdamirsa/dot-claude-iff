@@ -1,0 +1,21 @@
+{
+  "id": "store.cards",
+  "kind": "data",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Cards",
+  "path": ".claude/system-map/cards",
+  "description": "One JSON card per component; the system map's own source of truth.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

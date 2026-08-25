@@ -1,0 +1,23 @@
+{
+  "id": "store.project_log",
+  "kind": "data",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "Project log",
+  "path": ".claude/Project-log.jsonl",
+  "description": "Append-only decision/deliverable/milestone/mistake/tooling log.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "append-only"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

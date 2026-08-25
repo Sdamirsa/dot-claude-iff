@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot-claude-iff console</title>
+<script>
+// Applied before first paint so a saved theme choice never flashes the wrong palette.
+(function () {
+  try {
+    var t = localStorage.getItem('console-theme');
+    if (t === 'light' || t === 'dark') {
+      document.documentElement.setAttribute('data-theme', t);
+    }
+  } catch (e) { /* localStorage unavailable (private mode, file://, etc.) - default theme stands */ }
+})();
+</script>
+<style>
+/* ---------------------------------------------------------------- reset */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+h1, h2, h3, h4, p, ul, ol, dl, dd { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button { font: inherit; color: inherit; }
+a { color: inherit; }
+table { border-collapse: collapse; width: 100%; }
+
+/* ---------------------------------------------------------------- theme tokens
+   Full light palette lives on bare :root. Dark overrides are defined TWICE:
+   once for automatic prefers-color-scheme, once for the explicit data-theme
+   toggle - so both the OS default and the manual toggle work in both
+   directions. No color is ever defined only inside a media/attr block. */
+:root {
+  --bg: #f4f5f7;
+  --bg-elevated: #ffffff;
+  --bg-sunken: #e9ebef;
+  --text: #1b1f24;
+  --text-dim: #5b6270;
+  --border: #d8dce2;
+  --border-strong: #b7bdc7;
+  --accent: #3272c8;
+  --accent-contrast: #ffffff;
+  --shadow: 0 1px 3px rgba(20, 22, 26, 0.12);
+
+  --color-agent: #d97a2b;
+  --color-code: #3272c8;
+  --color-data: #4a8f4e;
+  --color-human: #b8922e;
+  --color-external: #8a8f98;
+
+  --sev0-bg: #c0392b;
+  --sev0-fg: #ffffff;
+  --sev1-bg: #d97a2b;
+  --sev1-fg: #ffffff;
+  --sev2-bg: #b8922e;
+  --sev2-fg: #1b1f24;
+  --sev3-bg: #8a8f98;
+  --sev3-fg: #ffffff;
+
+  --live-color: #2e9e4a;
+  --radius: 8px;
+  --mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161a;
+    --bg-elevated: #1c1f24;
+    --bg-sunken: #101215;
+    --text: #e6e8eb;
+    --text-dim: #9aa1ac;
+    --border: #2b2f36;
+    --border-strong: #3b414b;
+    --accent: #6ea8f0;
+    --accent-contrast: #0b1220;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #14161a;
+  --bg-elevated: #1c1f24;
+  --bg-sunken: #101215;
+  --text: #e6e8eb;
+  --text-dim: #9aa1ac;
+  --border: #2b2f36;
+  --border-strong: #3b414b;
+  --accent: #6ea8f0;
+  --accent-contrast: #0b1220;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------------------------------------------------------------- base layout */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+#app {
+  max-width: 720px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 960px) {
+  #app { max-width: 1080px; }
+  .grid-2-wide { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+}
+
+#topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.brand-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.pulse-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--text-dim);
+  flex: 0 0 auto;
+}
+.pulse-dot.live {
+  background: var(--live-color);
+  box-shadow: 0 0 0 0 rgba(46, 158, 74, 0.6);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(46, 158, 74, 0.55); }
+  70% { box-shadow: 0 0 0 6px rgba(46, 158, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 158, 74, 0); }
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.badge.badge-static { color: var(--sev1-bg); border-color: var(--sev1-bg); }
+.badge.badge-live { color: var(--live-color); border-color: var(--live-color); }
+
+#tabs { display: flex; gap: 2px; margin-left: auto; }
+.tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+}
+.tab-btn:hover { background: var(--bg-sunken); }
+.tab-btn.active { color: var(--accent); background: var(--bg-sunken); border-color: var(--border); }
+
+#theme-toggle {
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 30px; height: 30px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+#panels { flex: 1 1 auto; padding: 12px; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+#statusbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+#warnings-list { color: var(--sev1-bg); }
+
+/* ---------------------------------------------------------------- cards / sections */
+.card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.card h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.card h3 { font-size: 13px; margin-bottom: 6px; }
+
+.freshness-chip {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.freshness-chip.is-live { color: var(--live-color); border-color: var(--live-color); }
+
+.mono { font-family: var(--mono); font-size: 12.5px; word-break: break-word; }
+
+.pointer-box {
+  font-family: var(--mono);
+  font-size: 13px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.kv-row { display: flex; gap: 10px; padding: 3px 0; font-size: 13px; }
+.kv-row .k { color: var(--text-dim); min-width: 90px; flex: 0 0 auto; }
+.kv-row .v { min-width: 0; }
+
+.empty-state {
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 16px 4px;
+  text-align: center;
+}
+
+/* -- chips: kind + sev band -- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #fff;
+  white-space: nowrap;
+}
+.chip-agent { background: var(--color-agent); }
+.chip-code { background: var(--color-code); }
+.chip-data { background: var(--color-data); }
+.chip-human { background: var(--color-human); color: #1b1f24; }
+.chip-external { background: var(--color-external); }
+
+.sev-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.sev-chip {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700;
+}
+.sev-chip .n { font-size: 15px; }
+.sev-chip.sev0 { background: var(--sev0-bg); color: var(--sev0-fg); box-shadow: 0 0 0 2px var(--sev0-bg), 0 0 8px rgba(192,57,43,0.6); }
+.sev-chip.sev0.has { animation: sev0-throb 1.6s ease-in-out infinite; }
+@keyframes sev0-throb { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+.sev-chip.sev1 { background: var(--sev1-bg); color: var(--sev1-fg); }
+.sev-chip.sev2 { background: var(--sev2-bg); color: var(--sev2-fg); }
+.sev-chip.sev3 { background: var(--sev3-bg); color: var(--sev3-fg); }
+
+.needs-human-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px;
+}
+.needs-human-row:first-of-type { border-top: none; }
+.needs-human-row .title { flex: 1 1 auto; min-width: 0; }
+
+/* -- needs-human: humanized item body + the copy-context bridge -- */
+.nh-hint { font-size: 11px; color: var(--text-dim); margin-bottom: 8px; }
+.nh-item { border-top: 1px solid var(--border); padding: 6px 0; }
+.nh-item:first-child { border-top: none; }
+.nh-copy-row { margin-top: 4px; }
+
+/* -- journal feed -- */
+.journal-item { display: flex; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); font-size: 13px; }
+.journal-item:first-child { border-top: none; }
+.journal-item .ts { color: var(--text-dim); font-family: var(--mono); font-size: 11px; flex: 0 0 auto; white-space: nowrap; }
+.journal-item .action { font-weight: 700; font-size: 11px; text-transform: uppercase; color: var(--accent); flex: 0 0 auto; }
+
+/* -- token grid -- */
+.token-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (min-width: 960px) { .token-grid { grid-template-columns: repeat(4, 1fr); } }
+.token-cell { background: var(--bg-sunken); border-radius: var(--radius); padding: 8px 10px; }
+.token-cell .label { font-size: 10px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; }
+.token-cell .value { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* -- copy box -- */
+.copy-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-sunken); border: 1px dashed var(--border-strong);
+  border-radius: var(--radius); padding: 6px 8px; margin-top: 6px;
+}
+.copy-box code { font-family: var(--mono); font-size: 11.5px; flex: 1 1 auto; overflow-x: auto; white-space: pre; }
+.copy-btn {
+  flex: 0 0 auto; background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px 8px; cursor: pointer; font-size: 11px; font-weight: 600;
+}
+.copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+.copy-note { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+/* ---------------------------------------------------------------- MAP tab */
+.map-toolbar { display: flex; gap: 6px; margin-bottom: 10px; }
+.view-btn {
+  background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 12px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-dim);
+}
+.view-btn.active { color: var(--accent); border-color: var(--accent); background: var(--bg-elevated); }
+
+.map-canvas { position: relative; }
+.map-edges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: visible; }
+.map-layer { position: relative; z-index: 1; margin-bottom: 14px; }
+.map-layer-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.map-layer-head h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; }
+.map-layer-head .blurb { font-size: 11px; color: var(--text-dim); }
+.map-layer.is-unplaced .map-layer-head h3 { color: var(--text-dim); }
+.map-nodes { display: flex; flex-wrap: wrap; gap: 8px; }
+[data-view="backbone"] .map-nodes { display: none; }
+[data-view="backbone"] .map-layer-head .blurb { display: inline; }
+
+.map-node {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg-elevated); border: 2px solid var(--border-strong);
+  border-radius: var(--radius); padding: 6px 10px; cursor: pointer;
+  font-size: 12.5px; font-weight: 600; max-width: 220px;
+}
+.map-node:hover { border-color: var(--accent); }
+.map-node .swatch { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.map-node .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.map-node .glyph { font-size: 10px; color: var(--text-dim); border: 1px solid var(--border); border-radius: 4px; padding: 0 3px; }
+
+.edge-control { stroke: var(--color-external); stroke-width: 1.5; fill: none; }
+.edge-feedback { stroke: var(--color-external); stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
+.edge-write { stroke: var(--color-data); stroke-width: 1.5; fill: none; }
+.edge-read { stroke: var(--color-data); stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
+.edge-human { stroke: var(--color-human); stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
+.edge-validates { stroke: var(--color-code); stroke-width: 1.6; stroke-dasharray: 1 4; stroke-linecap: round; fill: none; }
+
+dialog#node-dialog {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-elevated); color: var(--text);
+  max-width: min(90vw, 480px); box-shadow: var(--shadow); padding: 0;
+}
+dialog#node-dialog::backdrop { background: rgba(0,0,0,0.4); }
+.dialog-inner { padding: 14px; }
+.dialog-inner h3 { font-size: 15px; margin-bottom: 6px; }
+.dialog-section { margin-top: 8px; }
+.dialog-section .label { font-size: 10px; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; margin-bottom: 3px; }
+.dialog-close {
+  margin-top: 12px; background: var(--bg-sunken); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 12px; cursor: pointer; font-weight: 600;
+}
+.rel-tag { display: inline-block; font-family: var(--mono); font-size: 11px; background: var(--bg-sunken); border-radius: 4px; padding: 1px 6px; margin: 2px 3px 0 0; }
+
+/* -- focus mode: first click on a node fades everything but it and its neighbors -- */
+.map-hint { font-size: 11px; color: var(--text-dim); margin-top: 8px; }
+.map-node { transition: opacity .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.map-node.is-faded-node { opacity: .15; }
+.map-node.is-focus-node { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); z-index: 5; }
+.map-node.is-neighbor-node { z-index: 4; }
+.map-edges line { transition: opacity .15s ease; }
+.map-edges line.is-faded-edge { opacity: .15; }
+.map-edges line.is-focus-edge { stroke-width: 2.4; }
+
+/* ---------------------------------------------------------------- STORY tab */
+.clock-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
+.clock-btn {
+  background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 12px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-dim);
+}
+.clock-btn.active { color: var(--accent); border-color: var(--accent); background: var(--bg-elevated); }
+
+.story-lane { margin-bottom: 16px; }
+.story-lane h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; color: var(--text-dim); }
+.sparkline-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 960px) { .sparkline-grid { grid-template-columns: 1fr 1fr; } }
+.sparkline-card { background: var(--bg-sunken); border-radius: var(--radius); padding: 8px 10px; }
+.sparkline-card .sp-label { font-size: 11px; color: var(--text-dim); display: flex; justify-content: space-between; margin-bottom: 4px; }
+.sparkline-card svg { width: 100%; height: 44px; display: block; }
+.sp-line { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.sp-area { fill: var(--accent); opacity: 0.12; stroke: none; }
+.sp-marker { stroke: var(--sev1-bg); stroke-width: 1; }
+
+/* ---------------------------------------------------------------- WORK tab */
+.task-row { border-top: 1px solid var(--border); padding: 8px 0; }
+.task-row:first-child { border-top: none; }
+.task-row .head { display: flex; align-items: center; gap: 8px; }
+.task-row .title { font-weight: 700; flex: 1 1 auto; min-width: 0; }
+.status-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--bg-sunken); border: 1px solid var(--border); color: var(--text-dim); }
+.status-pill.status-doing { color: var(--accent); border-color: var(--accent); }
+.status-pill.status-done { color: var(--color-data); border-color: var(--color-data); }
+.status-pill.status-blocked { color: var(--sev0-bg); border-color: var(--sev0-bg); }
+.nh-count { font-size: 11px; font-weight: 700; color: var(--sev1-bg); }
+.next-action { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; }
+.next-action .k { color: var(--text); font-weight: 600; }
+
+.log-row, .research-row { display: flex; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); font-size: 12.5px; }
+.log-row:first-child, .research-row:first-child { border-top: none; }
+.log-row .date { color: var(--text-dim); font-family: var(--mono); font-size: 11px; flex: 0 0 auto; white-space: nowrap; }
+.log-row .type { flex: 0 0 auto; font-weight: 700; text-transform: uppercase; font-size: 10px; color: var(--accent); }
+.watch-out-row { padding: 6px 0; border-top: 1px solid var(--border); font-size: 12.5px; display: flex; gap: 6px; }
+.watch-out-row:first-child { border-top: none; }
+.watch-out-row::before { content: "⚠"; color: var(--sev1-bg); flex: 0 0 auto; }
+.research-row a { color: var(--accent); text-decoration: none; }
+.research-row a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand">
+      <span class="pulse-dot" id="pulse-dot" aria-hidden="true"></span>
+      <span class="brand-name" id="project-name">console</span>
+      <span class="badge" id="mode-badge">snapshot</span>
+    </div>
+    <nav id="tabs" role="tablist" aria-label="Console sections">
+      <button type="button" role="tab" data-tab="now" class="tab-btn active" aria-selected="true">NOW</button>
+      <button type="button" role="tab" data-tab="map" class="tab-btn" aria-selected="false">MAP</button>
+      <button type="button" role="tab" data-tab="story" class="tab-btn" aria-selected="false">STORY</button>
+      <button type="button" role="tab" data-tab="work" class="tab-btn" aria-selected="false">WORK</button>
+    </nav>
+    <button type="button" id="theme-toggle" title="Toggle light / dark theme" aria-label="Toggle theme">&#9681;</button>
+  </header>
+
+  <main id="panels">
+    <section id="panel-now" class="panel active" data-panel="now"></section>
+    <section id="panel-map" class="panel" data-panel="map"></section>
+    <section id="panel-story" class="panel" data-panel="story"></section>
+    <section id="panel-work" class="panel" data-panel="work"></section>
+  </main>
+
+  <footer id="statusbar">
+    <span id="warnings-list"></span>
+    <span id="generated-at"></span>
+  </footer>
+</div>
+
+<dialog id="node-dialog">
+  <div class="dialog-inner">
+    <h3 id="node-dialog-title"></h3>
+    <div id="node-dialog-body"></div>
+    <button type="button" class="dialog-close" id="node-dialog-close">Close</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+/* ============================================================================================
+ * DATA: the single injection point (the placeholder on the next line, which build() replaces).
+ * consolectl.py's build() loads THIS template and substitutes the exact JSON that
+ * consolectl.payload() returned (json.dumps(..., sort_keys=True); "</" escaped to "<\/" so a
+ * literal closing script tag inside any string field can never terminate this block early).
+ * console.py serves the same built file, then swaps DATA for a live payload via polling below,
+ * so the two paths render through identical code from this point on.
+ *
+ * The build asserts the placeholder appears EXACTLY once, which is why this comment describes
+ * it rather than spelling it out: a second literal would make the assertion ambiguous.
+ * ========================================================================================== */
+const DATA = __CONSOLE_DATA__;
+
+/* ---------------------------------------------------------------- small utilities */
+
+function el(tag, attrs, children) {
+  const node = document.createElement(tag);
+  if (attrs) {
+    Object.keys(attrs).forEach(function (k) {
+      const v = attrs[k];
+      if (v === null || v === undefined) return;
+      if (k === "class") node.className = v;
+      else if (k === "dataset") Object.keys(v).forEach(function (dk) { node.dataset[dk] = v[dk]; });
+      else if (k.slice(0, 2) === "on" && typeof v === "function") node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v);
+    });
+  }
+  (children || []).forEach(function (c) {
+    if (c === null || c === undefined) return;
+    node.appendChild(typeof c === "string" || typeof c === "number" ? document.createTextNode(String(c)) : c);
+  });
+  return node;
+}
+
+function svgEl(tag, attrs) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  if (attrs) Object.keys(attrs).forEach(function (k) { node.setAttribute(k, attrs[k]); });
+  return node;
+}
+
+function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+function fmtNum(n) {
+  if (n === null || n === undefined) return "-";
+  return Number(n).toLocaleString("en-US");
+}
+
+function humanAge(seconds) {
+  if (seconds === null || seconds === undefined) return "unknown";
+  if (seconds < 5) return "just now";
+  if (seconds < 60) return Math.floor(seconds) + " s ago";
+  if (seconds < 3600) return Math.floor(seconds / 60) + " m ago";
+  if (seconds < 86400) return Math.floor(seconds / 3600) + " h ago";
+  return Math.floor(seconds / 86400) + " d ago";
+}
+
+function parseTs(ts) {
+  if (!ts) return null;
+  const t = Date.parse(ts);
+  return Number.isNaN(t) ? null : t;
+}
+
+function repoRootFromLocation() {
+  // The payload deliberately carries no absolute path (a committed file must not embed a
+  // machine's home directory). Under file:// this page lives at
+  // <root>/.claude/console/console.html, so the root is our own path minus that suffix.
+  if (location.protocol !== "file:") return "";
+  const path = decodeURIComponent(location.pathname);
+  const marker = "/.claude/console/";
+  const at = path.lastIndexOf(marker);
+  return at > 0 ? path.slice(0, at) : "";
+}
+
+function fileHref(relPath) {
+  if (!relPath) return null;
+  const root = repoRootFromLocation();
+  if (!root) return null;
+  const cleanRel = String(relPath).replace(/^\/+/, "");
+  return "file://" + root + "/" + cleanRel;
+}
+
+// A real, clickable file:// link only WORKS when this page is itself open over file:// -
+// browsers refuse to navigate an http(s) page to a file:// URL, silently, no error. console.py
+// also does not serve arbitrary task/research/component files (only console/ plus the explicit
+// read_allowlist), so under http(s) there is no href that would work either way. Render a real
+// link in the one mode where it functions, and inert (but still readable) path text otherwise -
+// never a link that looks clickable and quietly does nothing.
+function pathLink(label, relPath, className) {
+  if (!relPath) return el("span", { class: className }, [label]);
+  if (location.protocol === "file:") {
+    return el("a", { href: fileHref(relPath), class: className }, [label]);
+  }
+  return el("span", { class: className, title: relPath + " - open locally; not reachable over http" }, [label]);
+}
+
+function copyText(text, btn) {
+  function flash() {
+    if (!btn) return;
+    const orig = btn.textContent;
+    btn.textContent = "Copied";
+    setTimeout(function () { btn.textContent = orig; }, 1200);
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(flash, function () { fallbackCopy(text); flash(); });
+      return;
+    }
+  } catch (e) { /* fall through to legacy path */ }
+  try { fallbackCopy(text); flash(); } catch (e) { /* clipboard unavailable; the box still shows the text to select-copy */ }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } finally { document.body.removeChild(ta); }
+}
+
+function copyBox(commandText, note) {
+  const code = el("code", {}, [commandText]);
+  const btn = el("button", { type: "button", class: "copy-btn" }, ["Copy"]);
+  btn.addEventListener("click", function () { copyText(commandText, btn); });
+  const box = el("div", { class: "copy-box" }, [code, btn]);
+  if (note) return el("div", {}, [box, el("div", { class: "copy-note" }, [note])]);
+  return box;
+}
+
+// The human -> agent bridge: one click copies the prebuilt reply_template (context + what was
+// asked + a trailing "My answer: "), the human pastes it into the terminal and types their
+// answer, and the agent receives the full situation back instead of a bare "yes" it would have
+// to re-anchor. The template text itself is built server-side (consolectl.py), never here.
+function copyContextButton(item) {
+  const btn = el("button", { type: "button", class: "copy-btn" }, ["Copy context"]);
+  btn.addEventListener("click", function () { copyText(item.reply_template, btn); });
+  return btn;
+}
+
+function kindChip(kind) {
+  const cls = { agent: "chip-agent", code: "chip-code", data: "chip-data", human: "chip-human", external: "chip-external" }[kind] || "chip-external";
+  return el("span", { class: "chip " + cls }, [kind || "external"]);
+}
+
+function kindColor(kind) {
+  return {
+    agent: "var(--color-agent)", code: "var(--color-code)", data: "var(--color-data)",
+    human: "var(--color-human)", external: "var(--color-external)"
+  }[kind] || "var(--color-external)";
+}
+
+/* ---------------------------------------------------------------- freshness chips */
+
+function freshnessChip(sectionKey) {
+  const fr = DATA.freshness || { live: ["now"], ritual: [] };
+  const isLive = (fr.live || []).indexOf(sectionKey) !== -1;
+  if (isLive) return el("span", { class: "freshness-chip is-live" }, ["live"]);
+  // A ritual-frozen section's own timestamp, never DATA.generated_at - in live mode that is
+  // the POLL time, so it would tick every few seconds for data that has not actually moved,
+  // which is precisely the freshness lie this chip exists to prevent. work.log_tail has no
+  // reliable per-section timestamp in the payload at all, so it shows the label with none
+  // invented rather than a misleading one.
+  let ts = null;
+  if (sectionKey === "tokens") ts = DATA.tokens && DATA.tokens.as_of;
+  else if (sectionKey === "map") ts = DATA.map && DATA.map.generated_at;
+  else if (sectionKey === "story") ts = DATA.story && DATA.story.generated_at;
+  const label = ts ? ("as of last ritual · " + ts) : "as of last ritual";
+  return el("span", { class: "freshness-chip", title: "updates only when /project-memory runs" }, [label]);
+}
+
+function sectionHead(title, sectionKey) {
+  return el("h2", {}, [title, freshnessChip(sectionKey)]);
+}
+
+/* ============================================================================================
+ * NOW
+ * ========================================================================================== */
+
+function renderNow() {
+  const panel = document.getElementById("panel-now");
+  clear(panel);
+  const now = DATA.now || {};
+
+  // -- heartbeat / resume pointer / phase --------------------------------------------------
+  const hbCard = el("div", { class: "card" }, [sectionHead("Heartbeat", "now")]);
+  const dot = el("span", { class: "pulse-dot" + (now.heartbeat_age_seconds !== null && now.heartbeat_age_seconds !== undefined && now.heartbeat_age_seconds < 120 ? " live" : "") });
+  hbCard.appendChild(el("div", { class: "kv-row" }, [dot, " ", humanAge(now.heartbeat_age_seconds), now.heartbeat && now.heartbeat.note ? (" - " + now.heartbeat.note) : ""]));
+  hbCard.appendChild(el("div", { class: "kv-row" }, [el("span", { class: "k" }, ["resume"]), el("div", { class: "pointer-box" }, [now.resume_pointer || "(none set)"])]));
+  hbCard.appendChild(el("div", { class: "kv-row" }, [el("span", { class: "k" }, ["phase"]), el("span", { class: "v" }, [now.phase || "-"])]));
+  hbCard.appendChild(el("div", { class: "kv-row" }, [el("span", { class: "k" }, ["session"]), el("span", { class: "v mono" }, [now.session_id || "-"])]));
+  if (now.open_loops && now.open_loops.length) {
+    const list = el("ul", {}, now.open_loops.map(function (l) { return el("li", { class: "kv-row" }, ["• " + (l.text || l.id || "")]); }));
+    hbCard.appendChild(el("div", { class: "dialog-section" }, [el("div", { class: "label" }, ["open loops"]), list]));
+  }
+  const pointerCmd = 'python3 .claude/tools/statectl.py pointer "<next action text>"';
+  hbCard.appendChild(copyBox(pointerCmd, "set the resume pointer (does not run automatically - copy and run it yourself)"));
+  panel.appendChild(hbCard);
+
+  // -- in-flight subagents -------------------------------------------------------------------
+  const flightCard = el("div", { class: "card" }, [sectionHead("In-flight subagents", "now")]);
+  if (now.in_flight && now.in_flight.length) {
+    now.in_flight.forEach(function (f) {
+      flightCard.appendChild(el("div", { class: "needs-human-row" }, [
+        kindChip("agent"),
+        el("span", { class: "title" }, [f.agent + " · " + f.task_id]),
+        el("span", { class: "mono", style: "color:var(--text-dim);font-size:11px;" }, ["since " + (f.since || "?")])
+      ]));
+    });
+  } else {
+    flightCard.appendChild(el("div", { class: "empty-state" }, ["nothing in flight"]));
+  }
+  panel.appendChild(flightCard);
+
+  // -- needs-human -----------------------------------------------------------------------------
+  const nh = now.needs_human || { open: 0, by_band: {}, top: [] };
+  const nhCard = el("div", { class: "card" }, [sectionHead("Needs human (" + nh.open + " open)", "now")]);
+  const sevRow = el("div", { class: "sev-row" });
+  ["SEV0", "SEV1", "SEV2", "SEV3"].forEach(function (band) {
+    const n = (nh.by_band || {})[band] || 0;
+    const cls = "sev-chip " + band.toLowerCase() + (band === "SEV0" && n > 0 ? " has" : "");
+    sevRow.appendChild(el("span", { class: cls }, [el("span", { class: "n" }, [String(n)]), " " + band]));
+  });
+  nhCard.appendChild(sevRow);
+  if (nh.top && nh.top.length) {
+    nhCard.appendChild(el("div", { class: "nh-hint" }, [
+      "Copy an item's context, paste it in the Claude Code terminal, and type your answer "
+      + "after 'My answer:' - the agent gets the full situation with your reply."
+    ]));
+    nh.top.forEach(function (item) {
+      const headRow = el("div", { class: "needs-human-row" }, [
+        el("span", { class: "chip", style: "background:var(--" + item.band.toLowerCase() + "-bg);color:var(--" + item.band.toLowerCase() + "-fg);" }, [item.band]),
+        el("span", { class: "title" }, [item.title || item.id]),
+        el("span", { class: "mono", style: "font-size:11px;color:var(--text-dim);" }, [item.id + (item.category ? " · " + item.category : "")])
+      ]);
+      const itemWrap = el("div", { class: "nh-item" }, [headRow]);
+      // "What's going on" / "What to do": full text, wrapped, never truncated - and skipped
+      // cleanly (no empty line) for an older item that predates these fields.
+      if (item.context) {
+        itemWrap.appendChild(el("div", { class: "next-action" }, [el("span", { class: "k" }, ["What's going on: "]), item.context]));
+      }
+      if (item.action) {
+        itemWrap.appendChild(el("div", { class: "next-action" }, [el("span", { class: "k" }, ["What to do: "]), item.action]));
+      }
+      itemWrap.appendChild(el("div", { class: "nh-copy-row" }, [copyContextButton(item)]));
+      nhCard.appendChild(itemWrap);
+      nhCard.appendChild(copyBox('python3 .claude/tools/statectl.py need resolve ' + JSON.stringify(item.id), null));
+    });
+  } else {
+    nhCard.appendChild(el("div", { class: "empty-state" }, ["queue is empty"]));
+  }
+  panel.appendChild(nhCard);
+
+  // -- journal feed ----------------------------------------------------------------------------
+  const jCard = el("div", { class: "card" }, [sectionHead("Journal", "now")]);
+  if (now.journal_tail && now.journal_tail.length) {
+    now.journal_tail.slice().reverse().forEach(function (ev) {
+      jCard.appendChild(el("div", { class: "journal-item" }, [
+        el("span", { class: "ts" }, [ev.ts || ""]),
+        el("span", { class: "action" }, [ev.action || ""]),
+        el("span", {}, [ev.summary || ""])
+      ]));
+    });
+  } else {
+    jCard.appendChild(el("div", { class: "empty-state" }, ["no journal entries yet"]));
+  }
+  panel.appendChild(jCard);
+
+  // -- tokens ------------------------------------------------------------------------------------
+  const tok = DATA.tokens || {};
+  const tokCard = el("div", { class: "card" }, [sectionHead("Tokens", "tokens")]);
+  const grid = el("div", { class: "token-grid" });
+  ["input", "output", "cache_read", "cache_creation"].forEach(function (k) {
+    const todayV = (tok.today || {})[k] || 0;
+    const totalV = (tok.total || {})[k] || 0;
+    grid.appendChild(el("div", { class: "token-cell" }, [
+      el("div", { class: "label" }, [k.replace("_", " ")]),
+      el("div", { class: "value" }, [fmtNum(todayV)]),
+      el("div", { style: "font-size:11px;color:var(--text-dim);" }, ["total " + fmtNum(totalV)])
+    ]));
+  });
+  tokCard.appendChild(grid);
+  // "in plan" (subscription billing) is a different truth than "unknown" (missing prices):
+  // the first is not-applicable-by-design, the second is a gap the CHECK phase warns about.
+  const costLine = tok.cost_known ? ("$" + Number(tok.cost_usd).toFixed(2))
+    : (tok.billing === "subscription" ? "in plan" : "unknown");
+  tokCard.appendChild(el("div", { class: "kv-row" }, [el("span", { class: "k" }, ["cost"]), el("span", { class: "v" }, [costLine])]));
+  if (tok.unknown_models && tok.unknown_models.length) {
+    tokCard.appendChild(el("div", { class: "kv-row" }, [el("span", { class: "k" }, ["unpriced"]), el("span", { class: "v mono" }, [tok.unknown_models.join(", ")])]));
+  }
+  panel.appendChild(tokCard);
+}
+
+/* ============================================================================================
+ * MAP
+ * ========================================================================================== */
+
+let mapView = "flows"; // "backbone" | "flows"
+let focusedNodeId = null; // FEATURE: focus mode - id of the node currently traced, or null
+
+// Neighbors = nodes sharing any edge with `nodeId`, either direction.
+function mapNeighborIds(edges, nodeId) {
+  const ids = new Set();
+  edges.forEach(function (e) {
+    if (e.from === nodeId) ids.add(e.to);
+    if (e.to === nodeId) ids.add(e.from);
+  });
+  return ids;
+}
+
+function renderMap() {
+  const panel = document.getElementById("panel-map");
+  clear(panel);
+  const head = el("div", { class: "card" }, [sectionHead("System map", "map")]);
+  panel.appendChild(head);
+
+  const map = DATA.map;
+  if (!map) {
+    panel.appendChild(el("div", { class: "card" }, [
+      el("div", { class: "empty-state" }, ["Map not built yet - run /project-memory to compile the system map."])
+    ]));
+    return;
+  }
+
+  const toolbar = el("div", { class: "map-toolbar" });
+  ["backbone", "flows"].forEach(function (v) {
+    const btn = el("button", { type: "button", class: "view-btn" + (mapView === v ? " active" : "") }, [v]);
+    // Changing views rebuilds the node grid from scratch, so a stale focus (pointing at DOM
+    // that is about to be discarded) is cleared rather than carried forward - explicitly fine
+    // per spec, and simpler than trying to re-target it onto the new layout.
+    btn.addEventListener("click", function () { mapView = v; focusedNodeId = null; renderMap(); });
+    toolbar.appendChild(btn);
+  });
+  panel.appendChild(toolbar);
+
+  const canvas = el("div", { class: "map-canvas", dataset: { view: mapView } });
+  const svg = svgEl("svg", { class: "map-edges" });
+  canvas.appendChild(svg);
+
+  const layers = (map.layers) || { spines: [], flows: [], unplaced: null };
+  const orderedLayers = []
+    .concat((layers.spines || []).slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); }))
+    .concat((layers.flows || []).slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); }));
+  if (layers.unplaced) orderedLayers.push(layers.unplaced);
+
+  const nodesByLayer = {};
+  (map.nodes || []).forEach(function (n) {
+    const key = orderedLayers.some(function (l) { return l.id === n.layer; }) ? n.layer : (layers.unplaced ? layers.unplaced.id : "UNPLACED");
+    (nodesByLayer[key] = nodesByLayer[key] || []).push(n);
+  });
+
+  const edges = map.edges || [];
+  const nodeEls = {};
+
+  // FEATURE: focus mode. First click on a node fades every non-neighbor node/edge and raises
+  // the focused node + its neighbors + their connecting edges above that faded layer; a second
+  // click on the SAME node opens the detail popup instead. Implemented as class toggles over
+  // the already-built DOM (never a re-render), so the measured-edge redraw below and
+  // assertNoOverlap keep running exactly as before - focus only changes what they draw on top of.
+  function applyFocusClasses() {
+    const neighborIds = focusedNodeId ? mapNeighborIds(edges, focusedNodeId) : null;
+    Object.keys(nodeEls).forEach(function (id) {
+      const nodeEl = nodeEls[id];
+      const isFocus = focusedNodeId !== null && id === focusedNodeId;
+      const isNeighbor = !!(neighborIds && neighborIds.has(id));
+      nodeEl.classList.toggle("is-focus-node", isFocus);
+      nodeEl.classList.toggle("is-neighbor-node", isNeighbor);
+      nodeEl.classList.toggle("is-faded-node", focusedNodeId !== null && !isFocus && !isNeighbor);
+    });
+  }
+  function setMapFocus(nodeId) {
+    focusedNodeId = nodeId;
+    applyFocusClasses();
+    redraw();
+  }
+  function clearMapFocus() {
+    if (focusedNodeId === null) return;
+    focusedNodeId = null;
+    applyFocusClasses();
+    redraw();
+  }
+
+  orderedLayers.forEach(function (layer) {
+    const nodes = nodesByLayer[layer.id] || [];
+    const band = el("div", { class: "map-layer" + (layers.unplaced && layer.id === layers.unplaced.id ? " is-unplaced" : "") });
+    band.appendChild(el("div", { class: "map-layer-head" }, [
+      el("h3", {}, [layer.title || layer.id]),
+      el("span", { class: "blurb" }, [(layer.blurb || "") + " · " + nodes.length + " node" + (nodes.length === 1 ? "" : "s")])
+    ]));
+    const nodesWrap = el("div", { class: "map-nodes" });
+    nodes.forEach(function (n) {
+      const swatch = el("span", { class: "swatch", style: "background:" + kindColor(n.kind) + ";" });
+      const nodeEl = el("div", { class: "map-node", dataset: { nodeId: n.id }, tabindex: "0" }, [
+        swatch,
+        el("span", { class: "title" }, [n.title || n.id])
+      ]);
+      (n.glyphs || []).slice(0, 2).forEach(function (g) { nodeEl.appendChild(el("span", { class: "glyph" }, [g])); });
+      // First click focuses; a second click on the node that is ALREADY focused opens the
+      // detail popup; clicking a different node while focused just moves focus to it.
+      const activate = function () {
+        if (focusedNodeId === n.id) { openNodeDialog(n); return; }
+        setMapFocus(n.id);
+      };
+      nodeEl.addEventListener("click", function (ev) { ev.stopPropagation(); activate(); });
+      nodeEl.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); activate(); } });
+      nodeEls[n.id] = nodeEl;
+      nodesWrap.appendChild(nodeEl);
+    });
+    band.appendChild(nodesWrap);
+    canvas.appendChild(band);
+  });
+
+  // A click that lands on the canvas itself (not a node - those stopPropagation) clears focus.
+  canvas.addEventListener("click", function () { clearMapFocus(); });
+
+  panel.appendChild(canvas);
+  panel.appendChild(el("div", { class: "map-hint" }, [
+    "click a component to trace its connections · click again for details · Esc to clear"
+  ]));
+
+  function redraw() {
+    drawEdges(canvas, svg, edges, nodeEls);
+    requestAnimationFrame(function () { assertNoOverlap(canvas); });
+  }
+  applyFocusClasses(); // reapplies a focus carried over from before this (poll-driven) re-render
+  redraw();
+  // renderMap runs on EVERY poll (5s while active), so registering a listener here without
+  // removing the previous one leaked ~720 listeners an hour, each retaining a detached map
+  // subtree and each running an O(n^2) overlap check on any resize. Keep exactly one.
+  if (panel._mapResizeHandler) window.removeEventListener("resize", panel._mapResizeHandler);
+  panel._mapResizeHandler = redraw;
+  window.addEventListener("resize", redraw);
+  // fonts.ready resolves once per page; attach the callback only the first time through.
+  if (!panel._mapFontsHooked && document.fonts && document.fonts.ready) {
+    panel._mapFontsHooked = true;
+    document.fonts.ready.then(function () {
+      if (panel._mapRedraw) panel._mapRedraw();
+    });
+  }
+  panel._mapRedraw = redraw;
+  // Escape clears focus. Registered once (like the fonts.ready hook above) and dispatched
+  // through panel._mapClearFocus, which is repointed at the latest closure on every render -
+  // the same indirection the resize handler already uses to survive renderMap re-running.
+  panel._mapClearFocus = clearMapFocus;
+  if (!panel._mapEscHooked) {
+    panel._mapEscHooked = true;
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && panel._mapClearFocus) panel._mapClearFocus();
+    });
+  }
+}
+
+// Six edge styles by name, as specified. mapctl.py's build_map() currently derives edges
+// straight from a card's reads/writes/invokes relation FIELDS, so the type values it emits
+// today are the plural "reads"/"writes"/"invokes" (card-schema vocabulary), not this set -
+// both are mapped here so real map.json data renders correctly now, and a future producer
+// (or a hand-authored card) using "control"/"feedback"/"human"/"validates" directly also
+// renders correctly rather than silently falling through to one default style.
+const EDGE_STYLE_BY_TYPE = {
+  control: "edge-control", feedback: "edge-feedback",
+  write: "edge-write", writes: "edge-write",
+  read: "edge-read", reads: "edge-read",
+  human: "edge-human",
+  validates: "edge-validates",
+  invokes: "edge-control",
+};
+
+function drawEdges(container, svg, edges, nodeEls) {
+  clear(svg);
+  if (mapView !== "flows") return;
+  const cRect = container.getBoundingClientRect();
+  const focusActive = focusedNodeId !== null;
+  // Faded edges are appended first, focused/normal ones after - SVG paints in document order,
+  // so this keeps a highlighted edge from ever being buried under a faded one it crosses.
+  const behind = [];
+  const onTop = [];
+  edges.forEach(function (e) {
+    const a = nodeEls[e.from];
+    const b = nodeEls[e.to];
+    if (!a || !b) return;
+    const ar = a.getBoundingClientRect();
+    const br = b.getBoundingClientRect();
+    const x1 = ar.left + ar.width / 2 - cRect.left;
+    const y1 = ar.top + ar.height / 2 - cRect.top;
+    const x2 = br.left + br.width / 2 - cRect.left;
+    const y2 = br.top + br.height / 2 - cRect.top;
+    const touchesFocus = focusActive && (e.from === focusedNodeId || e.to === focusedNodeId);
+    let cls = EDGE_STYLE_BY_TYPE[e.type] || "edge-control";
+    if (focusActive) cls += touchesFocus ? " is-focus-edge" : " is-faded-edge";
+    const line = svgEl("line", { x1: x1, y1: y1, x2: x2, y2: y2, class: cls });
+    (focusActive && !touchesFocus ? behind : onTop).push(line);
+  });
+  behind.forEach(function (line) { svg.appendChild(line); });
+  onTop.forEach(function (line) { svg.appendChild(line); });
+}
+
+function assertNoOverlap(container) {
+  const boxes = Array.prototype.slice.call(container.querySelectorAll(".map-node")).map(function (n) {
+    return { id: n.dataset.nodeId, rect: n.getBoundingClientRect() };
+  });
+  for (let i = 0; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i].rect, b = boxes[j].rect;
+      const overlap = !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
+      if (overlap) console.warn("[console/map] node boxes overlap:", boxes[i].id, boxes[j].id);
+    }
+  }
+}
+
+function openNodeDialog(node) {
+  const dialog = document.getElementById("node-dialog");
+  document.getElementById("node-dialog-title").textContent = node.title || node.id;
+  const body = document.getElementById("node-dialog-body");
+  clear(body);
+  body.appendChild(kindChip(node.kind));
+  if (node.exists === false) {
+    body.appendChild(el("div", { class: "dialog-section", style: "color:var(--sev0-bg);font-weight:600;" }, ["path does not exist on disk"]));
+  }
+  if (node.description) body.appendChild(el("div", { class: "dialog-section" }, [el("div", { class: "label" }, ["description"]), el("div", {}, [node.description])]));
+  if (node.path) {
+    body.appendChild(el("div", { class: "dialog-section" }, [
+      el("div", { class: "label" }, ["source"]),
+      pathLink(node.path, node.path, "mono")
+    ]));
+  }
+  // Relations live on EDGES (mapctl.py's map.json carries no per-node reads/writes/invokes
+  // arrays - those become edges keyed by from/to), so they are read from DATA.map.edges
+  // rather than from the node object itself. "flows" IS a real per-node field (which flow
+  // layers this component participates in) and stays a direct node read.
+  const edges = (DATA.map && DATA.map.edges) || [];
+  const outgoing = edges.filter(function (e) { return e.from === node.id; });
+  const incoming = edges.filter(function (e) { return e.to === node.id; });
+  if (outgoing.length) {
+    body.appendChild(el("div", { class: "dialog-section" }, [
+      el("div", { class: "label" }, ["relations (out)"]),
+      el("div", {}, outgoing.map(function (e) { return el("span", { class: "rel-tag" }, [e.type + " → " + e.to]); }))
+    ]));
+  }
+  if (incoming.length) {
+    body.appendChild(el("div", { class: "dialog-section" }, [
+      el("div", { class: "label" }, ["relations (in)"]),
+      el("div", {}, incoming.map(function (e) { return el("span", { class: "rel-tag" }, [e.from + " → " + e.type]); }))
+    ]));
+  }
+  if (node.flows && node.flows.length) {
+    body.appendChild(el("div", { class: "dialog-section" }, [
+      el("div", { class: "label" }, ["flows"]),
+      el("div", {}, node.flows.map(function (v) { return el("span", { class: "rel-tag" }, [v]); }))
+    ]));
+  }
+  dialog.showModal();
+}
+
+document.getElementById("node-dialog-close").addEventListener("click", function () {
+  document.getElementById("node-dialog").close();
+});
+
+/* ============================================================================================
+ * STORY
+ * Reads EXACTLY the STORY_CONTRACT key paths (mirrors obsctl.py's producer contract) -
+ * v, clock.wall_min/wall_max/tokens_max, points[].date, points[].t_tokens_cum,
+ * points[].operations.{events,errors,sessions,tokens_out,cost_usd},
+ * points[].anatomy.{agents,skills,hooks,tools,cards,components}, points[].data,
+ * points[].analysis, markers[].{date,t_tokens_cum,kind,text,ref}. No other keys are read.
+ * ========================================================================================== */
+
+let storyClock = "wall"; // "wall" | "tokens"
+
+// Deterministic, subtle color for an analysis label chip: reuses the app's existing kind-color
+// tokens (already tuned to be legible and quiet) rather than inventing a new palette, picked by
+// a stable hash of the label name so the same label always gets the same color across renders.
+const ANALYSIS_LABEL_COLORS = [
+  { bg: "--color-agent", fg: "#ffffff" },
+  { bg: "--color-code", fg: "#ffffff" },
+  { bg: "--color-data", fg: "#ffffff" },
+  { bg: "--color-human", fg: "#1b1f24" },
+  { bg: "--color-external", fg: "#ffffff" }
+];
+
+function analysisLabelStyle(label) {
+  let h = 0;
+  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0;
+  const t = ANALYSIS_LABEL_COLORS[h % ANALYSIS_LABEL_COLORS.length];
+  return "background:" + "var(" + t.bg + ");color:" + t.fg + ";";
+}
+
+// Strip a "scheme://" prefix for display - the status chip shows where the endpoint IS, not a
+// clickable/fetchable URL.
+function urlHost(u) {
+  if (!u) return "-";
+  const m = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/([^/]+)/.exec(u);
+  return m ? m[1] : u;
+}
+
+// -- Retrospective analysis card: three states driven entirely by DATA.analysis -------------
+// null/undefined -> hidden; configured:false -> setup guide; configured:true -> status + control.
+
+function renderSetupGuide(analysis) {
+  const wrap = el("div", {});
+  wrap.appendChild(el("div", { class: "kv-row" }, [
+    "This labels your raw observability record with an OpenAI-compatible model, tagging events "
+    + "(" + ((analysis.taxonomy || []).join(", ") || "no taxonomy configured yet") + ") so the "
+    + "lane below can plot them. Nothing is sent anywhere until you configure an endpoint and "
+    + "run it yourself."
+  ]));
+  wrap.appendChild(el("ul", {}, [
+    el("li", { class: "kv-row" }, ["OpenRouter - get a key at openrouter.ai/keys"]),
+    el("li", { class: "kv-row" }, ["OpenAI - get a key at platform.openai.com/api-keys"]),
+    el("li", { class: "kv-row" }, ["Local Ollama at localhost:11434/v1 - no key needed"])
+  ]));
+  wrap.appendChild(el("div", { class: "kv-row" }, [
+    "Put base_url and model in .claude/config/observe.json under \"analyze\". The key itself "
+    + "goes in your ENVIRONMENT, never in that file:"
+  ]));
+  wrap.appendChild(copyBox("export ANALYZE_API_KEY=sk-...",
+    "also accepted: " + (analysis.key_envs_accepted || []).join(", ")));
+
+  const statusRow = el("div", { class: "sev-row" });
+  if (analysis.key_env) {
+    statusRow.appendChild(el("span", { class: "badge badge-live" }, ["key found in " + analysis.key_env]));
+  } else if (analysis.key_required) {
+    statusRow.appendChild(el("span", { class: "badge" }, ["no key found in environment"]));
+  }
+  wrap.appendChild(statusRow);
+  return wrap;
+}
+
+function runAnalysis(btn, statusEl) {
+  const originalLabel = btn.textContent;
+  btn.setAttribute("disabled", "disabled");
+  btn.textContent = "Starting...";
+  clear(statusEl);
+  fetch("/live/analyze", { method: "POST", cache: "no-store" }).then(function (res) {
+    return res.json().catch(function () { return {}; }).then(function (body) {
+      return { status: res.status, body: body };
+    });
+  }).then(function (r) {
+    if (r.status === 202) {
+      btn.textContent = "Started";
+      statusEl.textContent = "Analysis started - this refreshes automatically as it runs.";
+    } else if (r.status === 409) {
+      btn.textContent = originalLabel;
+      btn.removeAttribute("disabled");
+      statusEl.textContent = (r.body && r.body.reason) || "could not start the run.";
+    } else {
+      btn.textContent = originalLabel;
+      btn.removeAttribute("disabled");
+      statusEl.textContent = "request failed (status " + r.status + ").";
+    }
+  }).catch(function () {
+    btn.textContent = originalLabel;
+    btn.removeAttribute("disabled");
+    statusEl.textContent = "request failed - is the live server still running?";
+  });
+}
+
+function renderConfiguredStatus(analysis) {
+  const wrap = el("div", {});
+  const state = (analysis.run && analysis.run.state) || "idle";
+  const running = state === "running";
+  const statusRow = el("div", { class: "sev-row" }, [
+    el("span", { class: "badge" }, ["endpoint " + urlHost(analysis.base_url)]),
+    el("span", { class: "badge" }, ["model " + (analysis.model || "-")]),
+    el("span", { class: "badge" }, [fmtNum(analysis.products) + " product" + (analysis.products === 1 ? "" : "s")]),
+    el("span", { class: "badge" + (running ? " badge-live" : "") }, [
+      state + ((analysis.run && analysis.run.detail) ? " - " + analysis.run.detail : "")
+    ])
+  ]);
+  wrap.appendChild(statusRow);
+
+  const statusMsg = el("div", { class: "copy-note" }, []);
+  if (isLiveCapable()) {
+    const btn = el("button", { type: "button", class: "copy-btn" }, [running ? "Running..." : "Run analysis"]);
+    if (running) btn.setAttribute("disabled", "disabled");
+    btn.addEventListener("click", function () { runAnalysis(btn, statusMsg); });
+    wrap.appendChild(el("div", { class: "kv-row" }, [btn]));
+    wrap.appendChild(statusMsg);
+  } else {
+    wrap.appendChild(copyBox(analysis.command, "the live server (console.py) turns this into a Run analysis button"));
+  }
+  return wrap;
+}
+
+function renderAnalysisCard() {
+  const analysis = DATA.analysis;
+  if (!analysis) return null;
+  const card = el("div", { class: "card" }, [sectionHead("Retrospective analysis", "analysis")]);
+  card.appendChild(analysis.configured ? renderConfiguredStatus(analysis) : renderSetupGuide(analysis));
+  return card;
+}
+
+function storyAnalysisLane(story) {
+  const lane = el("div", { class: "story-lane card" });
+  lane.appendChild(el("h3", {}, ["Analysis labels"]));
+  const points = story.points || [];
+  let latest = null;
+  for (let i = points.length - 1; i >= 0; i--) {
+    if (points[i].analysis && Object.keys(points[i].analysis).length) { latest = points[i]; break; }
+  }
+  if (!latest) {
+    lane.appendChild(el("div", { class: "empty-state" }, ["no analysis labels yet - run an analysis to populate this lane"]));
+    return lane;
+  }
+  lane.appendChild(el("div", { style: "font-size:11px;color:var(--text-dim);margin-bottom:6px;" }, ["as of " + (latest.date || "?")]));
+  const row = el("div", { class: "sev-row" });
+  const taxonomy = (DATA.analysis && DATA.analysis.taxonomy) || [];
+  const seen = {};
+  taxonomy.concat(Object.keys(latest.analysis)).forEach(function (label) {
+    if (seen[label] || !latest.analysis[label]) return;
+    seen[label] = true;
+    row.appendChild(el("span", { class: "chip", style: analysisLabelStyle(label) }, [label + " " + fmtNum(latest.analysis[label])]));
+  });
+  lane.appendChild(row);
+  return lane;
+}
+
+function renderStory() {
+  const panel = document.getElementById("panel-story");
+  clear(panel);
+
+  const analysisCard = renderAnalysisCard();
+  if (analysisCard) panel.appendChild(analysisCard);
+
+  panel.appendChild(el("div", { class: "card" }, [sectionHead("Story", "story")]));
+
+  const story = DATA.story;
+  if (!story || !story.points || !story.points.length) {
+    panel.appendChild(el("div", { class: "card" }, [
+      el("div", { class: "empty-state" }, ["Story not built yet - it is generated by /project-memory's POLISH step."])
+    ]));
+    return;
+  }
+
+  const toggle = el("div", { class: "clock-toggle" });
+  [["wall", "Wall date"], ["tokens", "Cumulative output tokens"]].forEach(function (pair) {
+    const btn = el("button", { type: "button", class: "clock-btn" + (storyClock === pair[0] ? " active" : "") }, [pair[1]]);
+    btn.addEventListener("click", function () { storyClock = pair[0]; renderStory(); });
+    toggle.appendChild(btn);
+  });
+  const clockCard = el("div", { class: "card" }, [toggle]);
+  panel.appendChild(clockCard);
+
+  const xScale = buildXScale(story);
+
+  panel.appendChild(storyLane("Operations & errors", [
+    ["events", function (p) { return p.operations && p.operations.events; }],
+    ["errors", function (p) { return p.operations && p.operations.errors; }],
+    ["sessions", function (p) { return p.operations && p.operations.sessions; }],
+    ["tokens out", function (p) { return p.operations && p.operations.tokens_out; }],
+    ["cost usd", function (p) { return p.operations && p.operations.cost_usd; }]
+  ], story, xScale));
+
+  panel.appendChild(storyLane("Anatomy evolution", [
+    ["agents", function (p) { return p.anatomy && p.anatomy.agents; }],
+    ["skills", function (p) { return p.anatomy && p.anatomy.skills; }],
+    ["hooks", function (p) { return p.anatomy && p.anatomy.hooks; }],
+    ["tools", function (p) { return p.anatomy && p.anatomy.tools; }],
+    ["cards", function (p) { return p.anatomy && p.anatomy.cards; }],
+    ["components", function (p) { return p.anatomy && p.anatomy.components; }]
+  ], story, xScale));
+
+  panel.appendChild(storyDataLane(story, xScale));
+  panel.appendChild(storyAnalysisLane(story));
+}
+
+function buildXScale(story) {
+  const clock = story.clock || {};
+  if (storyClock === "tokens") {
+    const max = clock.tokens_max || Math.max.apply(null, story.points.map(function (p) { return p.t_tokens_cum || 0; }).concat([1]));
+    return { key: "tokens", max: max, of: function (p) { return (p.t_tokens_cum || 0) / (max || 1); } };
+  }
+  const minT = parseTs(clock.wall_min) || Math.min.apply(null, story.points.map(function (p) { return parseTs(p.date) || Infinity; }));
+  const maxT = parseTs(clock.wall_max) || Math.max.apply(null, story.points.map(function (p) { return parseTs(p.date) || -Infinity; }));
+  const span = Math.max(1, maxT - minT);
+  return { key: "wall", min: minT, max: maxT, of: function (p) { return ((parseTs(p.date) || minT) - minT) / span; } };
+}
+
+function storyLane(title, metrics, story, xScale) {
+  const lane = el("div", { class: "story-lane card" });
+  lane.appendChild(el("h3", {}, [title]));
+  const grid = el("div", { class: "sparkline-grid" });
+  metrics.forEach(function (pair) {
+    grid.appendChild(sparklineCard(pair[0], story.points.map(pair[1]), story, xScale));
+  });
+  lane.appendChild(grid);
+  return lane;
+}
+
+function storyDataLane(story, xScale) {
+  const lane = el("div", { class: "story-lane card" });
+  lane.appendChild(el("h3", {}, ["Data evolution"]));
+  const sample = story.points.find(function (p) { return p.data !== undefined && p.data !== null; });
+  const grid = el("div", { class: "sparkline-grid" });
+  if (sample && typeof sample.data === "object") {
+    Object.keys(sample.data).forEach(function (key) {
+      grid.appendChild(sparklineCard(key, story.points.map(function (p) { return p.data && p.data[key]; }), story, xScale));
+    });
+  } else if (sample) {
+    grid.appendChild(sparklineCard("data", story.points.map(function (p) { return p.data; }), story, xScale));
+  } else {
+    grid.appendChild(el("div", { class: "empty-state" }, ["no data-series points"]));
+  }
+  lane.appendChild(grid);
+  return lane;
+}
+
+function sparklineCard(label, values, story, xScale) {
+  const nums = values.map(function (v) { return typeof v === "number" ? v : null; });
+  const present = nums.filter(function (v) { return v !== null; });
+  const maxV = present.length ? Math.max.apply(null, present.concat([0])) : 1;
+  const minV = present.length ? Math.min.apply(null, present.concat([0])) : 0;
+  const span = Math.max(1e-9, maxV - minV);
+  const W = 100, H = 32;
+
+  const svg = svgEl("svg", { viewBox: "0 0 " + W + " " + H, preserveAspectRatio: "none" });
+  const pts = [];
+  story.points.forEach(function (p, i) {
+    if (nums[i] === null) return;
+    const x = xScale.of(p) * W;
+    const y = H - ((nums[i] - minV) / span) * H;
+    pts.push(x.toFixed(2) + "," + y.toFixed(2));
+  });
+  if (pts.length) {
+    const areaPts = "0," + H + " " + pts.join(" ") + " " + W + "," + H;
+    svg.appendChild(svgEl("polyline", { points: areaPts, class: "sp-area" }));
+    svg.appendChild(svgEl("polyline", { points: pts.join(" "), class: "sp-line" }));
+  }
+  (story.markers || []).forEach(function (m) {
+    const x = (xScale.of({ date: m.date, t_tokens_cum: m.t_tokens_cum }) * W).toFixed(2);
+    const line = svgEl("line", { x1: x, x2: x, y1: 0, y2: H, class: "sp-marker" });
+    const title = svgEl("title", {});
+    // m.ref carries where the marker came from (the journal id or artifact behind it). Show it:
+    // a field the producer emits and the renderer silently ignores is how a contract rots, and
+    // on hover it turns "something happened here" into "this is the thing that happened".
+    title.textContent = (m.kind || "marker") + ": " + (m.text || "")
+      + (m.ref ? "  [" + m.ref + "]" : "");
+    line.appendChild(title);
+    svg.appendChild(line);
+  });
+
+  const last = present.length ? present[present.length - 1] : null;
+  const labelRow = el("div", { class: "sp-label" }, [label, last === null ? "-" : fmtNum(last)]);
+  return el("div", { class: "sparkline-card" }, [labelRow, svg]);
+}
+
+/* ============================================================================================
+ * WORK
+ * ========================================================================================== */
+
+function renderWork() {
+  const panel = document.getElementById("panel-work");
+  clear(panel);
+  const work = DATA.work || {};
+
+  const tasksCard = el("div", { class: "card" }, [sectionHead("Active tasks", "work.log_tail")]);
+  if (work.tasks && work.tasks.length) {
+    work.tasks.forEach(function (t) {
+      const row = el("div", { class: "task-row" });
+      const statusCls = "status-pill status-" + (t.status || "todo").toLowerCase();
+      row.appendChild(el("div", { class: "head" }, [
+        pathLink(t.title || t.file, t.file, "title"),
+        t.needs_human ? el("span", { class: "nh-count" }, [t.needs_human + " NEEDS-HUMAN"]) : null,
+        el("span", { class: statusCls }, [t.status || "todo"])
+      ]));
+      if (t.next_action) row.appendChild(el("div", { class: "next-action" }, [el("span", { class: "k" }, ["Next: "]), t.next_action]));
+      tasksCard.appendChild(row);
+    });
+  } else {
+    tasksCard.appendChild(el("div", { class: "empty-state" }, ["no active tasks"]));
+  }
+  panel.appendChild(tasksCard);
+
+  const logCard = el("div", { class: "card" }, [sectionHead("Project log", "work.log_tail")]);
+  if (work.log_tail && work.log_tail.length) {
+    work.log_tail.slice().reverse().forEach(function (e) {
+      logCard.appendChild(el("div", { class: "log-row" }, [
+        el("span", { class: "date" }, [e.date || ""]),
+        el("span", { class: "type" }, [e.type || ""]),
+        el("span", {}, [(e.title ? e.title + " - " : "") + (e.summary || "")])
+      ]));
+    });
+  } else {
+    logCard.appendChild(el("div", { class: "empty-state" }, ["log is empty"]));
+  }
+  panel.appendChild(logCard);
+
+  const watchCard = el("div", { class: "card" }, [sectionHead("Watch-outs", "work.log_tail")]);
+  if (work.watch_outs && work.watch_outs.length) {
+    work.watch_outs.forEach(function (w) { watchCard.appendChild(el("div", { class: "watch-out-row" }, [w])); });
+  } else {
+    watchCard.appendChild(el("div", { class: "empty-state" }, ["no active watch-outs"]));
+  }
+  panel.appendChild(watchCard);
+
+  const researchCard = el("div", { class: "card" }, [sectionHead("Research index", "work.log_tail")]);
+  if (work.research && work.research.length) {
+    work.research.forEach(function (r) {
+      researchCard.appendChild(el("div", { class: "research-row" }, [pathLink(r.title || r.file, r.file)]));
+    });
+  } else {
+    researchCard.appendChild(el("div", { class: "empty-state" }, ["no research notes yet"]));
+  }
+  panel.appendChild(researchCard);
+}
+
+/* ============================================================================================
+ * chrome: tabs, theme toggle, header, footer, polling
+ * ========================================================================================== */
+
+function renderChrome() {
+  document.getElementById("project-name").textContent = (DATA.project && DATA.project.name) || "console";
+  const gen = document.getElementById("generated-at");
+  gen.textContent = "generated " + (DATA.generated_at || "?") + (DATA.project && DATA.project.system_version ? (" · v" + DATA.project.system_version) : "");
+  const warn = document.getElementById("warnings-list");
+  warn.textContent = (DATA.warnings && DATA.warnings.length) ? DATA.warnings.join(" · ") : "";
+
+  const badge = document.getElementById("mode-badge");
+  const dot = document.getElementById("pulse-dot");
+  if (location.protocol === "file:") {
+    badge.textContent = "static snapshot";
+    badge.className = "badge badge-static";
+    dot.className = "pulse-dot";
+  } else if (DATA.mode === "live") {
+    badge.textContent = "live";
+    badge.className = "badge badge-live";
+    dot.className = "pulse-dot live";
+  } else {
+    badge.textContent = "connecting…";
+    badge.className = "badge badge-static";
+    dot.className = "pulse-dot";
+  }
+}
+
+function renderAll() {
+  renderChrome();
+  renderNow();
+  renderMap();
+  renderStory();
+  renderWork();
+}
+
+function initTabs() {
+  const btns = Array.prototype.slice.call(document.querySelectorAll(".tab-btn"));
+  btns.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const target = btn.dataset.tab;
+      btns.forEach(function (b) { b.classList.toggle("active", b === btn); b.setAttribute("aria-selected", b === btn ? "true" : "false"); });
+      Array.prototype.slice.call(document.querySelectorAll(".panel")).forEach(function (p) {
+        p.classList.toggle("active", p.dataset.panel === target);
+      });
+      if (target === "map") { const panel = document.getElementById("panel-map"); if (panel._mapRedraw) panel._mapRedraw(); }
+    });
+  });
+}
+
+function initTheme() {
+  const btn = document.getElementById("theme-toggle");
+  btn.addEventListener("click", function () {
+    const cur = document.documentElement.getAttribute("data-theme");
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const effectiveDark = cur ? cur === "dark" : prefersDark;
+    const next = effectiveDark ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("console-theme", next); } catch (e) { /* private mode / file:// - toggle still works this session */ }
+  });
+}
+
+/* -- live polling: only when served over http(s); file:// stays a static snapshot ---------- */
+
+const POLL_ACTIVE_SECONDS = 5;   // mirrors config/console.json's default; edit both if you change it
+const POLL_IDLE_SECONDS = 30;
+const ACTIVE_WINDOW_MINUTES = 10;
+const BACKOFF_SEQUENCE = [5, 10, 20, 40, 60];
+
+let pollTimer = null;
+let backoffIndex = -1;
+
+function isLiveCapable() { return location.protocol === "http:" || location.protocol === "https:"; }
+
+function nextPollSeconds(data) {
+  const age = data && data.now && data.now.heartbeat_age_seconds;
+  if (typeof age === "number" && age < ACTIVE_WINDOW_MINUTES * 60) return POLL_ACTIVE_SECONDS;
+  return POLL_IDLE_SECONDS;
+}
+
+function scheduleNext(seconds) {
+  clearTimeout(pollTimer);
+  if (document.hidden) return; // paused entirely while hidden; visibilitychange resumes it
+  pollTimer = setTimeout(pollOnce, seconds * 1000);
+}
+
+function pollOnce() {
+  fetch("/live/console.json", { cache: "no-store" }).then(function (res) {
+    if (!res.ok) throw new Error("bad status " + res.status);
+    return res.json();
+  }).then(function (data) {
+    backoffIndex = -1;
+    Object.keys(data).forEach(function (k) { DATA[k] = data[k]; });
+    renderAll();
+    scheduleNext(nextPollSeconds(data));
+  }).catch(function () {
+    backoffIndex = Math.min(backoffIndex + 1, BACKOFF_SEQUENCE.length - 1);
+    scheduleNext(BACKOFF_SEQUENCE[backoffIndex]);
+  });
+}
+
+function initPolling() {
+  if (!isLiveCapable()) return;
+  pollOnce();
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) { clearTimeout(pollTimer); }
+    else { pollOnce(); }
+  });
+}
+
+initTabs();
+initTheme();
+renderAll();
+initPolling();
+</script>
+</body>
+</html>

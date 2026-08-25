@@ -1,0 +1,20 @@
+{
+  "id": "map.layers",
+  "kind": "data",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Map Layers",
+  "path": ".claude/system-map/layers.json",
+  "description": "Layer registry.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "7fd3ef193dd00431bc7a0c721435607a44820644bba3a9bf3f7c0dddef75b089",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

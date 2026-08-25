@@ -1,0 +1,23 @@
+{
+  "id": "store.journal",
+  "kind": "data",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "Journal",
+  "path": ".claude/state/journal.jsonl",
+  "description": "Append-only truth: one action vocabulary, shared by every writer and the projector.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "append-only"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

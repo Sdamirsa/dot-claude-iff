@@ -1,0 +1,24 @@
+{
+  "id": "store.record",
+  "kind": "data",
+  "layer": "OBSERVE",
+  "package": null,
+  "title": "Record root",
+  "path": null,
+  "description": "RECORD_ROOT: raw capture, sealed raw, segments, transcripts, analysis, vault - sibling folder, out of git.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "read-only"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true,
+    "external_to_repo": true
+  }
+}

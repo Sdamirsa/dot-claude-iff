@@ -1,0 +1,20 @@
+{
+  "id": "config.registry",
+  "kind": "data",
+  "layer": "EVOLVE",
+  "package": null,
+  "title": "Registry",
+  "path": ".claude/config/registry.json",
+  "description": "The knob registry: one card per tunable, so every setting is discoverable, typed and documented in one place - including every agent's model and effort pin, which would otherwise hide in frontmatter and drift.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "28386b1dfa05ffc8cfe2b4ba59973858d4d869d11e797c25cbd92d864744b141",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

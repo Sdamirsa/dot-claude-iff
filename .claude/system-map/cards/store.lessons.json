@@ -1,0 +1,23 @@
+{
+  "id": "store.lessons",
+  "kind": "data",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "Lessons",
+  "path": ".claude/LESSONS.jsonl",
+  "description": "Mistakes distilled into mechanical prevention rules, rendered in console WORK.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "append-only"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

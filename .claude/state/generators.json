@@ -1,0 +1,34 @@
+{
+  "generators": {
+    "map_scan": {
+      "ran_at": "2026-08-25T12:50:40Z",
+      "run_id": "20260825T125039Z-8828c8",
+      "inputs_hash": "b4e885c3a08952f6504e979fbed86c45fd4fae3e10eed8291f206567e4b08623",
+      "output_hash": "e420a8c21579762f07da17ad2916df4286fa21e72859beab014ebdcda0d840ff"
+    },
+    "map_compile": {
+      "ran_at": "2026-08-25T12:50:40Z",
+      "run_id": "20260825T125039Z-8828c8",
+      "inputs_hash": "b485385b1d1445bdf1776e4472f342ce09ae69d93419e935e4dfda4dd61a0bfb",
+      "output_hash": "bfeea693615c5d154586d60c086cc58c31e611f29d7d948e5694d41ac89f1742"
+    },
+    "story_build": {
+      "ran_at": "2026-08-25T12:50:40Z",
+      "run_id": "20260825T125039Z-8828c8",
+      "inputs_hash": "c2d103c538c38ba59e85b8b47987fe13468039995ea809c9bdb4a1d189dcdc47",
+      "output_hash": "2d6a82bd6aff13c3951163610d8c3b769fc8f994fca54760cde8d03af2674cac"
+    },
+    "console_build": {
+      "ran_at": "2026-08-25T12:50:40Z",
+      "run_id": "20260825T125039Z-8828c8",
+      "inputs_hash": "75412b362be6bea3e06ccea5a8b24f3602561ea898ef091b3e7d7b85a6d452d1",
+      "output_hash": "b8265eb1cbe04ab93e4c8fd2f553ffed60e1721db5b7c610622de901c0963b7e"
+    },
+    "dist_build": {
+      "ran_at": "2026-08-25T12:50:40Z",
+      "run_id": "20260825T125039Z-8828c8",
+      "inputs_hash": "4d256a076f7cb2edc7a02b65682841450ea2f5b5ee078dc6564f2a7f96acd15e",
+      "output_hash": "c2140553bc15293603a087f2b2b6146a382bf1d0dfbd1aaca8c67053a6b3c0d5"
+    }
+  }
+}

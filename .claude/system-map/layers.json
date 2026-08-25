@@ -1,0 +1,48 @@
+{
+  "_comment": [
+    "Layer registry. The five SPINES ship populated - they are the system's own anatomy and",
+    "we know them exactly. FLOW layers are the project's pipeline stages and start empty:",
+    "they are defined through the project via the evolution protocol, never guessed from",
+    "folder names at adoption. Components with no flow layer sit in the 'unplaced' band,",
+    "which is visible on purpose - honest unplacement beats confident wrong placement."
+  ],
+  "version": 1,
+  "spines": [
+    {
+      "id": "MEMORY",
+      "title": "MEMORY",
+      "blurb": "Durable project memory: status, decision log, lessons, tasks, research, reference.",
+      "order": 1
+    },
+    {
+      "id": "GOVERN",
+      "title": "GOVERN",
+      "blurb": "Gates and contracts: policy enforcement, write validation, handshake envelopes, human gates.",
+      "order": 2
+    },
+    {
+      "id": "OBSERVE",
+      "title": "OBSERVE",
+      "blurb": "The always-on record: capture, heartbeat, seal, rollup, anchor, token ledger, retrospective analysis.",
+      "order": 3
+    },
+    {
+      "id": "CONSOLE",
+      "title": "CONSOLE",
+      "blurb": "One page of command and control: NOW, MAP, STORY, WORK.",
+      "order": 4
+    },
+    {
+      "id": "EVOLVE",
+      "title": "EVOLVE",
+      "blurb": "The system changing itself on evidence: the ritual, retro proposals, the anatomist, pruning.",
+      "order": 5
+    }
+  ],
+  "flows": [],
+  "unplaced": {
+    "id": "UNPLACED",
+    "title": "unplaced",
+    "blurb": "Components the anatomist has not yet placed into a flow layer. Visible by design."
+  }
+}

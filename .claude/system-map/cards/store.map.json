@@ -1,0 +1,23 @@
+{
+  "id": "store.map",
+  "kind": "data",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "System map",
+  "path": ".claude/system-map/map.json",
+  "description": "Compiled system map: nodes, edges, and lint results, rendered by the console MAP tab.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "derived"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

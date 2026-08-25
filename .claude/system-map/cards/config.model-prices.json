@@ -1,0 +1,20 @@
+{
+  "id": "config.model-prices",
+  "kind": "data",
+  "layer": "OBSERVE",
+  "package": null,
+  "title": "Model Prices",
+  "path": ".claude/config/model-prices.json",
+  "description": "MAINTAINER-VERIFIED PRICES ONLY.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "5dbbcc6d8d65ed07f96135b150d5117ae6d14ce72f5c4ccffaa52cbe5761d640",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

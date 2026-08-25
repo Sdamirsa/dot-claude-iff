@@ -1,0 +1,31 @@
+{
+  "id": "agent.anatomist",
+  "kind": "agent",
+  "layer": "EVOLVE",
+  "package": null,
+  "title": "anatomist",
+  "path": ".claude/agents/anatomist.md",
+  "description": "The .claude anatomy expert. Use PROACTIVELY from /project-memory whenever a session added, removed, renamed or repurposed a component (anything under .claude/, a tool, a store, a hook, a skill, an agent), and from /adopt as the final install step. It keeps .claude/system-map/cards/ truthful, places components into layers, audits folder health, implements approved evolution changes with the right primitive, and proposes pruning. NOT a code reviewer and NOT a general refactorer.",
+  "reads": [
+    "store.cards",
+    "map.layers"
+  ],
+  "writes": [
+    "store.cards",
+    "map.layers",
+    "store.handshakes"
+  ],
+  "invokes": [
+    "tool.mapctl",
+    "tool.obsctl",
+    "tool.statectl"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "df7970d717a28a417e32739ffab7cabd1822e17084af49886cbe4c6d00e9651f",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

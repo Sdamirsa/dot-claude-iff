@@ -1,0 +1,21 @@
+{
+  "id": "store.memory_run",
+  "kind": "data",
+  "layer": "EVOLVE",
+  "package": null,
+  "title": "Ritual run checkpoint",
+  "path": ".claude/state/memory-run.json",
+  "description": "The /project-memory transaction: run id, phase, step. PUBLISH refuses unless POLISH completed in the same run id.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

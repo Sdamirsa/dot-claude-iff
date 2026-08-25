@@ -1,0 +1,21 @@
+{
+  "id": "human.maintainer",
+  "kind": "human",
+  "layer": null,
+  "package": null,
+  "title": "Maintainer",
+  "path": null,
+  "description": "The project maintainer: approves gates, reviews evolution proposals, owns publish/push decisions.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

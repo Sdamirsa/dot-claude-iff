@@ -1,0 +1,20 @@
+{
+  "id": "protocol.handshake",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Handshake protocol: agent to agent contracts",
+  "path": ".claude/protocols/handshake.md",
+  "description": "Handshake protocol: agent to agent contracts. How a spawning agent (the parent) and a subagent exchange work without losing information.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "b8f31e6aa01cf0e4ecfa61baa09f8f2ce4703e6811e2d302057295f069eec3ed",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

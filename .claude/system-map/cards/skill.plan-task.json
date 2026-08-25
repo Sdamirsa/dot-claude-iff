@@ -1,0 +1,22 @@
+{
+  "id": "skill.plan-task",
+  "kind": "code",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "plan-task",
+  "path": ".claude/skills/plan-task/SKILL.md",
+  "description": "Create and maintain resume-proof task files under .claude/tasks/. Invoke on \"plan this\", \"let's plan\", \"break this down\", or any task likely to span more than one session, AND on \"resume\", \"where were we\", \"continue the task\", \"pick up <task>\". NOT for trivial single-step asks that finish inside one exchange; those need no task file.",
+  "reads": [],
+  "writes": [],
+  "invokes": [
+    "tool.statectl"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "ba7bc47106ce05e2094bff463d5ab8569aeb26f0dcf0a8c133b702608e3f04ee",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

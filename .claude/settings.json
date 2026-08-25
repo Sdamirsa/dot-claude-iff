@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact",
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.sh", "timeout": 20},
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10}
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/heartbeat.sh", "timeout": 10},
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10}
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/policy-gate.sh", "timeout": 10}
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-write-validate.sh", "timeout": 15}
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10}
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10}
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10}
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10}
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10}
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10}
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "config.memory",
+  "kind": "data",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "Memory",
+  "path": ".claude/config/memory.json",
+  "description": "The ritual registry: which steps /project-memory runs, in which phase, in order.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "cf62e2bfc350fffba9e8619b3bd298389dc5527a78ab6e27dbf9fbc86448825f",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

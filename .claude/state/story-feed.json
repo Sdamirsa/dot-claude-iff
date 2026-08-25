@@ -1,0 +1,48 @@
+{
+  "v": 1,
+  "generated_at": "2026-08-25T12:50:40Z",
+  "clock": {
+    "wall_min": "2026-08-25",
+    "wall_max": "2026-08-25",
+    "tokens_max": 202669
+  },
+  "points": [
+    {
+      "date": "2026-08-25",
+      "t_tokens_cum": 202669,
+      "operations": {
+        "events": 429,
+        "errors": 0,
+        "sessions": 3,
+        "tokens_out": 202669,
+        "cost_usd": null
+      },
+      "anatomy": {
+        "agents": 3,
+        "skills": 3,
+        "hooks": 6,
+        "tools": 6,
+        "cards": 49,
+        "components": 67
+      },
+      "data": {},
+      "analysis": {}
+    }
+  ],
+  "markers": [
+    {
+      "date": "2026-08-25",
+      "t_tokens_cum": 202669,
+      "kind": "milestone",
+      "text": "foundation, hooks and ritual runner landed",
+      "ref": "M1"
+    },
+    {
+      "date": "2026-08-25",
+      "t_tokens_cum": 202669,
+      "kind": "milestone",
+      "text": "Phase 2 complete: system self-hosting, 140 tests green, review triaged",
+      "ref": "M2"
+    }
+  ]
+}

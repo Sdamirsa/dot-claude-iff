@@ -1,0 +1,26 @@
+{
+  "id": "agent.retro-analyst",
+  "kind": "agent",
+  "layer": "EVOLVE",
+  "package": null,
+  "title": "retro-analyst",
+  "path": ".claude/agents/retro-analyst.md",
+  "description": "End-of-session analyst invoked by the project-memory skill's EVOLVE step (soft gear). Receives a session digest plus the current .claude inventory and proposes only-necessary changes to the project's .claude system, including demotions and archivals, per .claude/protocols/evolution.md. Use PROACTIVELY only from project-memory, not a general reviewer of code, docs, or work products.",
+  "reads": [
+    "protocol.evolution",
+    "store.lessons",
+    "store.project_log",
+    "store.journal",
+    "store.rollups"
+  ],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "d71d098238d67e9b26065dbdf538e9e7bffe3fc9e9f09d04556d5a5348d16484",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

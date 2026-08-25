@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 430" role="img" aria-label="The recommended layout: the console in one half of the screen, Claude Code in the other, in a terminal, VS Code, or the desktop app.">
+  <!-- Mid-tone palette chosen to stay legible on both GitHub light and dark backgrounds. -->
+  <defs>
+    <style>
+      .frame { fill: #20242b; stroke: #565d68; stroke-width: 1.5; }
+      .pane  { fill: #262b33; stroke: #454c57; }
+      .bar   { fill: #2e343d; }
+      .t     { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #c7cdd6; }
+      .dim   { fill: #8a919c; }
+      .accent{ fill: #7aaeea; }
+      .agent { fill: #e8955a; }
+      .data  { fill: #7bc47f; }
+      .human { fill: #d9bc5e; }
+      .chipbg{ fill: #2e343d; stroke: #454c57; }
+    </style>
+  </defs>
+
+  <!-- screen frame -->
+  <rect class="frame" x="20" y="18" width="880" height="330" rx="14"/>
+  <circle cx="44" cy="36" r="4.5" fill="#c0564f"/>
+  <circle cx="60" cy="36" r="4.5" fill="#d9bc5e"/>
+  <circle cx="76" cy="36" r="4.5" fill="#7bc47f"/>
+  <text class="t dim" x="460" y="40" font-size="11" text-anchor="middle">your screen</text>
+
+  <!-- left pane: the console -->
+  <rect class="pane" x="34" y="52" width="420" height="282" rx="8"/>
+  <rect class="bar" x="34" y="52" width="420" height="30" rx="8"/>
+  <circle cx="52" cy="67" r="4" class="data"/>
+  <text class="t" x="62" y="71" font-size="12">console</text>
+  <text class="t accent" x="150" y="71" font-size="11" font-weight="bold">NOW</text>
+  <text class="t dim" x="192" y="71" font-size="11">MAP</text>
+  <text class="t dim" x="228" y="71" font-size="11">STORY</text>
+  <text class="t dim" x="274" y="71" font-size="11">WORK</text>
+  <text class="t dim" x="440" y="71" font-size="10" text-anchor="end">live · 5s</text>
+
+  <text class="t data" x="50" y="102" font-size="11">● heartbeat 12 s ago · ACTIVE</text>
+  <rect class="chipbg" x="50" y="112" width="388" height="24" rx="5"/>
+  <text class="t" x="58" y="128" font-size="10.5">▶ resume: wire payload into /live, then rebuild</text>
+
+  <text class="t dim" x="50" y="158" font-size="10">NEEDS HUMAN</text>
+  <rect x="50" y="166" width="52" height="16" rx="8" class="agent" opacity="0.85"/>
+  <text class="t" x="76" y="178" font-size="9.5" text-anchor="middle" fill="#1b1f24">SEV1 · 1</text>
+  <rect x="108" y="166" width="52" height="16" rx="8" class="human" opacity="0.7"/>
+  <text class="t" x="134" y="178" font-size="9.5" text-anchor="middle" fill="#1b1f24">SEV2 · 2</text>
+  <rect class="chipbg" x="50" y="190" width="388" height="36" rx="5"/>
+  <text class="t" x="58" y="204" font-size="10">Pick the cache layer · what's going on / what to do</text>
+  <rect x="336" y="208" width="94" height="14" rx="4" class="accent" opacity="0.25"/>
+  <text class="t accent" x="383" y="219" font-size="9" text-anchor="middle">copy context</text>
+
+  <text class="t dim" x="50" y="246" font-size="10">JOURNAL</text>
+  <text class="t dim" x="50" y="262" font-size="10">14:02 <tspan class="t">pointer set before schema migration</tspan></text>
+  <text class="t dim" x="50" y="278" font-size="10">13:58 <tspan class="t">milestone: payload contract-tested</tspan></text>
+  <text class="t dim" x="50" y="294" font-size="10">13:41 <tspan class="t">decision: push stays ask-per-ritual</tspan></text>
+  <text class="t dim" x="50" y="318" font-size="10">tokens today · 412k out · <tspan class="data">in plan</tspan></text>
+
+  <!-- right pane: Claude Code -->
+  <rect class="pane" x="466" y="52" width="420" height="282" rx="8"/>
+  <rect class="bar" x="466" y="52" width="420" height="30" rx="8"/>
+  <text class="t" x="484" y="71" font-size="12">Claude Code</text>
+  <text class="t dim" x="872" y="71" font-size="10" text-anchor="end">one place to interact</text>
+
+  <text class="t human" x="484" y="106" font-size="11">&gt; Answering NH-2 (decide, SEV1): Pick the cache layer</text>
+  <text class="t human" x="484" y="122" font-size="11">  Context: the deploy needs a cache decision ...</text>
+  <text class="t human" x="484" y="138" font-size="11">  My answer: redis, we already run it in prod</text>
+
+  <text class="t agent" x="484" y="170" font-size="11">● Resolving NH-2 and continuing the deploy task ...</text>
+  <text class="t dim" x="484" y="192" font-size="10.5">  statectl need resolve NH-2 --answer "redis"</text>
+  <text class="t dim" x="484" y="208" font-size="10.5">  pointer set: "configure redis pool, then run tests"</text>
+  <text class="t data" x="484" y="230" font-size="10.5">  ✓ tests green · journal updated · console refreshed</text>
+
+  <text class="t" x="484" y="266" font-size="11">&gt; <tspan class="dim">/project-memory</tspan></text>
+  <text class="t dim" x="484" y="288" font-size="10.5">  CHECK ok · POLISH ok · PUBLISH: push? [ask]</text>
+  <rect x="484" y="300" width="7" height="13" class="accent" opacity="0.9"/>
+
+  <!-- divider hint -->
+  <line x1="460" y1="60" x2="460" y2="326" stroke="#565d68" stroke-width="1.5" stroke-dasharray="3 5"/>
+
+  <!-- caption + host chips -->
+  <text class="t" x="460" y="380" font-size="12.5" text-anchor="middle">half the screen watches, half the screen works</text>
+  <rect class="chipbg" x="290" y="394" width="88 " height="22" rx="11"/>
+  <text class="t dim" x="334" y="409" font-size="10.5" text-anchor="middle">terminal</text>
+  <rect class="chipbg" x="388" y="394" width="88" height="22" rx="11"/>
+  <text class="t dim" x="432" y="409" font-size="10.5" text-anchor="middle">VS Code</text>
+  <rect class="chipbg" x="486" y="394" width="120" height="22" rx="11"/>
+  <text class="t dim" x="546" y="409" font-size="10.5" text-anchor="middle">desktop app</text>
+</svg>

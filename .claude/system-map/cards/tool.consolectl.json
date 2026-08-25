@@ -1,0 +1,57 @@
+{
+  "id": "tool.consolectl",
+  "kind": "code",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Consolectl",
+  "path": ".claude/tools/consolectl.py",
+  "description": "consolectl.py - build the console payload, render it into console.html, or delegate to the live server.",
+  "reads": [
+    "store.heartbeat",
+    "store.session",
+    "store.needs_human",
+    "store.journal",
+    "store.handshakes",
+    "store.rollups",
+    "config.model-prices",
+    "store.project_log",
+    "store.lessons",
+    "store.map",
+    "store.story",
+    "config.console",
+    "console.template"
+  ],
+  "writes": [],
+  "invokes": [
+    "console.server"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "16508939aa4d6e4e2dfef027f7889fd052e6c12545b505fd1beaadb6a55d1e6e",
+    "suggested_reads": [
+      "store.handshakes",
+      "store.heartbeat",
+      "store.journal",
+      "store.lessons",
+      "store.map",
+      "store.needs_human",
+      "store.project_log",
+      "store.rollups",
+      "store.session",
+      "store.story"
+    ],
+    "suggested_writes": [
+      "store.handshakes",
+      "store.heartbeat",
+      "store.lessons",
+      "store.map",
+      "store.needs_human",
+      "store.project_log",
+      "store.rollups",
+      "store.session",
+      "store.story"
+    ]
+  }
+}

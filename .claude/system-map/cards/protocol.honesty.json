@@ -1,0 +1,20 @@
+{
+  "id": "protocol.honesty",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Honesty: the working agreement",
+  "path": ".claude/protocols/honesty.md",
+  "description": "Honesty: the working agreement. The rest of `.claude/` assumes the information flowing through it is true: the Project log is only as good as the reports behind it, the retro can only fix friction it hears about, and the developer can only make good calls on accurate status.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "653fff837427262b19c9df28c9e3807d790957af40d98f922d21525e90181822",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

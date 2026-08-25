@@ -1,0 +1,51 @@
+{
+  "date": "2026-08-25",
+  "generated_at": "2026-08-25T12:50:40Z",
+  "events": {
+    "total": 429,
+    "by_event": {
+      "llm.usage": 426,
+      "Stop": 2,
+      "SubagentStop": 1
+    },
+    "errors": 0
+  },
+  "sessions": 3,
+  "tokens": {
+    "input": 852,
+    "output": 202669,
+    "cache_read": 92643430,
+    "cache_creation": 2345587,
+    "by_model": {
+      "claude-sonnet-5": {
+        "input": 576,
+        "output": 20818,
+        "cache_read": 50813250,
+        "cache_creation": 1452999
+      },
+      "claude-fable-5": {
+        "input": 26,
+        "output": 35529,
+        "cache_read": 3220430,
+        "cache_creation": 253681
+      },
+      "claude-opus-5": {
+        "input": 250,
+        "output": 146322,
+        "cache_read": 38609750,
+        "cache_creation": 638907
+      }
+    }
+  },
+  "cost": {
+    "usd": null,
+    "known": false,
+    "unknown_models": [
+      "claude-fable-5",
+      "claude-opus-5",
+      "claude-sonnet-5"
+    ],
+    "unpriced_classes": [],
+    "billing": "subscription"
+  }
+}

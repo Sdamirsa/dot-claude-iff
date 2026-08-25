@@ -1,0 +1,23 @@
+{
+  "id": "store.dist",
+  "kind": "data",
+  "layer": "EVOLVE",
+  "package": null,
+  "title": "distribution zips",
+  "path": ".claude/dist",
+  "description": "The two release artifacts: dot-claude-iff-fresh.zip (new repo) and dot-claude-iff-adopt-kit.zip (existing repo). Derived: rebuilt by every ritual so a download can never lag the repo.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "derived"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "lazy": true,
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "console.template",
+  "kind": "data",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Console Template",
+  "path": ".claude/console/console.template.html",
+  "description": "The console's single HTML shell (head, theme, styles, tabs) with one JSON token replaced by consolectl's payload at build time.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "338ea6e3ed6c78c26be90ab31d1e3058dd9cf772957e575347ad651b4d8d8db8",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

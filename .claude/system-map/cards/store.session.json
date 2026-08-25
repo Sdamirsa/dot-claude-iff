@@ -1,0 +1,23 @@
+{
+  "id": "store.session",
+  "kind": "data",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "Session snapshot",
+  "path": ".claude/state/session.json",
+  "description": "Derived point-in-time session snapshot, projected from the journal.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "derived"
+  ],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

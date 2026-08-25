@@ -1,0 +1,20 @@
+{
+  "id": "config.observe",
+  "kind": "data",
+  "layer": "OBSERVE",
+  "package": null,
+  "title": "Observe",
+  "path": ".claude/config/observe.json",
+  "description": "Observability settings.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "e27ded9c79455cba8a18f4759bd92cfee58b07038c420aa9b60099076d61d31b",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

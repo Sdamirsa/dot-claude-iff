@@ -1,0 +1,22 @@
+{
+  "id": "hook.post-write-validate",
+  "kind": "code",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Post Write Validate",
+  "path": ".claude/hooks/post-write-validate.sh",
+  "description": "post-write-validate.sh - PostToolUse gate on Write|Edit. The generic GOVERN gate. LAW 2, gate half: FAILS CLOSED. A structured file under .claude/ that no longer parses is blocked on the spot (exit 2, message to the model) so the agent fixes its own bad write while it still has the context - rather than the corruption surfacing three sessions later when the console silently renders nothing. Deliberately narrow: it parse-checks JSON/JSONL and the handshake envelope's required keys. Deep semantic validation belongs to project-registered CHECK steps, not to a per-write hook that runs under a timeout on every edit.",
+  "reads": [
+    "store.handshakes"
+  ],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-25",
+    "hash": "1ca0dfca9059e7123f79e9d99511d66687a87573e6074429126943515a0494f9",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

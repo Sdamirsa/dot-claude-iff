@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Console serving. The page is a single self-contained HTML file that works over file://",
+    "as a labelled static snapshot; console.py adds live polling when it is running.",
+    "It binds 127.0.0.1 only, checks the Host header (DNS-rebinding), and serves ONLY the",
+    "console directory plus the explicit read allowlist below - never the repo root, which",
+    "would expose .env and everything else on localhost."
+  ],
+  "version": 1,
+  "host": "127.0.0.1",
+  "port": 7717,
+  "autostart": true,
+  "poll_active_seconds": 5,
+  "poll_idle_seconds": 30,
+  "active_window_minutes": 10,
+  "read_allowlist": [
+    ".claude/system-map/map.json",
+    ".claude/state/session.json",
+    ".claude/state/needs-human.json"
+  ]
+}

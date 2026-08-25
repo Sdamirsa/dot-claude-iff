@@ -1,0 +1,164 @@
+{
+  "run_id": "20260825T125039Z-8828c8",
+  "started": "2026-08-25T12:50:39Z",
+  "status": "done",
+  "phase": "publish",
+  "step": null,
+  "phases": {
+    "check": {
+      "status": "WARN",
+      "ts": "2026-08-25T12:50:39Z",
+      "results": [
+        {
+          "name": "journal_parses",
+          "status": "OK",
+          "message": "10 events parse",
+          "details": []
+        },
+        {
+          "name": "heartbeat_present",
+          "status": "OK",
+          "message": "last turn ended 6 min ago",
+          "details": []
+        },
+        {
+          "name": "generator_freshness",
+          "status": "WARN",
+          "message": "2 generator(s) need a POLISH rebuild",
+          "details": [
+            "map_scan: inputs changed since the last run (POLISH will rebuild)",
+            "dist_build: inputs changed since the last run (POLISH will rebuild)"
+          ]
+        },
+        {
+          "name": "cards_lint",
+          "status": "WARN",
+          "message": "mapctl lint says WARN",
+          "details": [
+            "MAP LINT: 0 error(s), 2 warning(s)",
+            "  WARN   human.maintainer: layer is null (unplaced)",
+            "  WARN   tool._lib: layer is null (unplaced)"
+          ]
+        },
+        {
+          "name": "config_registry_lint",
+          "status": "WARN",
+          "message": "1 unregistered tunable(s)",
+          "details": [
+            "model-prices.billing_options: tunable has no registry card"
+          ]
+        },
+        {
+          "name": "price_table",
+          "status": "OK",
+          "message": "subscription billing: token counts tracked, dollar costs not applicable",
+          "details": []
+        },
+        {
+          "name": "record_size",
+          "status": "OK",
+          "message": "record is 14.9 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "details": [
+            "raw: 14.5 MB",
+            "spool: 215.7 KB",
+            "segments: 202.4 KB",
+            "sealed-raw: 20.1 KB",
+            "cursors.json: 4.3 KB"
+          ]
+        },
+        {
+          "name": "needs_human_sync",
+          "status": "OK",
+          "message": "queue synced",
+          "details": []
+        },
+        {
+          "name": "task_reality",
+          "status": "OK",
+          "message": "0 active task(s), checkpoints match disk",
+          "details": []
+        },
+        {
+          "name": "no_machine_paths",
+          "status": "OK",
+          "message": "no home-directory paths in shippable trees",
+          "details": []
+        }
+      ]
+    },
+    "polish": {
+      "status": "WARN",
+      "ts": "2026-08-25T12:50:40Z",
+      "results": [
+        {
+          "name": "map_scan",
+          "status": "OK",
+          "message": "mapctl.py scan",
+          "details": []
+        },
+        {
+          "name": "map_compile",
+          "status": "WARN",
+          "message": "mapctl.py compile",
+          "details": []
+        },
+        {
+          "name": "story_build",
+          "status": "OK",
+          "message": "obsctl.py story",
+          "details": []
+        },
+        {
+          "name": "console_build",
+          "status": "OK",
+          "message": "consolectl.py build",
+          "details": []
+        },
+        {
+          "name": "dist_build",
+          "status": "OK",
+          "message": "distctl.py build",
+          "details": []
+        }
+      ]
+    },
+    "publish": {
+      "status": "OK",
+      "ts": "2026-08-25T12:50:40Z",
+      "results": [
+        {
+          "name": "polish_complete",
+          "status": "OK",
+          "message": "polish complete",
+          "details": []
+        },
+        {
+          "name": "obs_ingest",
+          "status": "OK",
+          "message": "obsctl.py ingest",
+          "details": []
+        },
+        {
+          "name": "obs_seal",
+          "status": "OK",
+          "message": "obsctl.py seal",
+          "details": []
+        },
+        {
+          "name": "obs_rollup",
+          "status": "OK",
+          "message": "obsctl.py rollup",
+          "details": []
+        },
+        {
+          "name": "obs_anchor",
+          "status": "OK",
+          "message": "obsctl.py anchor",
+          "details": []
+        }
+      ]
+    }
+  },
+  "last_completed": "2026-08-25T12:50:40Z",
+  "updated": "2026-08-25T12:50:40Z"
+}

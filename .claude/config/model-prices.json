@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "MAINTAINER-VERIFIED PRICES ONLY. A model absent from this table reports cost=unknown;",
+    "the tools NEVER guess a price. An empty table is a loud CHECK warning, not a silent zero",
+    "- the source system's table sat empty for months while every cost figure quietly read",
+    "'unknown' and nobody was told.",
+    "",
+    "billing: 'api' means per-token dollar cost applies and this table prices it.",
+    "'subscription' means this session's usage is included in a plan (Claude subscription):",
+    "dollar cost is NOT APPLICABLE, which is a different truth than unknown - token counts",
+    "are still tracked and shown, the empty-table warning goes quiet, and the console reads",
+    "'in plan' instead of 'unknown'. Set it once and forget it.",
+    "",
+    "Units: USD per million tokens, per class. Cache-read and cache-creation price",
+    "differently from input; a class with no price contributes 'unknown' to that row rather",
+    "than zeroing the whole total."
+  ],
+  "version": 1,
+  "billing": "subscription",
+  "billing_options": ["api", "subscription"],
+  "currency": "USD",
+  "per_million_tokens": {}
+}
