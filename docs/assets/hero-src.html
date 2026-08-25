@@ -9,13 +9,17 @@
      file://$PWD/docs/assets/hero-src.html
    The left pane is the REAL demo console (docs/demo/console.html) in an iframe. */
 * { box-sizing: border-box; margin: 0; }
-body { width: 1660px; height: 1096px; background: #FAF9F6; overflow: hidden;
+body { width: 1660px; height: 1000px; background: #FAF9F6; overflow: hidden;
   font-family: "Nunito", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-.stage { position: relative; width: 1660px; height: 1096px; padding: 20px 40px 0; }
-.toptitles { display: flex; margin-bottom: 12px; }
-.tt { width: 810px; text-align: center; font-size: 31px; font-weight: 800; letter-spacing: -0.01em; }
-.tt.console-t { color: #2563EB; }
-.tt.claude-t { color: #D97757; }
+.stage { position: relative; width: 1660px; height: 1000px; padding: 20px 40px 0; }
+.toptitles { display: flex; align-items: flex-start; margin-bottom: 16px; }
+.tt { text-align: center; letter-spacing: -0.01em; }
+.tt .big { font-size: 29px; font-weight: 800; }
+.tt .small { font-size: 17px; font-weight: 600; margin-top: 3px; opacity: 0.85;
+  font-family: ui-monospace, Menlo, Consolas, monospace; }
+.tt.console-t { width: 620px; color: #2563EB; }
+.tt.center-t { width: 340px; color: #059669; padding-top: 2px; }
+.tt.claude-t { width: 620px; color: #D97757; }
 .panes { display: flex; gap: 36px; }
 
 .pane { position: relative; border: 2.5px dashed; border-radius: 18px; padding: 14px; }
@@ -49,23 +53,14 @@ body { width: 1660px; height: 1096px; background: #FAF9F6; overflow: hidden;
 .caret { display: inline-block; width: 8px; height: 16px; background: #d97757;
   vertical-align: -2px; }
 
-/* annotation labels below, arrows up to the dashed borders */
-.labels { position: absolute; left: 0; right: 0; top: 960px; height: 170px; }
-.label { position: absolute; text-align: center; }
-.label .name { font-size: 27px; font-weight: 800; letter-spacing: -0.01em; }
-.label .sub { font-size: 16.5px; color: #64748B; margin-top: 5px; max-width: 460px; }
-.label.console-l { left: 120px; width: 560px; }
-.label.console-l .name { color: #2563EB; }
-.label.claude-l { left: 940px; width: 560px; }
-.label.claude-l .name { color: #D97757; }
-svg.arrows { position: absolute; inset: 0; pointer-events: none; }
 </style>
 </head>
 <body>
 <div class="stage">
   <div class="toptitles">
-    <div class="tt console-t">dot-claude-iff Console</div>
-    <div class="tt claude-t">Claude Code</div>
+    <div class="tt console-t"><div class="big">One place to control</div><div class="small">dot-claude-iff Console</div></div>
+    <div class="tt center-t"><div class="big">One command to remember</div><div class="small">/project-memory</div></div>
+    <div class="tt claude-t"><div class="big">One place to interact</div><div class="small">Claude Code</div></div>
   </div>
   <div class="panes">
     <div class="pane console">
@@ -102,29 +97,6 @@ svg.arrows { position: absolute; inset: 0; pointer-events: none; }
     </div>
   </div>
 
-  <div class="labels">
-    <div class="label console-l">
-      <div class="name">Command &amp; Control</div>
-      <div class="sub">the console - watch every block live: what runs, what needs you,
-        what it costs, how it is wired</div>
-    </div>
-    <div class="label claude-l">
-      <div class="name">Interaction</div>
-      <div class="sub">Claude Code - the one place work happens, harnessed by hooks,
-        journal and gates underneath</div>
-    </div>
-  </div>
-
-  <svg class="arrows" viewBox="0 0 1660 1096" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-        <path d="M0,0 L10,5 L0,10 z" fill="#2563EB"/></marker>
-      <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-        <path d="M0,0 L10,5 L0,10 z" fill="#D97757"/></marker>
-    </defs>
-    <path d="M 148 1044 C 145 1004, 150 969, 165 942" fill="none" stroke="#2563EB" stroke-width="3" stroke-dasharray="8 7" marker-end="url(#ag)"/>
-    <path d="M 1512 1044 C 1515 1004, 1510 969, 1495 942" fill="none" stroke="#D97757" stroke-width="3" stroke-dasharray="8 7" marker-end="url(#ab)"/>
-  </svg>
 </div>
 </body>
 </html>

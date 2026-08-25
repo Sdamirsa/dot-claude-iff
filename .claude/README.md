@@ -77,7 +77,7 @@ to you. The quality of the context you give is the quality of the block you get 
 
 Five habits. Each is short because the system does the heavy lifting; your part is precision.
 
-**Brief like a colleague, not a ticket.** Give the goal, the constraints, and what done looks
+**1 · Brief like a colleague, not a ticket.** Give the goal, the constraints, and what done looks
 like. The difference:
 
 ```
@@ -88,7 +88,7 @@ Strong: Login fails for emails containing "+". Reproduce with
         the auth suite stays green.
 ```
 
-**Answer through the console.** When the queue has an item for you, press its "copy context"
+**2 · Answer through the console.** When the queue has an item for you, press its "copy context"
 button, paste into the Claude Code terminal, and type after `My answer:`. The agent receives
 the full situation with your reply, so a two-word answer lands with nothing lost:
 
@@ -99,15 +99,15 @@ You asked me to: reply with redis or in-process
 My answer: redis, we already run it in prod
 ```
 
-**Debug with evidence, not paraphrase.** Paste the actual output, the exact error, the failing
+**3 · Debug with evidence, not paraphrase.** Paste the actual output, the exact error, the failing
 command. Say what you expected and what you saw. "It's broken" costs a round trip; a pasted
 traceback usually costs none.
 
-**Correct once, then make it stick.** If you correct the same thing twice, say "log this as a
+**4 · Correct once, then make it stick.** If you correct the same thing twice, say "log this as a
 lesson". It becomes a row in `LESSONS.jsonl` with a mechanical prevention rule, and the agent
 will cite it back before repeating the mistake. That is the system learning; feed it.
 
-**Close your blocks.** Run `/project-memory` at the end of a session, and answer gates when
+**5 · Close your blocks.** Run `/project-memory` at the end of a session, and answer gates when
 asked; silence is not approval. An unclosed block is the one thing this system cannot protect.
 
 ## Get it into your own project

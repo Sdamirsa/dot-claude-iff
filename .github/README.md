@@ -7,8 +7,7 @@ morning, catch problems three sessions late, and answer "should I?" with no situ
 **dot-claude-iff** is a `.claude/` operating system that fixes this at the mechanism level: it
 harnesses the agent, records everything locally, and hands you one live page to command it all.
 
-> **One place to interact** - Claude Code · **one place to control** - the console ·
-> **one command to evolve** - `/project-memory`
+![What agent work usually does, versus what this system makes it do](../docs/assets/keywords.svg)
 
 [![The console (command and control) beside Claude Code (interaction)](../docs/assets/hero.png)](https://sdamirsa.github.io/dot-claude-iff/demo/console.html)
 
@@ -21,9 +20,6 @@ harnesses the agent, records everything locally, and hands you one live page to 
 <p align="center">
   <a href="../.claude/README.md#for-humans-how-to-collaborate-with-the-ai"><img src="../docs/assets/banner-human.svg" alt="The agent's harness and communication are built in. Your half is five learnable habits: read the human manual." width="860"></a>
 </p>
-
-![What agent work usually does, versus what this system makes it do](../docs/assets/keywords.svg)
-
 
 **Have an agent adopt it for you** - paste this to Claude Code (or any capable coding agent)
 inside the repo you want it in:
@@ -128,6 +124,26 @@ the one concrete thing you are asking for. That is exactly how the agents here a
 ask *you*.
 
 </details>
+
+<details>
+<summary><b>The five habits of a good partner</b></summary>
+
+The agent's half of collaboration is built in; these five are yours. Full versions with
+examples live in [the Partner Guide](../.claude/README.md#for-humans-how-to-collaborate-with-the-ai).
+
+1. **Brief like a colleague, not a ticket.** Give the goal, the constraints, and what done
+   looks like - "fix the login bug" costs a round trip that a failing test name does not.
+2. **Answer through the console.** Press an item's "copy context" button, paste, and type
+   after `My answer:` - a two-word reply lands with the full situation attached.
+3. **Debug with evidence, not paraphrase.** Paste the actual output and the exact error; say
+   expected versus observed.
+4. **Correct once, then make it stick.** Say "log this as a lesson" and the mistake becomes a
+   mechanical prevention rule the agent cites before repeating it.
+5. **Close your blocks.** Run `/project-memory` at the end of a session; answer gates when
+   asked - silence is not approval.
+
+</details>
+
 
 ---
 
