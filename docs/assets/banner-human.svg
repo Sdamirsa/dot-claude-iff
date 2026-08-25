@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 84" role="img" aria-label="The agent harness and communication are built in. Your half is learnable: read the human manual.">
+  <rect x="2" y="2" width="1056" height="80" rx="14" fill="#FAF9F6" stroke="#2563EB" stroke-width="2.5" stroke-dasharray="10 7"/>
+  <text x="34" y="36" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="21" font-weight="800" fill="#0F172A">The agent's harness and communication are built in.</text>
+  <text x="34" y="62" font-family="system-ui, sans-serif" font-size="16.5" fill="#64748B">Partnership is two-sided - your half is five learnable habits.</text>
+  <rect x="806" y="20" width="222" height="44" rx="10" fill="#2563EB"/>
+  <text x="917" y="48" text-anchor="middle" font-family="system-ui, sans-serif" font-size="17" font-weight="700" fill="#ffffff">Read the human manual</text>
+</svg>

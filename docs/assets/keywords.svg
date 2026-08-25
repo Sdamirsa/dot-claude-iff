@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1082 96" role="img" aria-label="What agent work usually does, struck through, versus what this system makes it do: forgets becomes remembers, works unseen becomes shows itself, asks badly becomes asks with context, rots becomes regenerates, repeats mistakes becomes evolves, locks you in becomes adopts anywhere.">
+  <g transform="translate(10,0)">
+    <text x="0" y="34" font-family="system-ui, sans-serif" font-size="15" fill="#94A3B8" text-decoration="line-through">forgets</text>
+    <text x="0" y="60" font-family="system-ui, sans-serif" font-size="18" font-weight="800" fill="#2563EB">remembers</text>
+    <text x="0" y="82" font-family="ui-monospace, Menlo, monospace" font-size="11.5" fill="#64748B">journal + pointer</text>
+  </g><g transform="translate(188,0)">
+    <text x="0" y="34" font-family="system-ui, sans-serif" font-size="15" fill="#94A3B8" text-decoration="line-through">works unseen</text>
+    <text x="0" y="60" font-family="system-ui, sans-serif" font-size="18" font-weight="800" fill="#059669">shows itself</text>
+    <text x="0" y="82" font-family="ui-monospace, Menlo, monospace" font-size="11.5" fill="#64748B">live console</text>
+  </g><g transform="translate(366,0)">
+    <text x="0" y="34" font-family="system-ui, sans-serif" font-size="15" fill="#94A3B8" text-decoration="line-through">asks badly</text>
+    <text x="0" y="60" font-family="system-ui, sans-serif" font-size="18" font-weight="800" fill="#D97706">asks with context</text>
+    <text x="0" y="82" font-family="ui-monospace, Menlo, monospace" font-size="11.5" fill="#64748B">needs-human queue</text>
+  </g><g transform="translate(544,0)">
+    <text x="0" y="34" font-family="system-ui, sans-serif" font-size="15" fill="#94A3B8" text-decoration="line-through">rots</text>
+    <text x="0" y="60" font-family="system-ui, sans-serif" font-size="18" font-weight="800" fill="#2563EB">regenerates</text>
+    <text x="0" y="82" font-family="ui-monospace, Menlo, monospace" font-size="11.5" fill="#64748B">one ritual</text>
+  </g><g transform="translate(722,0)">
+    <text x="0" y="34" font-family="system-ui, sans-serif" font-size="15" fill="#94A3B8" text-decoration="line-through">repeats mistakes</text>
+    <text x="0" y="60" font-family="system-ui, sans-serif" font-size="18" font-weight="800" fill="#059669">evolves</text>
+    <text x="0" y="82" font-family="ui-monospace, Menlo, monospace" font-size="11.5" fill="#64748B">lessons + retro</text>
+  </g><g transform="translate(900,0)">
+    <text x="0" y="34" font-family="system-ui, sans-serif" font-size="15" fill="#94A3B8" text-decoration="line-through">locks you in</text>
+    <text x="0" y="60" font-family="system-ui, sans-serif" font-size="18" font-weight="800" fill="#D97706">adopts anywhere</text>
+    <text x="0" y="82" font-family="ui-monospace, Menlo, monospace" font-size="11.5" fill="#64748B">merge, never overwrite</text>
+  </g>
+</svg>

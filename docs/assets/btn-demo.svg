@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 74" role="img" aria-label="Open the demo">
+  <rect x="2" y="2" width="336" height="70" rx="14" fill="#2563EB"/>
+  <rect x="2" y="2" width="336" height="70" rx="14" fill="none" stroke="rgba(15,23,42,.18)" stroke-width="1.5"/>
+  <text x="170" y="40" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="24" font-weight="800" fill="#ffffff">Open the demo</text>
+  <text x="170" y="60" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12.5" fill="rgba(255,255,255,.85)">the real console, real data, zero setup</text>
+</svg>

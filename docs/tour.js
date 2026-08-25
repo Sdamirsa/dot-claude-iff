@@ -65,7 +65,8 @@
     var box = document.createElement("nav");
     box.className = "topbar-links";
     box.setAttribute("aria-label", "Site");
-    [["demo/console.html", "Demo ↗", true], [REPO_URL, "Repo ↗", true]].forEach(function (it) {
+    [["demo/console.html", "Demo ↗", true], [REPO_URL, "Repo ↗", true],
+     [REPO_URL + "/blob/main/.claude/README.md", "Partner guide ↗", true]].forEach(function (it) {
       var a = document.createElement("a");
       a.href = it[0]; a.textContent = it[1];
       if (it[2]) { a.target = "_blank"; a.rel = "noopener"; }

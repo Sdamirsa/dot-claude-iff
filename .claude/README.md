@@ -1,4 +1,12 @@
-# dot-claude-iff
+# dot-claude-iff · the Partner Guide
+
+*The manual, and the learning path for collaborating with your agent.*
+
+**[Repo](https://github.com/Sdamirsa/dot-claude-iff)** ·
+**[Demo console](https://sdamirsa.github.io/dot-claude-iff/demo/console.html)** ·
+**[Guided tour](https://sdamirsa.github.io/dot-claude-iff/)**
+
+---
 
 A generalizable `.claude/` operating system for any project.
 

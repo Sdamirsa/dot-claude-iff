@@ -1,99 +1,132 @@
-# dot-claude-iff
+# dot-claude-iff: what makes us human, built into Claude - adapt to context, evolve to challenge, communicate to partner
 
-**A `.claude/` operating system for agent-driven projects.** It harnesses the agent, instruments
-the work, and hands you one page to watch it all.
+Agent sessions forget, work unseen, ask badly, and rot. You re-explain context every morning,
+discover problems three sessions late, and answer "should I?" questions that arrive with no
+situation attached. **dot-claude-iff** is a `.claude/` operating system that fixes this at the
+mechanism level: it harnesses the agent, records everything locally, and hands you one live
+page to command it all.
+
+[![The console (command and control) beside Claude Code (interaction)](../docs/assets/hero.png)](https://sdamirsa.github.io/dot-claude-iff/demo/console.html)
 
 > **One place to interact** - Claude Code · **one place to control** - the console ·
 > **one command to evolve** - `/project-memory`
 
-![The console beside Claude Code](../.claude/reference/side-by-side.svg)
+<p align="center">
+  <a href="https://sdamirsa.github.io/dot-claude-iff/demo/console.html"><img src="../docs/assets/btn-demo.svg" alt="Open the demo - the real console, real data, zero setup" width="300"></a>
+  <a href="https://sdamirsa.github.io/dot-claude-iff/"><img src="../docs/assets/btn-tour.svg" alt="Take the tour - understand, set up, learn by doing" width="300"></a>
+  <a href="../../releases/latest"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="300"></a>
+</p>
 
-**[Take the guided tour](https://sdamirsa.github.io/dot-claude-iff/)** ·
-**[Open the demo console](https://sdamirsa.github.io/dot-claude-iff/demo/console.html)** (the
-real instrument, loaded with this repo's real data) ·
-**[Download from Releases](../../releases/latest)**
+![What agent work usually does, versus what this system makes it do](../docs/assets/keywords.svg)
 
-[**⭐ Star this repo**](../../stargazers) if the ideas are useful ·
-[**🐛 Open an issue**](../../issues/new) if something is wrong or missing
+<p align="center">
+  <a href="../.claude/README.md#for-humans-how-to-collaborate-with-the-ai"><img src="../docs/assets/banner-human.svg" alt="The agent's harness and communication are built in. Your half is five learnable habits: read the human manual." width="860"></a>
+</p>
+
+**Have an agent adopt it for you** - paste this to Claude Code (or any capable coding agent)
+inside the repo you want it in:
+
+```text
+Clone https://github.com/Sdamirsa/dot-claude-iff to a sibling folder outside this repo, then
+adopt its system into this repo by following the cloned repo's .claude/skills/adopt/SKILL.md
+end to end. This repo may already have a .claude directory: merge, never overwrite, and report
+every conflict to me before deciding.
+```
 
 ---
 
-## What it does
+<details>
+<summary><b>The six decisions it is built on</b></summary>
+
+**1 · Communication carries context, both ways.** The agent cannot open a question for you
+without stating, in plain language, what is going on and what to do - the CLI refuses
+otherwise. The console renders each question with a **copy context** button: you paste, type
+your answer after `My answer:`, and the agent receives the full situation with your reply.
+
+**2 · Memory is managed, not accumulated.** An append-only journal is the single source of
+truth; everything readable is a projection rebuilt from it. Decisions land in a log, mistakes
+become lessons with mechanical prevention rules, and a resume pointer is written to disk
+*before* risky work - the one thing a crash cannot take from you.
+
+**3 · Progress beats like a pulse.** A heartbeat marks every turn; hooks capture every event;
+token usage is counted per model (and priced, or honestly marked "in plan" on a subscription).
+The record's raw tier keeps verbatim history forever in a sibling folder **outside the repo** -
+so `git push` structurally cannot publish a prompt, a file body, or a secret.
+
+**4 · One command stops, publishes, learns, and evolves.** `/project-memory` runs four phases
+under one transaction: **check** reality against the record, **polish** memory and rebuild
+every derived surface, **publish** (seal, commit, ask before pushing), **evolve** - propose at
+most three evidence-backed changes, which land only with your approval. Every generator runs
+inside this ritual and nowhere else, so nothing can silently rot.
+
+**5 · The system explains itself.** Every component has a card with curated relations,
+compiled into a clickable map (click to trace connections, click again for details). An
+anatomist agent keeps the cards true; a lint fails the ritual on a wrong edge.
+
+**6 · Adoption is a merge, never a takeover.** The fresh zip seeds a new repo; the adopt kit
+installs into an existing one - a pre-existing `.claude/` is the designed case, every conflict
+is reported, and your version wins by default. Both zips are rebuilt by the ritual itself.
+
+</details>
+
+<details>
+<summary><b>What it does, verb by verb</b></summary>
 
 - **Records** every event into a local, append-only record - and phones home to no one.
 - **Survives** interruptions: any session can be picked up cold, by anyone.
-- **Shows** you everything on one live page: what is running, what needs you, what it costs,
-  how the system is wired, and how the project evolved.
-- **Asks** you properly: every question arrives with context and one concrete action, and your
-  answer travels back with the context attached.
+- **Shows** you everything on one live page: what runs, what needs you, what it costs, how the
+  system is wired, and how the project evolved on a dual clock (wall time or tokens).
+- **Asks** you properly, and carries your answers back with their context attached.
 - **Closes** each work block with a single command, then **improves itself** only on evidence
-  you approve.
+  you approve - including *removing* what you never use.
 - **Installs** into any repo - new or existing - and merges, never overwrites.
 
 Runs on `bash`, `python3` and `git`. Installs nothing, imports nothing, sends nothing.
 
-## The six decisions it is built on
+</details>
 
-**1 · Communication carries context, both ways.**
-The agent cannot open a question for you without stating, in plain language, what is going on
-and what to do - the CLI refuses otherwise. The console renders each question with a **copy
-context** button: you paste, type your answer after `My answer:`, and the agent receives the
-full situation with your reply. A two-word answer lands with nothing lost.
-
-**2 · Memory is managed, not accumulated.**
-An append-only journal is the single source of truth; everything readable (status, handoff,
-boards) is a projection rebuilt from it. Decisions land in a log, mistakes become lessons with
-mechanical prevention rules, and a resume pointer is written to disk *before* risky work - the
-one thing a crash cannot take from you.
-
-**3 · Progress beats like a pulse.**
-A heartbeat marks every turn; hooks capture every event; token usage is counted per model (and
-priced, or honestly marked "in plan" on a subscription). The record's raw tier keeps verbatim
-history forever in a sibling folder **outside the repo** - so `git push` structurally cannot
-publish a prompt, a file body, or a secret, and a gate fails the build if a committed file so
-much as names your home directory.
-
-**4 · One command stops, publishes, learns, and evolves.**
-`/project-memory` runs four phases under one transaction: **check** reality against the record,
-**polish** memory and rebuild every derived surface, **publish** (seal, commit, ask before
-pushing), **evolve** - propose at most three evidence-backed changes, which land only with your
-approval. Every generator in the system runs inside this ritual and nowhere else, so nothing
-can silently rot. Removal is evolution too: unused tools get proposed for demotion or archival.
-
-**5 · The system explains itself.**
-Every component - agent, tool, hook, store, human - has a card with curated relations, compiled
-into a clickable map (click to trace connections, click again for details). An anatomist agent
-keeps the cards true; a lint fails the ritual on a wrong edge. The evolution story renders on a
-dual clock: wall time, or cumulative tokens.
-
-**6 · Adoption is a merge, never a takeover.**
-`dot-claude-iff-fresh.zip` seeds a new repo; `dot-claude-iff-adopt-kit.zip` installs into an
-existing one - a pre-existing `.claude/` is the designed case, every conflict is reported and
-your version wins by default. Both zips are rebuilt by the ritual itself, so a release can
-never lag the system.
-
-## See it
-
-| | |
-|---|---|
-| **[Demo console](https://sdamirsa.github.io/dot-claude-iff/demo/console.html)** | The actual console page, snapshotted from this repo: the live NOW panel, the 49-component map with focus mode, the story clock, the work board. |
-| **[Guided tour](https://sdamirsa.github.io/dot-claude-iff/)** | Three steps - understand (with the honest privacy section), set up, then six small exercises with what-happens-underneath and where-to-look-on-the-console. |
-| **[The manual](../.claude/README.md)** | The daily shape, the three laws, the five human collaboration habits, every command. |
-
-## Trust posture, in three sentences
+<details>
+<summary><b>Trust posture and privacy</b></summary>
 
 This system makes **zero network calls** - the one `urllib` site in the codebase is the opt-in
 analysis engine, off by default, pointed only at an endpoint you configure (local Ollama keeps
 even that on-machine). Claude Code itself talks to Anthropic exactly as it does without this
 system; what this adds is a *local* record of what happened, and a mechanical guarantee that
-nothing verbatim from that record can reach a commit. Don't trust it - grep it: the
-[tour's privacy section](https://sdamirsa.github.io/dot-claude-iff/understand.html) hands you
-the commands.
+nothing verbatim from that record can reach a commit - a CHECK gate even fails the build if a
+committed file names your home directory.
 
-## Contribute back
+Don't trust it - grep it: the
+[tour's privacy section](https://sdamirsa.github.io/dot-claude-iff/understand.html) hands you
+the verification commands and an annotated **risk map** of every file location and what is
+safe to share.
+
+</details>
+
+<details>
+<summary><b>Docs, manual, and deeper reading</b></summary>
+
+- **[The Partner Guide](../.claude/README.md)** - the manual and the human-collaboration
+  learning path: the daily shape, the three laws, the five habits, every command. Lives inside
+  `.claude/` so agents read the same document you do.
+- **[The guided tour](https://sdamirsa.github.io/dot-claude-iff/)** - ten pages with progress
+  tracking: understand (with the privacy risk map), set up, six hands-on exercises.
+- **[The protocols](../.claude/protocols)** - handshake, human gates, honesty, evolution.
+- **[The design contract](../.claude/research/2026-08-24-system-design.md)** - how this was
+  distilled from two source systems, and the eight settled decisions.
+
+</details>
+
+<details>
+<summary><b>Contribute back</b></summary>
 
 **[⭐ Star](../../stargazers)** the repo to say the ideas earned it.
 **[🐛 Open an issue](../../issues/new)** when something is wrong, unclear, or missing - and
 hold it to this system's own communication contract: say what is going on, why it matters, and
 the one concrete thing you are asking for. That is exactly how the agents here are required to
 ask *you*.
+
+</details>
+
+---
+
+<p align="center"><i>"Good unite hearts, cover all, break none."</i></p>
