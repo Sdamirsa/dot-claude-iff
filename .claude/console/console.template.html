@@ -48,6 +48,12 @@ table { border-collapse: collapse; width: 100%; }
   --color-human: #b8922e;
   --color-external: #8a8f98;
 
+  /* connection colors: deliberately a different family (purples/pink) from the node kinds,
+     so edge hue encodes the RELATION and can never be misread as a node's role */
+  --edge-write: #6D28D9;
+  --edge-read: #A855F7;
+  --edge-invoke: #DB2777;
+
   --sev0-bg: #c0392b;
   --sev0-fg: #ffffff;
   --sev1-bg: #d97a2b;
@@ -73,6 +79,9 @@ table { border-collapse: collapse; width: 100%; }
     --border: #2b2f36;
     --border-strong: #3b414b;
     --accent: #6ea8f0;
+    --edge-write: #A78BFA;
+    --edge-read: #C4B5FD;
+    --edge-invoke: #F472B6;
     --accent-contrast: #0b1220;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
   }
@@ -87,6 +96,9 @@ table { border-collapse: collapse; width: 100%; }
   --border: #2b2f36;
   --border-strong: #3b414b;
   --accent: #6ea8f0;
+  --edge-write: #A78BFA;
+  --edge-read: #C4B5FD;
+  --edge-invoke: #F472B6;
   --accent-contrast: #0b1220;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
 }
@@ -351,6 +363,10 @@ body {
 .legend-swatch.kind-data { background: var(--color-data); }
 .legend-swatch.kind-human { background: var(--color-human); }
 .legend-swatch.kind-external { background: var(--color-external); }
+.legend-line { width: 24px; height: 0; display: inline-block; border-top: 2.5px solid; }
+.legend-line.edge-key-invoke { border-color: var(--edge-invoke); }
+.legend-line.edge-key-write { border-color: var(--edge-write); }
+.legend-line.edge-key-read { border-color: var(--edge-read); border-top-style: dashed; }
 .map-toolbar { display: flex; gap: 6px; margin-bottom: 10px; }
 .view-btn {
   background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 999px;
@@ -383,8 +399,9 @@ body {
 
 .edge-control { stroke: var(--color-external); stroke-width: 1.5; fill: none; }
 .edge-feedback { stroke: var(--color-external); stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
-.edge-write { stroke: var(--color-data); stroke-width: 1.5; fill: none; }
-.edge-read { stroke: var(--color-data); stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
+.edge-write { stroke: var(--edge-write); stroke-width: 1.6; fill: none; }
+.edge-read { stroke: var(--edge-read); stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
+.edge-invoke { stroke: var(--edge-invoke); stroke-width: 1.4; fill: none; }
 .edge-human { stroke: var(--color-human); stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
 .edge-validates { stroke: var(--color-code); stroke-width: 1.6; stroke-dasharray: 1 4; stroke-linecap: round; fill: none; }
 
@@ -838,6 +855,17 @@ function renderMap() {
   });
   panel.appendChild(legend);
 
+  const edgeLegend = el("div", { class: "map-legend" });
+  [["invoke", "invokes - calls or dispatches"],
+   ["write", "writes - produces or mutates"],
+   ["read", "reads - consumes"]].forEach(function (pair) {
+    edgeLegend.appendChild(el("span", { class: "legend-item" }, [
+      el("span", { class: "legend-line edge-key-" + pair[0] }),
+      pair[1],
+    ]));
+  });
+  panel.appendChild(edgeLegend);
+
   const toolbar = el("div", { class: "map-toolbar" });
   ["backbone", "flows"].forEach(function (v) {
     const btn = el("button", { type: "button", class: "view-btn" + (mapView === v ? " active" : "") }, [v]);
@@ -978,7 +1006,7 @@ const EDGE_STYLE_BY_TYPE = {
   read: "edge-read", reads: "edge-read",
   human: "edge-human",
   validates: "edge-validates",
-  invokes: "edge-control",
+  invoke: "edge-invoke", invokes: "edge-invoke",
 };
 
 function drawEdges(container, svg, edges, nodeEls) {
