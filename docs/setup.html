@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot-claude-iff · Set it up</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('iff-docs-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="tour.css">
+</head>
+<body data-page="setup.html">
+<div class="wrap">
+<div id="tour-top"></div>
+<div class="topbar">
+  <a class="brand" href="index.html">dot-claude-<span class="iff">iff</span></a>
+  <button id="theme" title="toggle theme">◐</button>
+</div>
+
+<section id="setup">
+  <div class="kicker">Step 2</div>
+  <h2>Set it up</h2>
+
+  <p>Requirements: <code>bash</code>, <code>python3</code>, <code>git</code>, and a browser.
+  Nothing to install - no pip, no node.</p>
+
+  <h3>Pick your path</h3>
+  <div class="tblwrap"><table>
+    <tr><th>Situation</th><th>Do this</th></tr>
+    <tr><td>New / empty repo</td><td>Download <code>dot-claude-iff-fresh.zip</code> from the
+      Releases page, unzip into the repo root, follow its <code>START-HERE.md</code>.</td></tr>
+    <tr><td>Existing repo</td><td>Download <code>dot-claude-iff-adopt-kit.zip</code>, unzip it
+      anywhere <em>outside</em> your repo, open Claude Code in your repo, paste the one
+      instruction from the kit's <code>ADOPT.md</code>. Your files are merged, never
+      overwritten - a pre-existing <code>.claude/</code> is the designed case.</td></tr>
+    <tr><td>Just exploring</td><td>Clone this repo; it runs on itself. Everything below works
+      here directly.</td></tr>
+  </table></div>
+
+  <h3>Three switches, once</h3>
+  <ol>
+    <li><b>Trust the hooks.</b> On your first Claude Code session in the project it asks
+    whether to run this project's hooks. Say yes - then prove it worked:
+    <pre><code>echo '{}' | bash .claude/hooks/heartbeat.sh
+cat .claude/state/heartbeat.json   <span class="c"># a timestamp means the harness is alive</span></code></pre></li>
+    <li><b>Open the console.</b>
+    <pre><code>python3 .claude/console/console.py
+<span class="c"># then open  http://127.0.0.1:7717/console.html</span></code></pre>
+    Give it half the screen, Claude Code the other half - terminal, VS Code and the desktop
+    app all work the same. (The SessionStart hook auto-starts the server afterwards.)</li>
+    <li><b>Tell it how you're billed</b> (optional). If you use a Claude subscription, you are
+    done: costs read "in plan". On API billing, set <code>billing: "api"</code> in
+    <code>.claude/config/model-prices.json</code> and fill in your verified prices.</li>
+  </ol>
+</section>
+
+<footer>
+  dot-claude-iff guided tour · <a href="index.html">back to start</a>
+</footer>
+<div id="tour-bottomnav"></div>
+</div>
+<script src="tour.js"></script>
+</body>
+</html>

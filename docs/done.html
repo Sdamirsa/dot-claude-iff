@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot-claude-iff · Finish</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('iff-docs-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="tour.css">
+</head>
+<body data-page="done.html">
+<div class="wrap">
+<div id="tour-top"></div>
+<div class="topbar">
+  <a class="brand" href="index.html">dot-claude-<span class="iff">iff</span></a>
+  <button id="theme" title="toggle theme">◐</button>
+</div>
+
+<section id="done">
+  <div class="kicker">Finish</div>
+  <h2>You have the vocabulary</h2>
+  <p>Heartbeat, pointer, task, queue, map, ritual - six small exercises, each teaching the
+  next one's vocabulary. That is the whole harness. Everything else in the system is those
+  same six ideas applied to real work.</p>
+
+  <h3>Where to go next</h3>
+  <ul>
+    <li><b>The manual:</b> <code>.claude/README.md</code> - including the five human
+    collaboration habits (brief like a colleague; debug with pasted evidence; "log this as a
+    lesson" when you correct the same thing twice).</li>
+    <li><b>The contracts:</b> <code>.claude/protocols/</code> - handshake, human gates,
+    honesty, evolution.</li>
+    <li><b>Optional deep instrument:</b> configure the retrospective analysis engine on the
+    <span class="console-where"><span class="tab">STORY</span></span> tab (an OpenAI-compatible
+    endpoint labels your record; with local Ollama nothing leaves the machine).</li>
+    <li><b>When it earns it:</b> <code>/project-memory --hard</code> - a dedicated maturation
+    session that audits the whole system and prunes what you never use.</li>
+  </ul>
+
+  <div class="cta-row">
+    <button type="button" class="btn-nav" id="reset-progress">Reset my progress</button>
+  </div>
+</section>
+
+<footer>
+  dot-claude-iff · everything lives in <code>.claude/</code>; a thing lives elsewhere
+  <em>if and only if</em> it must. This page is self-contained: no external requests were made
+  in the rendering of this tour.
+</footer>
+<div id="tour-bottomnav"></div>
+</div>
+<script src="tour.js"></script>
+</body>
+</html>

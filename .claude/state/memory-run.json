@@ -1,13 +1,13 @@
 {
-  "run_id": "20260825T130236Z-71f7d8",
-  "started": "2026-08-25T13:02:36Z",
-  "status": "running",
-  "phase": "check",
-  "step": "no_machine_paths",
+  "run_id": "20260825T132020Z-4a1255",
+  "started": "2026-08-25T13:20:20Z",
+  "status": "done",
+  "phase": "publish",
+  "step": null,
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-08-25T13:02:36Z",
+      "ts": "2026-08-25T13:20:20Z",
       "results": [
         {
           "name": "journal_parses",
@@ -18,16 +18,18 @@
         {
           "name": "heartbeat_present",
           "status": "OK",
-          "message": "last turn ended 11 min ago",
+          "message": "last turn ended 3 min ago",
           "details": []
         },
         {
           "name": "generator_freshness",
           "status": "WARN",
-          "message": "3 generator(s) need a POLISH rebuild",
+          "message": "5 generator(s) need a POLISH rebuild",
           "details": [
             "map_scan: inputs changed since the last run (POLISH will rebuild)",
             "story_build: inputs changed since the last run (POLISH will rebuild)",
+            "console_build: inputs changed since the last run (POLISH will rebuild)",
+            "demo_build: has never run through the ritual",
             "dist_build: inputs changed since the last run (POLISH will rebuild)"
           ]
         },
@@ -36,10 +38,13 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 3 warning(s)",
+            "MAP LINT: 0 error(s), 6 warning(s)",
+            "  WARN   config.memory: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   console.template: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
             "  WARN   tool._lib: layer is null (unplaced)",
-            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)"
+            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool.consolectl: auto.hash is stale (source changed since last scan; description may be stale)"
           ]
         },
         {
@@ -62,7 +67,7 @@
           "message": "record is 15.2 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
             "raw: 14.7 MB",
-            "spool: 228.1 KB",
+            "spool: 241.5 KB",
             "segments: 202.4 KB",
             "sealed-raw: 20.1 KB",
             "cursors.json: 4.3 KB"
@@ -87,8 +92,86 @@
           "details": []
         }
       ]
+    },
+    "polish": {
+      "status": "WARN",
+      "ts": "2026-08-25T13:20:27Z",
+      "results": [
+        {
+          "name": "map_scan",
+          "status": "OK",
+          "message": "mapctl.py scan",
+          "details": []
+        },
+        {
+          "name": "map_compile",
+          "status": "WARN",
+          "message": "mapctl.py compile",
+          "details": []
+        },
+        {
+          "name": "story_build",
+          "status": "OK",
+          "message": "obsctl.py story",
+          "details": []
+        },
+        {
+          "name": "console_build",
+          "status": "OK",
+          "message": "consolectl.py build",
+          "details": []
+        },
+        {
+          "name": "demo_build",
+          "status": "OK",
+          "message": "consolectl.py build --demo --out docs/demo/console.html",
+          "details": []
+        },
+        {
+          "name": "dist_build",
+          "status": "OK",
+          "message": "distctl.py build",
+          "details": []
+        }
+      ]
+    },
+    "publish": {
+      "status": "OK",
+      "ts": "2026-08-25T13:20:27Z",
+      "results": [
+        {
+          "name": "polish_complete",
+          "status": "OK",
+          "message": "polish complete",
+          "details": []
+        },
+        {
+          "name": "obs_ingest",
+          "status": "OK",
+          "message": "obsctl.py ingest",
+          "details": []
+        },
+        {
+          "name": "obs_seal",
+          "status": "OK",
+          "message": "obsctl.py seal",
+          "details": []
+        },
+        {
+          "name": "obs_rollup",
+          "status": "OK",
+          "message": "obsctl.py rollup",
+          "details": []
+        },
+        {
+          "name": "obs_anchor",
+          "status": "OK",
+          "message": "obsctl.py anchor",
+          "details": []
+        }
+      ]
     }
   },
-  "last_completed": "2026-08-25T12:50:40Z",
-  "updated": "2026-08-25T13:02:36Z"
+  "last_completed": "2026-08-25T13:20:28Z",
+  "updated": "2026-08-25T13:20:28Z"
 }

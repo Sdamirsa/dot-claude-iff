@@ -1395,7 +1395,13 @@ function renderChrome() {
 
   const badge = document.getElementById("mode-badge");
   const dot = document.getElementById("pulse-dot");
-  if (location.protocol === "file:") {
+  if (DATA.demo) {
+    // A published demo snapshot (e.g. on GitHub Pages): there is no server behind it, so it
+    // must say what it is rather than sit on "connecting" while polls 404 into backoff.
+    badge.textContent = "demo snapshot";
+    badge.className = "badge badge-static";
+    dot.className = "pulse-dot";
+  } else if (location.protocol === "file:") {
     badge.textContent = "static snapshot";
     badge.className = "badge badge-static";
     dot.className = "pulse-dot";
@@ -1454,7 +1460,10 @@ const BACKOFF_SEQUENCE = [5, 10, 20, 40, 60];
 let pollTimer = null;
 let backoffIndex = -1;
 
-function isLiveCapable() { return location.protocol === "http:" || location.protocol === "https:"; }
+function isLiveCapable() {
+  if (DATA.demo) return false;  // a demo snapshot has no server; polling would 404 forever
+  return location.protocol === "http:" || location.protocol === "https:";
+}
 
 function nextPollSeconds(data) {
   const age = data && data.now && data.now.heartbeat_age_seconds;

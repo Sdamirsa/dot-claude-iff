@@ -32,6 +32,7 @@
       "map_compile",
       "story_build",
       "console_build",
+      "demo_build",
       "dist_build"
     ],
     "publish": [

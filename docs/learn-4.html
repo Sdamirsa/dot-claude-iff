@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot-claude-iff · Answer the agent through the queue</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('iff-docs-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="tour.css">
+</head>
+<body data-page="learn-4.html">
+<div class="wrap">
+<div id="tour-top"></div>
+<div class="topbar">
+  <a class="brand" href="index.html">dot-claude-<span class="iff">iff</span></a>
+  <button id="theme" title="toggle theme">◐</button>
+</div>
+
+<section id="learn-4">
+  <div class="kicker">Step 3 · Learn by doing (4 of 6)</div>
+  <h2>4. Answer the agent through the queue</h2>
+  <p class="why">Tasks sometimes stall on a decision only you can make; this exercise walks
+  the queue that carries that decision back and forth.</p>
+
+  <div class="ex">
+    <div class="ex-head"><span class="ex-num">04</span><span class="ex-title">Answer the agent through the queue</span></div>
+    <div class="ex-body">
+      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>When the agent
+        needs you, it must bring the full situation: the CLI refuses to open a queue item
+        without a plain-language <em>context</em> and one concrete <em>action</em>. Your side
+        of the contract is the copy button.</p></div></div>
+      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
+        <span class="mod hook">statectl.py need</span> <span class="mod you">the copy-context button</span></div></div>
+      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>Create a practice item,
+        then answer it from the console:</p>
+        <pre><code>python3 .claude/tools/statectl.py need open --title "Practice question" \
+  --category decide --context "This is exercise 4: a stand-in decision so you can try the \
+copy-context loop end to end. Nothing is blocked." --action "Copy this from the console and answer it"</code></pre>
+        <p>On the console, press the item's <b>copy context</b> button, paste into Claude Code,
+        type your answer after <code>My answer:</code>, and send. Then let the agent resolve it
+        (or do it yourself: <code>statectl.py need resolve &lt;id&gt; --answer "..."</code>).</p></div></div>
+      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>Open, amend
+        and resolve are append-only events in
+        <span class="mod store">needs-human.jsonl</span>; the board you see is a projection,
+        sorted severity-first (SEV0 halts everything, SEV3 is discretionary). The paste text is
+        built server-side, so panel and clipboard can never disagree.</p></div></div>
+      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
+        <span class="tab">NOW</span> needs-human panel: severity chips, "what's going on", "what to do", the copy button.</span></div></div>
+    </div>
+  </div>
+
+  <div class="call">No setup yet? <a href="demo/console.html" target="_blank" rel="noopener">Open
+  the demo console</a> in a new tab and find the needs-human panel on the
+  <span class="console-where"><span class="tab">NOW</span></span> tab - the same severity chips
+  and copy-context button described above, live against this repo's real data.</div>
+</section>
+
+<footer>
+  dot-claude-iff guided tour · <a href="index.html">back to start</a>
+</footer>
+<div id="tour-bottomnav"></div>
+</div>
+<script src="tour.js"></script>
+</body>
+</html>

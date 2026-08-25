@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot-claude-iff · Plan a real task</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('iff-docs-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="tour.css">
+</head>
+<body data-page="learn-3.html">
+<div class="wrap">
+<div id="tour-top"></div>
+<div class="topbar">
+  <a class="brand" href="index.html">dot-claude-<span class="iff">iff</span></a>
+  <button id="theme" title="toggle theme">◐</button>
+</div>
+
+<section id="learn-3">
+  <div class="kicker">Step 3 · Learn by doing (3 of 6)</div>
+  <h2>3. Plan a real task</h2>
+  <p class="why">With a pointer in place, give the agent something real to resume into: a
+  task file with a definition of done.</p>
+
+  <div class="ex">
+    <div class="ex-head"><span class="ex-num">03</span><span class="ex-title">Plan a real task</span></div>
+    <div class="ex-body">
+      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>A task file is a
+        work block's skeleton: a goal with a definition of done, plan steps that each name
+        their evidence, and a checkpoint a stranger could resume from.</p></div></div>
+      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
+        <span class="mod you">/plan-task</span> <span class="mod store">tasks/</span></div></div>
+      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>In Claude Code, type
+        <code>/plan-task</code> and describe something small and real from your project. Read
+        the file it creates under <code>.claude/tasks/</code> and notice every plan item's
+        "done when".</p></div></div>
+      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>The skill
+        instantiates <code>tasks/_template.md</code>, registers the task in
+        <code>STATUS.md</code>, and sets the journal pointer. On resume, checkpoints are
+        treated as <em>claims to verify against disk</em>, never facts - "reality wins" is the
+        rule that makes stale checkpoints harmless.</p></div></div>
+      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
+        <span class="tab">WORK</span> your task appears with its status and next action.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  dot-claude-iff guided tour · <a href="index.html">back to start</a>
+</footer>
+<div id="tour-bottomnav"></div>
+</div>
+<script src="tour.js"></script>
+</body>
+</html>

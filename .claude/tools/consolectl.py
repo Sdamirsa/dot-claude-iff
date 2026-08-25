@@ -430,7 +430,7 @@ def _extract_embedded_data(html: str) -> dict | None:
     return parsed if isinstance(parsed, dict) else None
 
 
-def build() -> dict:
+def build(demo: bool = False, out: str | None = None) -> dict:
     """Compute the payload and write it into console.html - but ONLY when it actually
     changed. console.html is a committed derived file (policy.json's derived_files); a
     rebuild that touches it on every ritual even when nothing happened is exactly the kind
@@ -442,7 +442,12 @@ def build() -> dict:
     payloads from the same source state compare equal in the first place.
     """
     data = payload(live=False)
-    out_path = _lib.console_dir() / "console.html"
+    if demo:
+        # A published snapshot with no server behind it: the flag disables client polling and
+        # names itself honestly in the badge. Used by the demo_build generator to keep a real,
+        # current console on the docs site.
+        data["demo"] = True
+    out_path = (_lib.project_root() / out) if out else (_lib.console_dir() / "console.html")
 
     old_data = None
     try:
@@ -462,7 +467,7 @@ def build() -> dict:
 # --------------------------------------------------------------------------- CLI
 
 def _cmd_build(args: argparse.Namespace) -> int:
-    result = build()
+    result = build(demo=getattr(args, "demo", False), out=getattr(args, "out", None))
     warn = bool(result["data"]["warnings"])
     _lib.print_verdict("CONSOLE", True, warn)
     if result["wrote"]:
@@ -513,6 +518,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
 
     p_build = sub.add_parser("build", help="Build console.html from the current payload.")
+    p_build.add_argument("--demo", action="store_true",
+                         help="mark the page as a serverless demo snapshot (disables polling)")
+    p_build.add_argument("--out", default=None,
+                         help="alternate output path, relative to the project root")
     p_build.set_defaults(func=_cmd_build)
 
     p_payload = sub.add_parser("payload", help="Print the console payload as JSON.")

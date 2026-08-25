@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot-claude-iff · Understand the system</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('iff-docs-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="tour.css">
+</head>
+<body data-page="understand.html">
+<div class="wrap">
+<div id="tour-top"></div>
+<div class="topbar">
+  <a class="brand" href="index.html">dot-claude-<span class="iff">iff</span></a>
+  <button id="theme" title="toggle theme">◐</button>
+</div>
+
+<section id="understand">
+  <div class="kicker">Step 1</div>
+  <h2>Understand the system</h2>
+
+  <p>Work here happens in <b>stable work blocks</b>: stretches that survive interruption and
+  can be picked up cold. The agent's half of that promise is mechanical - a resume pointer
+  written to disk before anything risky, an append-only journal as the source of truth, task
+  checkpoints that name their evidence, and one ritual that seals each block. Your half is a
+  single page called the console, which watches without interrupting.</p>
+
+  <h3>The modules, and exactly what each one touches</h3>
+  <div class="tblwrap"><table>
+    <tr><th>Module</th><th>What it does</th><th>Writes to</th><th>Network</th></tr>
+    <tr><td>5 hooks</td><td>heartbeat each turn, resume block at session start, event capture,
+      a policy gate on writes, JSON validation on writes</td>
+      <td>local: <code>.claude/state/</code>, the record folder</td>
+      <td><span class="chip local">none</span></td></tr>
+    <tr><td>7 tools</td><td>continuity, observation, map, console build, ritual runner,
+      distribution - bash + python3 stdlib, zero pip packages</td>
+      <td>local: <code>.claude/</code>, <code>.claude-iff/</code>, the record folder</td>
+      <td><span class="chip local">none</span></td></tr>
+    <tr><td>console</td><td>one HTML page + a tiny server</td>
+      <td>reads only; buttons emit commands for you to paste</td>
+      <td><span class="chip local">127.0.0.1 only</span></td></tr>
+    <tr><td>3 agents</td><td>anatomist (map), retro-analyst (evolution proposals),
+      verifier (claim checking) - run inside Claude Code</td>
+      <td>governed by the policy gate</td>
+      <td><span class="chip anthropic">via Claude Code</span></td></tr>
+    <tr><td><code>obsctl analyze</code></td><td>optional: labels the record with an
+      LLM you configure. Off until you configure it.</td>
+      <td>local: the record's <code>analysis/</code></td>
+      <td><span class="chip config">only if you enable it</span></td></tr>
+  </table></div>
+
+  <h3>Privacy, data sharing and telemetry - the honest version</h3>
+  <p>Three truths, stated plainly:</p>
+  <ol>
+    <li><b>This system phones home to no one.</b> There is no telemetry, no analytics, no
+    update check, no CDN. The hooks and tools make exactly zero network calls. The one
+    exception is <code>obsctl analyze</code>, which is off by default and only ever talks to
+    the endpoint <em>you</em> configure - and with a local Ollama endpoint, even that never
+    leaves your machine. API keys live in your environment or a gitignored <code>.env</code>,
+    never in a committed file, and the tests prove a key placed in config is ignored.</li>
+    <li><b>Claude Code itself talks to Anthropic.</b> Your conversation, and files the agent
+    reads, go to the Claude API - that is how Claude Code works, with or without this system,
+    under your account's data settings. This system neither adds to that traffic nor reduces
+    it. What it adds is a <em>local</em> copy: the record captures events so you can inspect
+    and analyze what happened on your own disk.</li>
+    <li><b>The record is radioactive, and treated that way.</b> Raw captured events contain
+    prompts, file contents and tool output verbatim (measured at ~70% of capture volume). So
+    the raw record lives in a sibling folder <em>outside the repo</em>, where git structurally
+    cannot reach it; only allowlisted metadata (event names, timestamps, token counts, an
+    integrity anchor) is ever committed. A <code>git push</code> can therefore never publish
+    a prompt, a file body, or a secret from the record - and a CHECK-phase gate fails the
+    ritual if any committed file so much as names your home directory.</li>
+  </ol>
+
+  <div class="call honest"><b>Verify, don't trust.</b> Every claim above is a grep away:
+  <pre><code><span class="c"># the only network call site in the whole system (analyze, opt-in):</span>
+grep -rn "urllib.request" .claude/tools/ .claude/hooks/
+<span class="c"># what the hooks are wired to do:</span>
+cat .claude/settings.json
+<span class="c"># the redaction allowlist that gates what can ever be committed:</span>
+python3 -c "import json; print(json.load(open('.claude/config/observe.json'))['seal_allowlist'])"
+<span class="c"># the test suite, including the secrets-never-reach-segments proofs:</span>
+python3 .claude/tools/tests/run_tests.py</code></pre>
+  Claude Code will also ask you once whether to <em>trust</em> this project's hooks before
+  running any of them - nothing here executes until you say yes.</div>
+</section>
+
+<footer>
+  dot-claude-iff guided tour · <a href="index.html">back to start</a>
+</footer>
+<div id="tour-bottomnav"></div>
+</div>
+<script src="tour.js"></script>
+</body>
+</html>

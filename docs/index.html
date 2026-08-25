@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>dot-claude-iff · guided tour</title>
+<title>dot-claude-iff · Start</title>
 <script>
 (function () {
   try {
@@ -12,165 +12,56 @@
   } catch (e) {}
 })();
 </script>
-<style>
-*, *::before, *::after { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
-h1,h2,h3,h4,p,ul,ol { margin: 0; }
-
-:root {
-  --bg: #f7f6f3; --panel: #ffffff; --sunken: #eeece7; --ink: #23262b; --dim: #5d636d;
-  --line: #ddd9d1; --line-strong: #b9b4a9;
-  --agent: #d97a2b; --code: #3272c8; --data: #4a8f4e; --human: #b8922e; --ext: #8a8f98;
-  --accent: #3272c8; --ok: #3d7d41; --warn: #a9541f;
-  --agent-t: rgba(217,122,43,.10); --code-t: rgba(50,114,200,.08);
-  --data-t: rgba(74,143,78,.10); --human-t: rgba(184,146,46,.12); --ext-t: rgba(138,143,152,.12);
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #15171b; --panel: #1c1f24; --sunken: #101214; --ink: #e5e4e0; --dim: #989ea8;
-    --line: #2c3037; --line-strong: #454b54;
-    --agent: #e8955a; --code: #7aaeea; --data: #7bc47f; --human: #d9bc5e; --ext: #9aa0a8;
-    --accent: #7aaeea; --ok: #7bc47f; --warn: #e08a63;
-    --agent-t: rgba(232,149,90,.12); --code-t: rgba(122,174,234,.10);
-    --data-t: rgba(123,196,127,.11); --human-t: rgba(217,188,94,.13); --ext-t: rgba(154,160,168,.12);
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #15171b; --panel: #1c1f24; --sunken: #101214; --ink: #e5e4e0; --dim: #989ea8;
-  --line: #2c3037; --line-strong: #454b54;
-  --agent: #e8955a; --code: #7aaeea; --data: #7bc47f; --human: #d9bc5e; --ext: #9aa0a8;
-  --accent: #7aaeea; --ok: #7bc47f; --warn: #e08a63;
-  --agent-t: rgba(232,149,90,.12); --code-t: rgba(122,174,234,.10);
-  --data-t: rgba(123,196,127,.11); --human-t: rgba(217,188,94,.13); --ext-t: rgba(154,160,168,.12);
-}
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
-
-body { background: var(--bg); color: var(--ink); font-family: var(--sans);
-       font-size: 16px; line-height: 1.62; }
-.wrap { max-width: 880px; margin: 0 auto; padding: 0 22px 90px; }
-
-/* header */
-header { padding: 56px 0 34px; border-bottom: 1px solid var(--line); }
-.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .13em;
-           text-transform: uppercase; color: var(--dim); }
-h1 { font-size: clamp(30px, 5vw, 44px); letter-spacing: -.02em; margin: 8px 0 10px; }
-h1 .iff { color: var(--accent); }
-.thesis { font-size: 18.5px; max-width: 62ch; color: var(--ink); }
-.thesis b { font-weight: 650; }
-.stepnav { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; font-size: 14px; }
-.stepnav a { display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
-  color: var(--ink); background: var(--panel); border: 1px solid var(--line);
-  border-radius: 999px; padding: 7px 15px; }
-.stepnav a:hover { border-color: var(--accent); color: var(--accent); }
-.stepnav .n { font-family: var(--mono); font-size: 11.5px; color: var(--accent); font-weight: 700; }
-#theme { margin-left: auto; background: var(--sunken); border: 1px solid var(--line);
-  border-radius: 999px; width: 34px; height: 34px; cursor: pointer; color: var(--ink); font: inherit; }
-
-/* sections */
-section { padding-top: 54px; }
-.kicker { font-family: var(--mono); font-size: 12px; letter-spacing: .12em;
-          color: var(--accent); text-transform: uppercase; }
-h2 { font-size: 27px; letter-spacing: -.015em; margin: 6px 0 14px; }
-h3 { font-size: 18px; margin: 26px 0 8px; }
-p { max-width: 68ch; margin-bottom: 12px; }
-ul, ol { max-width: 66ch; padding-left: 22px; margin-bottom: 12px; }
-li { margin-bottom: 5px; }
-a { color: var(--accent); }
-code { font-family: var(--mono); font-size: 13.5px; background: var(--sunken);
-       border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
-pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-      padding: 14px 16px; font-family: var(--mono); font-size: 13px; line-height: 1.6;
-      overflow-x: auto; margin: 12px 0 16px; }
-pre code { background: none; border: none; padding: 0; }
-pre .c { color: var(--dim); }
-
-/* tables */
-.tblwrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px;
-           background: var(--panel); margin: 14px 0 18px; }
-table { border-collapse: collapse; width: 100%; font-size: 14px; }
-th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em;
-     color: var(--dim); padding: 9px 13px; border-bottom: 1px solid var(--line);
-     background: var(--sunken); }
-td { padding: 9px 13px; border-bottom: 1px solid var(--line); vertical-align: top; }
-tr:last-child td { border-bottom: none; }
-td:first-child { white-space: nowrap; font-weight: 600; }
-
-/* chips + callouts */
-.chip { display: inline-block; font-size: 11.5px; font-weight: 650; border-radius: 999px;
-        padding: 2px 10px; font-family: var(--sans); }
-.chip.local { color: var(--ok); background: var(--data-t); }
-.chip.config { color: var(--warn); background: var(--agent-t); }
-.chip.anthropic { color: var(--dim); background: var(--ext-t); }
-.call { border-left: 3px solid var(--accent); background: var(--code-t);
-        border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 16px 0;
-        font-size: 14.5px; max-width: 70ch; }
-.call.honest { border-left-color: var(--human); background: var(--human-t); }
-.call b { font-weight: 650; }
-
-/* exercise cards */
-.ex { background: var(--panel); border: 1px solid var(--line); border-radius: 13px;
-      margin: 22px 0; overflow: hidden; }
-.ex-head { display: flex; align-items: baseline; gap: 12px; padding: 14px 18px;
-           border-bottom: 1px solid var(--line); background: var(--sunken); }
-.ex-num { font-family: var(--mono); font-size: 15px; font-weight: 700; color: var(--accent); }
-.ex-title { font-size: 16.5px; font-weight: 650; }
-.ex-body { padding: 6px 18px 16px; }
-.ex-row { display: grid; grid-template-columns: 118px minmax(0,1fr); gap: 12px;
-          padding: 10px 0; border-bottom: 1px dashed var(--line); }
-.ex-row:last-child { border-bottom: none; }
-.ex-k { font-size: 11.5px; text-transform: uppercase; letter-spacing: .07em;
-        color: var(--dim); font-weight: 650; padding-top: 3px; }
-.ex-v { font-size: 14.5px; min-width: 0; }
-.ex-v pre { margin: 6px 0 4px; }
-.ex-v p { margin-bottom: 6px; max-width: none; }
-.mod { font-family: var(--mono); font-size: 12.5px; border-radius: 5px; padding: 1px 6px; }
-.mod.hook { color: var(--code); background: var(--code-t); }
-.mod.store { color: var(--data); background: var(--data-t); }
-.mod.agent { color: var(--agent); background: var(--agent-t); }
-.mod.you { color: var(--human); background: var(--human-t); }
-.console-where { display: inline-flex; align-items: center; gap: 7px; }
-.console-where .tab { font-family: var(--mono); font-size: 12px; font-weight: 700;
-  color: var(--accent); border: 1px solid var(--accent); border-radius: 5px; padding: 1px 8px; }
-
-figure { margin: 18px 0 22px; background: var(--panel); border: 1px solid var(--line);
-         border-radius: 12px; padding: 16px; overflow-x: auto; }
-figure svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
-figcaption { font-size: 13px; color: var(--dim); margin-top: 8px; max-width: 72ch; }
-
-footer { margin-top: 70px; padding-top: 20px; border-top: 1px solid var(--line);
-         font-size: 13.5px; color: var(--dim); max-width: 72ch; }
-</style>
+<link rel="stylesheet" href="tour.css">
 </head>
-<body>
+<body data-page="index.html">
 <div class="wrap">
+<div id="tour-top"></div>
+<div class="topbar">
+  <a class="brand" href="index.html">dot-claude-<span class="iff">iff</span></a>
+  <button id="theme" title="toggle theme">◐</button>
+</div>
 
 <header>
-  <div class="eyebrow">guided tour · three steps</div>
+  <div class="eyebrow">guided tour · three parts</div>
   <h1>dot-claude-<span class="iff">iff</span></h1>
   <p class="thesis"><b>One place to interact</b> (Claude Code) · <b>one place to control</b>
   (the console) · <b>one command to evolve</b> (<code>/project-memory</code>) - a
   <code>.claude/</code> operating system that gives agent work a harness and gives you the
   instruments to watch it.</p>
-  <div class="stepnav">
-    <a href="#understand"><span class="n">1</span> Understand it</a>
-    <a href="#setup"><span class="n">2</span> Set it up</a>
-    <a href="#learn"><span class="n">3</span> Start and learn</a>
-    <button id="theme" title="toggle theme">◐</button>
+  <div class="cta-row">
+    <a class="cta primary" href="understand.html">Start the tour →</a>
+    <a class="cta ghost" href="demo/console.html" target="_blank" rel="noopener">Open the demo console ↗</a>
   </div>
 </header>
 
-<!-- ================================================================= 1 -->
-<section id="understand">
-  <div class="kicker">Step 1</div>
-  <h2>Understand the system</h2>
+<section id="overview">
+  <div class="kicker">Overview</div>
+  <h2>What you will learn</h2>
+  <p>The tour has three parts. The first two are read once; the third is six small hands-on
+  exercises.</p>
 
-  <p>Work here happens in <b>stable work blocks</b>: stretches that survive interruption and
-  can be picked up cold. The agent's half of that promise is mechanical - a resume pointer
-  written to disk before anything risky, an append-only journal as the source of truth, task
-  checkpoints that name their evidence, and one ritual that seals each block. Your half is a
-  single page called the console, which watches without interrupting.</p>
+  <div class="parts">
+    <div class="part">
+      <div class="n">Part 1</div>
+      <h3>Understand the system</h3>
+      <p>Stable work blocks, the five hooks and seven tools, and the honest privacy section -
+      what actually touches your disk and what never leaves it.</p>
+    </div>
+    <div class="part">
+      <div class="n">Part 2</div>
+      <h3>Set it up</h3>
+      <p>Pick your path (fresh repo, existing repo, or just exploring), then three switches:
+      trust the hooks, open the console, tell it how you're billed.</p>
+    </div>
+    <div class="part">
+      <div class="n">Part 3</div>
+      <h3>Learn by doing</h3>
+      <p>Six small exercises, each ten minutes or less. Every card tells you the context, what
+      you'll use, the exact action, what fires underneath, and where to look on the console.
+      Do them in order: each one teaches the next one's vocabulary.</p>
+    </div>
+  </div>
 
   <figure>
     <svg viewBox="0 0 760 150" role="img" aria-label="The loop: you talk to Claude Code, hooks record everything into a local record, tools project it onto the console, and the console hands your answers back as context.">
@@ -206,295 +97,16 @@ footer { margin-top: 70px; padding-top: 20px; border-top: 1px solid var(--line);
     with full context attached.</figcaption>
   </figure>
 
-  <h3>The modules, and exactly what each one touches</h3>
-  <div class="tblwrap"><table>
-    <tr><th>Module</th><th>What it does</th><th>Writes to</th><th>Network</th></tr>
-    <tr><td>5 hooks</td><td>heartbeat each turn, resume block at session start, event capture,
-      a policy gate on writes, JSON validation on writes</td>
-      <td>local: <code>.claude/state/</code>, the record folder</td>
-      <td><span class="chip local">none</span></td></tr>
-    <tr><td>7 tools</td><td>continuity, observation, map, console build, ritual runner,
-      distribution - bash + python3 stdlib, zero pip packages</td>
-      <td>local: <code>.claude/</code>, <code>.claude-iff/</code>, the record folder</td>
-      <td><span class="chip local">none</span></td></tr>
-    <tr><td>console</td><td>one HTML page + a tiny server</td>
-      <td>reads only; buttons emit commands for you to paste</td>
-      <td><span class="chip local">127.0.0.1 only</span></td></tr>
-    <tr><td>3 agents</td><td>anatomist (map), retro-analyst (evolution proposals),
-      verifier (claim checking) - run inside Claude Code</td>
-      <td>governed by the policy gate</td>
-      <td><span class="chip anthropic">via Claude Code</span></td></tr>
-    <tr><td><code>obsctl analyze</code></td><td>optional: labels the record with an
-      LLM you configure. Off until you configure it.</td>
-      <td>local: the record's <code>analysis/</code></td>
-      <td><span class="chip config">only if you enable it</span></td></tr>
-  </table></div>
-
-  <h3>Privacy, data sharing and telemetry - the honest version</h3>
-  <p>Three truths, stated plainly:</p>
-  <ol>
-    <li><b>This system phones home to no one.</b> There is no telemetry, no analytics, no
-    update check, no CDN. The hooks and tools make exactly zero network calls. The one
-    exception is <code>obsctl analyze</code>, which is off by default and only ever talks to
-    the endpoint <em>you</em> configure - and with a local Ollama endpoint, even that never
-    leaves your machine. API keys live in your environment or a gitignored <code>.env</code>,
-    never in a committed file, and the tests prove a key placed in config is ignored.</li>
-    <li><b>Claude Code itself talks to Anthropic.</b> Your conversation, and files the agent
-    reads, go to the Claude API - that is how Claude Code works, with or without this system,
-    under your account's data settings. This system neither adds to that traffic nor reduces
-    it. What it adds is a <em>local</em> copy: the record captures events so you can inspect
-    and analyze what happened on your own disk.</li>
-    <li><b>The record is radioactive, and treated that way.</b> Raw captured events contain
-    prompts, file contents and tool output verbatim (measured at ~70% of capture volume). So
-    the raw record lives in a sibling folder <em>outside the repo</em>, where git structurally
-    cannot reach it; only allowlisted metadata (event names, timestamps, token counts, an
-    integrity anchor) is ever committed. A <code>git push</code> can therefore never publish
-    a prompt, a file body, or a secret from the record - and a CHECK-phase gate fails the
-    ritual if any committed file so much as names your home directory.</li>
-  </ol>
-
-  <div class="call honest"><b>Verify, don't trust.</b> Every claim above is a grep away:
-  <pre><code><span class="c"># the only network call site in the whole system (analyze, opt-in):</span>
-grep -rn "urllib.request" .claude/tools/ .claude/hooks/
-<span class="c"># what the hooks are wired to do:</span>
-cat .claude/settings.json
-<span class="c"># the redaction allowlist that gates what can ever be committed:</span>
-python3 -c "import json; print(json.load(open('.claude/config/observe.json'))['seal_allowlist'])"
-<span class="c"># the test suite, including the secrets-never-reach-segments proofs:</span>
-python3 .claude/tools/tests/run_tests.py</code></pre>
-  Claude Code will also ask you once whether to <em>trust</em> this project's hooks before
-  running any of them - nothing here executes until you say yes.</div>
-</section>
-
-<!-- ================================================================= 2 -->
-<section id="setup">
-  <div class="kicker">Step 2</div>
-  <h2>Set it up</h2>
-
-  <p>Requirements: <code>bash</code>, <code>python3</code>, <code>git</code>, and a browser.
-  Nothing to install - no pip, no node.</p>
-
-  <h3>Pick your path</h3>
-  <div class="tblwrap"><table>
-    <tr><th>Situation</th><th>Do this</th></tr>
-    <tr><td>New / empty repo</td><td>Download <code>dot-claude-iff-fresh.zip</code> from the
-      Releases page, unzip into the repo root, follow its <code>START-HERE.md</code>.</td></tr>
-    <tr><td>Existing repo</td><td>Download <code>dot-claude-iff-adopt-kit.zip</code>, unzip it
-      anywhere <em>outside</em> your repo, open Claude Code in your repo, paste the one
-      instruction from the kit's <code>ADOPT.md</code>. Your files are merged, never
-      overwritten - a pre-existing <code>.claude/</code> is the designed case.</td></tr>
-    <tr><td>Just exploring</td><td>Clone this repo; it runs on itself. Everything below works
-      here directly.</td></tr>
-  </table></div>
-
-  <h3>Three switches, once</h3>
-  <ol>
-    <li><b>Trust the hooks.</b> On your first Claude Code session in the project it asks
-    whether to run this project's hooks. Say yes - then prove it worked:
-    <pre><code>echo '{}' | bash .claude/hooks/heartbeat.sh
-cat .claude/state/heartbeat.json   <span class="c"># a timestamp means the harness is alive</span></code></pre></li>
-    <li><b>Open the console.</b>
-    <pre><code>python3 .claude/console/console.py
-<span class="c"># then open  http://127.0.0.1:7717/console.html</span></code></pre>
-    Give it half the screen, Claude Code the other half - terminal, VS Code and the desktop
-    app all work the same. (The SessionStart hook auto-starts the server afterwards.)</li>
-    <li><b>Tell it how you're billed</b> (optional). If you use a Claude subscription, you are
-    done: costs read "in plan". On API billing, set <code>billing: "api"</code> in
-    <code>.claude/config/model-prices.json</code> and fill in your verified prices.</li>
-  </ol>
-</section>
-
-<!-- ================================================================= 3 -->
-<section id="learn">
-  <div class="kicker">Step 3</div>
-  <h2>Start and learn</h2>
-  <p>Six small exercises, each ten minutes or less. Every card tells you the context, what
-  you'll use, the exact action, what fires underneath, and where to look on the console.
-  Do them in order: each one teaches the next one's vocabulary.</p>
-
-  <!-- 1 -->
-  <div class="ex">
-    <div class="ex-head"><span class="ex-num">01</span><span class="ex-title">Watch a heartbeat</span></div>
-    <div class="ex-body">
-      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>Before trusting
-        the instruments, see one instrument respond to one event. The heartbeat is the
-        simplest: an O(1) timestamp written at the end of every agent turn.</p></div></div>
-      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
-        <span class="mod you">Claude Code</span> <span class="mod hook">heartbeat.sh</span>
-        <span class="mod hook">obs-capture.sh</span></div></div>
-      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>Ask Claude Code
-        anything at all - "list the files in this repo" is enough - and let the turn finish.</p></div></div>
-      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>The turn's end
-        fires the <code>Stop</code> event. <span class="mod hook">heartbeat.sh</span> overwrites
-        <span class="mod store">state/heartbeat.json</span>, and
-        <span class="mod hook">obs-capture.sh</span> appends the raw event to the out-of-repo
-        record's spool. Telemetry fails open: if either hook broke, your turn would still
-        complete.</p></div></div>
-      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
-        <span class="tab">NOW</span> the pulse dot turns live and the age resets to seconds.</span></div></div>
-    </div>
-  </div>
-
-  <!-- 2 -->
-  <div class="ex">
-    <div class="ex-head"><span class="ex-num">02</span><span class="ex-title">Open a session and set a pointer</span></div>
-    <div class="ex-body">
-      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>The heartbeat
-        cannot survive a mid-turn crash; the <b>pointer</b> can, because it is written to disk
-        <em>before</em> risky work begins. It is the single habit that makes any session
-        resumable cold.</p></div></div>
-      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
-        <span class="mod hook">statectl.py</span> <span class="mod store">state/journal.jsonl</span></div></div>
-      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v">
-        <pre><code>python3 .claude/tools/statectl.py start --session first-steps
-python3 .claude/tools/statectl.py pointer "learning the system, exercise 2 of 6"</code></pre></div></div>
-      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>Each command
-        appends one line to <span class="mod store">journal.jsonl</span> - the append-only
-        source of truth - then rebuilds the projections
-        (<code>session.json</code>, <code>HANDOFF.md</code>). Projections are derived and
-        disposable; the journal is the record. Next session, the SessionStart hook will print
-        your pointer into the fresh context automatically.</p></div></div>
-      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
-        <span class="tab">NOW</span> the resume pointer and the journal feed show your entries within seconds.</span></div></div>
-    </div>
-  </div>
-
-  <!-- 3 -->
-  <div class="ex">
-    <div class="ex-head"><span class="ex-num">03</span><span class="ex-title">Plan a real task</span></div>
-    <div class="ex-body">
-      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>A task file is a
-        work block's skeleton: a goal with a definition of done, plan steps that each name
-        their evidence, and a checkpoint a stranger could resume from.</p></div></div>
-      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
-        <span class="mod you">/plan-task</span> <span class="mod store">tasks/</span></div></div>
-      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>In Claude Code, type
-        <code>/plan-task</code> and describe something small and real from your project. Read
-        the file it creates under <code>.claude/tasks/</code> and notice every plan item's
-        "done when".</p></div></div>
-      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>The skill
-        instantiates <code>tasks/_template.md</code>, registers the task in
-        <code>STATUS.md</code>, and sets the journal pointer. On resume, checkpoints are
-        treated as <em>claims to verify against disk</em>, never facts - "reality wins" is the
-        rule that makes stale checkpoints harmless.</p></div></div>
-      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
-        <span class="tab">WORK</span> your task appears with its status and next action.</span></div></div>
-    </div>
-  </div>
-
-  <!-- 4 -->
-  <div class="ex">
-    <div class="ex-head"><span class="ex-num">04</span><span class="ex-title">Answer the agent through the queue</span></div>
-    <div class="ex-body">
-      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>When the agent
-        needs you, it must bring the full situation: the CLI refuses to open a queue item
-        without a plain-language <em>context</em> and one concrete <em>action</em>. Your side
-        of the contract is the copy button.</p></div></div>
-      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
-        <span class="mod hook">statectl.py need</span> <span class="mod you">the copy-context button</span></div></div>
-      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>Create a practice item,
-        then answer it from the console:</p>
-        <pre><code>python3 .claude/tools/statectl.py need open --title "Practice question" \
-  --category decide --context "This is exercise 4: a stand-in decision so you can try the \
-copy-context loop end to end. Nothing is blocked." --action "Copy this from the console and answer it"</code></pre>
-        <p>On the console, press the item's <b>copy context</b> button, paste into Claude Code,
-        type your answer after <code>My answer:</code>, and send. Then let the agent resolve it
-        (or do it yourself: <code>statectl.py need resolve &lt;id&gt; --answer "..."</code>).</p></div></div>
-      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>Open, amend
-        and resolve are append-only events in
-        <span class="mod store">needs-human.jsonl</span>; the board you see is a projection,
-        sorted severity-first (SEV0 halts everything, SEV3 is discretionary). The paste text is
-        built server-side, so panel and clipboard can never disagree.</p></div></div>
-      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
-        <span class="tab">NOW</span> needs-human panel: severity chips, "what's going on", "what to do", the copy button.</span></div></div>
-    </div>
-  </div>
-
-  <!-- 5 -->
-  <div class="ex">
-    <div class="ex-head"><span class="ex-num">05</span><span class="ex-title">Read the system map</span></div>
-    <div class="ex-body">
-      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>Every component
-        - agent, tool, hook, store, human - has a card with curated relations. The map is those
-        cards compiled: orange is agent, blue is code, green is data, gold is human.</p></div></div>
-      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
-        <span class="mod you">the MAP tab</span> <span class="mod agent">anatomist</span>
-        <span class="mod hook">mapctl.py</span></div></div>
-      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>Open
-        <span class="console-where"><span class="tab">MAP</span></span> and click
-        <code>journal</code>. Everything unconnected fades; its neighborhood raises to the
-        front. Click it again for the detail popup; press Esc to clear. Find the two
-        components sitting in the <em>unplaced</em> band and read why honest unplacement
-        beats confident wrong placement.</p></div></div>
-      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>
-        <span class="mod hook">mapctl.py scan</span> auto-discovers components and drafts
-        cards; the <span class="mod agent">anatomist</span> agent curates relations with
-        cited evidence; a two-tier lint fails the ritual on a wrong edge but only warns on a
-        missing one. A wrong edge is worse than a missing one.</p></div></div>
-      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
-        <span class="tab">MAP</span> focus mode, backbone/flows views, click-through to sources.</span></div></div>
-    </div>
-  </div>
-
-  <!-- 6 -->
-  <div class="ex">
-    <div class="ex-head"><span class="ex-num">06</span><span class="ex-title">Close the block: run the ritual</span></div>
-    <div class="ex-body">
-      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>One command ends
-        a session properly: <b>check</b> (does reality match the record?), <b>polish</b>
-        (curate memory, rebuild every derived surface), <b>publish</b> (seal the record,
-        commit, ask before pushing), <b>evolve</b> (propose at most three evidence-backed
-        improvements, you approve).</p></div></div>
-      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
-        <span class="mod you">/project-memory</span> <span class="mod hook">checkctl.py</span>
-        <span class="mod agent">retro-analyst</span> <span class="mod agent">anatomist</span></div></div>
-      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>In Claude Code, type
-        <code>/project-memory</code>. Read what CHECK reports before anything is written.
-        When the retro proposes changes (or says <code>NO-CHANGES</code> - a good outcome),
-        decide. Expect your first retro to be <code>NO-CHANGES</code>.</p></div></div>
-      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>The phases
-        share one transaction id: PUBLISH refuses unless CHECK and POLISH completed in the
-        <em>same</em> ritual, so a half-built state can never be committed as whole. Every
-        generator in the system runs here and only here - the anti-rot law. Sealing copies
-        raw events into segments through a field <em>allowlist</em>; verbatim content stays
-        out of anything committed.</p></div></div>
-      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
-        <span class="tab">STORY</span> a new point on the dual clock (wall time / tokens), plus refreshed map and work panels.</span></div></div>
-    </div>
-  </div>
-
-  <h3>Where to go next</h3>
-  <ul>
-    <li><b>The manual:</b> <code>.claude/README.md</code> - including the five human
-    collaboration habits (brief like a colleague; debug with pasted evidence; "log this as a
-    lesson" when you correct the same thing twice).</li>
-    <li><b>The contracts:</b> <code>.claude/protocols/</code> - handshake, human gates,
-    honesty, evolution.</li>
-    <li><b>Optional deep instrument:</b> configure the retrospective analysis engine on the
-    <span class="console-where"><span class="tab">STORY</span></span> tab (an OpenAI-compatible
-    endpoint labels your record; with local Ollama nothing leaves the machine).</li>
-    <li><b>When it earns it:</b> <code>/project-memory --hard</code> - a dedicated maturation
-    session that audits the whole system and prunes what you never use.</li>
-  </ul>
+  <div class="call">Want to see the real thing before you set anything up? The
+  <a href="demo/console.html" target="_blank" rel="noopener">demo console</a> opens in a new
+  tab - it is the real instrument, wired to this repo's real data, no setup required.</div>
 </section>
 
 <footer>
-  dot-claude-iff · everything lives in <code>.claude/</code>; a thing lives elsewhere
-  <em>if and only if</em> it must. This page is self-contained: no external requests were made
-  in the rendering of this tour.
+  dot-claude-iff guided tour · everything lives in <code>.claude/</code>.
 </footer>
+<div id="tour-bottomnav"></div>
 </div>
-
-<script>
-document.getElementById("theme").addEventListener("click", function () {
-  var root = document.documentElement;
-  var current = root.getAttribute("data-theme");
-  var next = current === "dark" ? "light"
-    : current === "light" ? "dark"
-    : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
-  root.setAttribute("data-theme", next);
-  try { localStorage.setItem("iff-docs-theme", next); } catch (e) {}
-});
-</script>
+<script src="tour.js"></script>
 </body>
 </html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot-claude-iff · Close the block: run the ritual</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('iff-docs-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="tour.css">
+</head>
+<body data-page="learn-6.html">
+<div class="wrap">
+<div id="tour-top"></div>
+<div class="topbar">
+  <a class="brand" href="index.html">dot-claude-<span class="iff">iff</span></a>
+  <button id="theme" title="toggle theme">◐</button>
+</div>
+
+<section id="learn-6">
+  <div class="kicker">Step 3 · Learn by doing (6 of 6)</div>
+  <h2>6. Close the block: run the ritual</h2>
+  <p class="why">You have now touched every stable-work-block habit individually; the ritual
+  is the one command that closes all of them together.</p>
+
+  <div class="ex">
+    <div class="ex-head"><span class="ex-num">06</span><span class="ex-title">Close the block: run the ritual</span></div>
+    <div class="ex-body">
+      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>One command ends
+        a session properly: <b>check</b> (does reality match the record?), <b>polish</b>
+        (curate memory, rebuild every derived surface), <b>publish</b> (seal the record,
+        commit, ask before pushing), <b>evolve</b> (propose at most three evidence-backed
+        improvements, you approve).</p></div></div>
+      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
+        <span class="mod you">/project-memory</span> <span class="mod hook">checkctl.py</span>
+        <span class="mod agent">retro-analyst</span> <span class="mod agent">anatomist</span></div></div>
+      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>In Claude Code, type
+        <code>/project-memory</code>. Read what CHECK reports before anything is written.
+        When the retro proposes changes (or says <code>NO-CHANGES</code> - a good outcome),
+        decide. Expect your first retro to be <code>NO-CHANGES</code>.</p></div></div>
+      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>The phases
+        share one transaction id: PUBLISH refuses unless CHECK and POLISH completed in the
+        <em>same</em> ritual, so a half-built state can never be committed as whole. Every
+        generator in the system runs here and only here - the anti-rot law. Sealing copies
+        raw events into segments through a field <em>allowlist</em>; verbatim content stays
+        out of anything committed.</p></div></div>
+      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
+        <span class="tab">STORY</span> a new point on the dual clock (wall time / tokens), plus refreshed map and work panels.</span></div></div>
+    </div>
+  </div>
+
+  <div class="call">No setup yet? <a href="demo/console.html" target="_blank" rel="noopener">Open
+  the demo console</a> in a new tab and look at the
+  <span class="console-where"><span class="tab">STORY</span></span> tab to see what a sealed
+  ritual looks like after the fact, live against this repo's real history.</div>
+</section>
+
+<footer>
+  dot-claude-iff guided tour · <a href="index.html">back to start</a>
+</footer>
+<div id="tour-bottomnav"></div>
+</div>
+<script src="tour.js"></script>
+</body>
+</html>

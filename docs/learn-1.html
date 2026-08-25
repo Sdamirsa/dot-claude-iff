@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot-claude-iff · Watch a heartbeat</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('iff-docs-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="tour.css">
+</head>
+<body data-page="learn-1.html">
+<div class="wrap">
+<div id="tour-top"></div>
+<div class="topbar">
+  <a class="brand" href="index.html">dot-claude-<span class="iff">iff</span></a>
+  <button id="theme" title="toggle theme">◐</button>
+</div>
+
+<section id="learn-1">
+  <div class="kicker">Step 3 · Learn by doing (1 of 6)</div>
+  <h2>1. Watch a heartbeat</h2>
+  <p class="why">You just wired the harness and opened the console; before trusting the
+  bigger instruments, watch the simplest one respond to the simplest event.</p>
+
+  <div class="ex">
+    <div class="ex-head"><span class="ex-num">01</span><span class="ex-title">Watch a heartbeat</span></div>
+    <div class="ex-body">
+      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>Before trusting
+        the instruments, see one instrument respond to one event. The heartbeat is the
+        simplest: an O(1) timestamp written at the end of every agent turn.</p></div></div>
+      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
+        <span class="mod you">Claude Code</span> <span class="mod hook">heartbeat.sh</span>
+        <span class="mod hook">obs-capture.sh</span></div></div>
+      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>Ask Claude Code
+        anything at all - "list the files in this repo" is enough - and let the turn finish.</p></div></div>
+      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>The turn's end
+        fires the <code>Stop</code> event. <span class="mod hook">heartbeat.sh</span> overwrites
+        <span class="mod store">state/heartbeat.json</span>, and
+        <span class="mod hook">obs-capture.sh</span> appends the raw event to the out-of-repo
+        record's spool. Telemetry fails open: if either hook broke, your turn would still
+        complete.</p></div></div>
+      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
+        <span class="tab">NOW</span> the pulse dot turns live and the age resets to seconds.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  dot-claude-iff guided tour · <a href="index.html">back to start</a>
+</footer>
+<div id="tour-bottomnav"></div>
+</div>
+<script src="tour.js"></script>
+</body>
+</html>

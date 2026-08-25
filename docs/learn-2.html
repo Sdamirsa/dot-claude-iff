@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot-claude-iff · Open a session and set a pointer</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('iff-docs-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="tour.css">
+</head>
+<body data-page="learn-2.html">
+<div class="wrap">
+<div id="tour-top"></div>
+<div class="topbar">
+  <a class="brand" href="index.html">dot-claude-<span class="iff">iff</span></a>
+  <button id="theme" title="toggle theme">◐</button>
+</div>
+
+<section id="learn-2">
+  <div class="kicker">Step 3 · Learn by doing (2 of 6)</div>
+  <h2>2. Open a session and set a pointer</h2>
+  <p class="why">The heartbeat proved the harness is alive each turn; now set the pointer that
+  would survive a crash mid-turn, the habit every resumable session depends on.</p>
+
+  <div class="ex">
+    <div class="ex-head"><span class="ex-num">02</span><span class="ex-title">Open a session and set a pointer</span></div>
+    <div class="ex-body">
+      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>The heartbeat
+        cannot survive a mid-turn crash; the <b>pointer</b> can, because it is written to disk
+        <em>before</em> risky work begins. It is the single habit that makes any session
+        resumable cold.</p></div></div>
+      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
+        <span class="mod hook">statectl.py</span> <span class="mod store">state/journal.jsonl</span></div></div>
+      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v">
+        <pre><code>python3 .claude/tools/statectl.py start --session first-steps
+python3 .claude/tools/statectl.py pointer "learning the system, exercise 2 of 6"</code></pre></div></div>
+      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>Each command
+        appends one line to <span class="mod store">journal.jsonl</span> - the append-only
+        source of truth - then rebuilds the projections
+        (<code>session.json</code>, <code>HANDOFF.md</code>). Projections are derived and
+        disposable; the journal is the record. Next session, the SessionStart hook will print
+        your pointer into the fresh context automatically.</p></div></div>
+      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
+        <span class="tab">NOW</span> the resume pointer and the journal feed show your entries within seconds.</span></div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  dot-claude-iff guided tour · <a href="index.html">back to start</a>
+</footer>
+<div id="tour-bottomnav"></div>
+</div>
+<script src="tour.js"></script>
+</body>
+</html>

@@ -82,6 +82,16 @@ GENERATORS = {
                    ".claude/Project-log.jsonl"],
         "output": ".claude/console/console.html",
     },
+    # The demo console on the docs site: the SAME payload and template as the real console,
+    # marked serverless. Registered here so the published demo can never lag the system.
+    "demo_build": {
+        "tool": "consolectl.py",
+        "args": ["build", "--demo", "--out", "docs/demo/console.html"],
+        "inputs": [".claude/console/console.template.html", ".claude/system-map/map.json",
+                   ".claude/state/session.json", ".claude/state/story-feed.json",
+                   ".claude/Project-log.jsonl"],
+        "output": "docs/demo/console.html",
+    },
     # Inputs deliberately enumerate the component trees rather than saying ".claude": the
     # output lives inside .claude/dist, and an output inside its own input set would hash
     # itself stale forever.

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dot-claude-iff · Read the system map</title>
+<script>
+(function () {
+  try {
+    var t = localStorage.getItem('iff-docs-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="tour.css">
+</head>
+<body data-page="learn-5.html">
+<div class="wrap">
+<div id="tour-top"></div>
+<div class="topbar">
+  <a class="brand" href="index.html">dot-claude-<span class="iff">iff</span></a>
+  <button id="theme" title="toggle theme">◐</button>
+</div>
+
+<section id="learn-5">
+  <div class="kicker">Step 3 · Learn by doing (5 of 6)</div>
+  <h2>5. Read the system map</h2>
+  <p class="why">Once you have used the queue, it helps to see the whole system those
+  messages move through: the map.</p>
+
+  <div class="ex">
+    <div class="ex-head"><span class="ex-num">05</span><span class="ex-title">Read the system map</span></div>
+    <div class="ex-body">
+      <div class="ex-row"><div class="ex-k">Context</div><div class="ex-v"><p>Every component
+        - agent, tool, hook, store, human - has a card with curated relations. The map is those
+        cards compiled: orange is agent, blue is code, green is data, gold is human.</p></div></div>
+      <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
+        <span class="mod you">the MAP tab</span> <span class="mod agent">anatomist</span>
+        <span class="mod hook">mapctl.py</span></div></div>
+      <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>Open
+        <span class="console-where"><span class="tab">MAP</span></span> and click
+        <code>journal</code>. Everything unconnected fades; its neighborhood raises to the
+        front. Click it again for the detail popup; press Esc to clear. Find the two
+        components sitting in the <em>unplaced</em> band and read why honest unplacement
+        beats confident wrong placement.</p></div></div>
+      <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>
+        <span class="mod hook">mapctl.py scan</span> auto-discovers components and drafts
+        cards; the <span class="mod agent">anatomist</span> agent curates relations with
+        cited evidence; a two-tier lint fails the ritual on a wrong edge but only warns on a
+        missing one. A wrong edge is worse than a missing one.</p></div></div>
+      <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
+        <span class="tab">MAP</span> focus mode, backbone/flows views, click-through to sources.</span></div></div>
+    </div>
+  </div>
+
+  <div class="call">No setup yet? <a href="demo/console.html" target="_blank" rel="noopener">Open
+  the demo console</a> in a new tab and click into the
+  <span class="console-where"><span class="tab">MAP</span></span> tab to try the same
+  focus-and-detail interaction described above, live against this repo's real component graph.</div>
+</section>
+
+<footer>
+  dot-claude-iff guided tour · <a href="index.html">back to start</a>
+</footer>
+<div id="tour-bottomnav"></div>
+</div>
+<script src="tour.js"></script>
+</body>
+</html>
