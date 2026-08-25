@@ -1,34 +1,33 @@
 {
   "run_id": "20260825T145854Z-353823",
   "started": "2026-08-25T14:58:54Z",
-  "status": "running",
-  "phase": "publish",
-  "step": "obs_anchor",
+  "status": "done",
+  "phase": "polish",
+  "step": null,
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-08-25T14:58:54Z",
+      "ts": "2026-08-25T15:10:44Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "18 events parse",
+          "message": "19 events parse",
           "details": []
         },
         {
           "name": "heartbeat_present",
           "status": "OK",
-          "message": "last turn ended 1 min ago",
+          "message": "last turn ended 13 min ago",
           "details": []
         },
         {
           "name": "generator_freshness",
           "status": "WARN",
-          "message": "4 generator(s) need a POLISH rebuild",
+          "message": "3 generator(s) need a POLISH rebuild",
           "details": [
+            "map_scan: inputs changed since the last run (POLISH will rebuild)",
             "story_build: inputs changed since the last run (POLISH will rebuild)",
-            "console_build: inputs changed since the last run (POLISH will rebuild)",
-            "demo_build: inputs changed since the last run (POLISH will rebuild)",
             "dist_build: inputs changed since the last run (POLISH will rebuild)"
           ]
         },
@@ -37,19 +36,18 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 3 warning(s)",
-            "  WARN   console.template: auto.hash is stale (source changed since last scan; description may be stale)",
+            "MAP LINT: 0 error(s), 4 warning(s)",
+            "  WARN   config.memory: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
-            "  WARN   tool._lib: layer is null (unplaced)"
+            "  WARN   tool._lib: layer is null (unplaced)",
+            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)"
           ]
         },
         {
           "name": "config_registry_lint",
-          "status": "WARN",
-          "message": "1 unregistered tunable(s)",
-          "details": [
-            "model-prices.billing_options: tunable has no registry card"
-          ]
+          "status": "OK",
+          "message": "29 knobs registered, none dead",
+          "details": []
         },
         {
           "name": "price_table",
@@ -60,10 +58,10 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 22.5 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "message": "record is 23.4 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
-            "raw: 21.9 MB",
-            "spool: 388.0 KB",
+            "raw: 22.7 MB",
+            "spool: 408.8 KB",
             "segments: 202.4 KB",
             "sealed-raw: 20.1 KB",
             "cursors.json: 4.7 KB"
@@ -86,12 +84,18 @@
           "status": "OK",
           "message": "no home-directory paths in shippable trees",
           "details": []
+        },
+        {
+          "name": "theme_token_parity",
+          "status": "OK",
+          "message": "13 dark tokens, both blocks agree",
+          "details": []
         }
       ]
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-08-25T14:59:38Z",
+      "ts": "2026-08-25T15:12:25Z",
       "results": [
         {
           "name": "map_scan",
@@ -168,6 +172,6 @@
       ]
     }
   },
-  "last_completed": "2026-08-25T14:29:56Z",
-  "updated": "2026-08-25T14:59:48Z"
+  "last_completed": "2026-08-25T15:12:42Z",
+  "updated": "2026-08-25T15:12:42Z"
 }

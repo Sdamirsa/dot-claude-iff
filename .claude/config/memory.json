@@ -13,7 +13,11 @@
   ],
   "version": 1,
   "push": "ask",
-  "push_options": ["always", "ask", "never"],
+  "push_options": [
+    "always",
+    "ask",
+    "never"
+  ],
   "phases": {
     "check": [
       "journal_parses",
@@ -25,7 +29,8 @@
       "record_size",
       "needs_human_sync",
       "task_reality",
-      "no_machine_paths"
+      "no_machine_paths",
+      "theme_token_parity"
     ],
     "polish": [
       "map_scan",

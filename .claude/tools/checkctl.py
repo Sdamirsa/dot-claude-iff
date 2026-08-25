@@ -520,6 +520,52 @@ def check_no_machine_paths() -> Result:
     return Result("no_machine_paths", OK, "no home-directory paths in shippable trees")
 
 
+def check_theme_token_parity() -> Result:
+    """The console template defines its dark palette twice (the prefers-color-scheme media
+    block and the explicit [data-theme="dark"] selector), with different indentation. A token
+    added to one block but not the other ships a page that renders wrong in exactly one theme
+    state, silently - it happened twice in one day (L-7: --heading, then --edge-*). This makes
+    the parity mechanical: the two blocks must define the identical set of custom properties.
+    """
+    import re
+    template = _lib.console_dir() / "console.template.html"
+    if not template.exists():
+        return Result("theme_token_parity", SKIP, "console template not installed")
+    text = template.read_text(encoding="utf-8", errors="replace")
+
+    def block_tokens(start_marker: str) -> set | None:
+        start = text.find(start_marker)
+        if start == -1:
+            return None
+        depth = 0
+        i = text.find("{", start)
+        begin = i
+        while i < len(text):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        return set(re.findall(r"(--[\w-]+)\s*:", text[begin:i]))
+
+    media = block_tokens("@media (prefers-color-scheme: dark)")
+    explicit = block_tokens(':root[data-theme="dark"]')
+    if media is None or explicit is None:
+        return Result("theme_token_parity", WARN, "could not locate both dark blocks in the template")
+    only_media = sorted(media - explicit)
+    only_explicit = sorted(explicit - media)
+    if only_media or only_explicit:
+        details = ([f"only in @media block: {t}" for t in only_media]
+                   + [f"only in [data-theme] block: {t}" for t in only_explicit])
+        return Result("theme_token_parity", FAIL,
+                      f"{len(only_media) + len(only_explicit)} dark-theme token(s) defined in "
+                      f"one block but not the other; the page renders wrong in exactly one "
+                      f"theme state", details)
+    return Result("theme_token_parity", OK, f"{len(media)} dark tokens, both blocks agree")
+
+
 CHECKS = {
     "journal_parses": check_journal_parses,
     "heartbeat_present": check_heartbeat,
@@ -531,6 +577,7 @@ CHECKS = {
     "needs_human_sync": check_needs_human_sync,
     "task_reality": check_task_reality,
     "no_machine_paths": check_no_machine_paths,
+    "theme_token_parity": check_theme_token_parity,
 }
 
 

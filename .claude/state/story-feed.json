@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-08-25T14:59:38Z",
+  "generated_at": "2026-08-25T15:12:24Z",
   "clock": {
     "wall_min": "2026-08-25",
     "wall_max": "2026-08-25",
@@ -43,6 +43,20 @@
       "kind": "milestone",
       "text": "Phase 2 complete: system self-hosting, 140 tests green, review triaged",
       "ref": "M2"
+    },
+    {
+      "date": "2026-08-25",
+      "t_tokens_cum": 202669,
+      "kind": "tooling",
+      "text": "theme-token-parity CHECK step (retro P1)",
+      "ref": "L-7 class occurred twice in one day; check follows the no_machine_paths precedent"
+    },
+    {
+      "date": "2026-08-25",
+      "t_tokens_cum": 202669,
+      "kind": "tooling",
+      "text": "lesson L-8: render checks must match the target container (retro P2)",
+      "ref": "button wrap shipped past a 900px local check"
     }
   ]
 }

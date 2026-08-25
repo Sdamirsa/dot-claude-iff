@@ -17,3 +17,6 @@
 {"ts": "2026-08-25T14:25:47Z", "action": "note", "text": "ritual complete (20260825T142546Z-f69c4a) readme round: numbered habits, triad hero, blue buttons"}
 {"ts": "2026-08-25T14:29:56Z", "action": "note", "text": "ritual complete (20260825T142955Z-8f4b36) edge palette, analysis info box, button sizing"}
 {"ts": "2026-08-25T14:59:38Z", "action": "pointer", "text": "system is live at v0.1.1; next: real use, second-repo adoption, analysis engine setup"}
+{"ts": "2026-08-25T15:11:20Z", "action": "tooling", "change_type": "verifier", "what": "theme-token-parity CHECK step (retro P1)", "evidence": "L-7 class occurred twice in one day; check follows the no_machine_paths precedent"}
+{"ts": "2026-08-25T15:11:20Z", "action": "tooling", "change_type": "memory", "what": "lesson L-8: render checks must match the target container (retro P2)", "evidence": "button wrap shipped past a 900px local check"}
+{"ts": "2026-08-25T15:12:42Z", "action": "note", "text": "ritual complete (20260825T145854Z-353823) first real ritual: 2 retro proposals confirmed and implemented"}

@@ -396,3 +396,36 @@ class TestPortability(FixtureCase):
         (self.root / ".env").write_text("CLAUDE_IFF_RECORD_ROOT=/tmp/should-lose\n", encoding="utf-8")
         self.assertEqual(_lib.record_root(), self.record.resolve(),
                          "the fixture's env var must outrank .env")
+
+
+class TestThemeTokenParity(FixtureCase):
+    """Evolution P1 (from the first real retro): the console template defines its dark palette
+    in two blocks with different indentation, and a token landing in only one shipped a page
+    that rendered wrong in exactly one theme state - twice in one day (L-7). Parity is now a
+    ritual gate, not an eyeball check."""
+
+    def _write_template(self, media_tokens, explicit_tokens):
+        css = ":root { --bg: #fff; }\n"
+        css += "@media (prefers-color-scheme: dark) {\n  :root:not([data-theme=\"light\"]) {\n"
+        css += "".join(f"    {t}: #111;\n" for t in media_tokens) + "  }\n}\n"
+        css += ':root[data-theme="dark"] {\n'
+        css += "".join(f"  {t}: #111;\n" for t in explicit_tokens) + "}\n"
+        path = self.root / ".claude" / "console" / "console.template.html"
+        path.write_text(f"<style>{css}</style><script>const DATA = __CONSOLE_DATA__;</script>")
+
+    def test_matching_blocks_pass(self):
+        self._write_template(["--bg", "--ink", "--edge-write"], ["--bg", "--ink", "--edge-write"])
+        self.assertEqual(checkctl.check_theme_token_parity().status, checkctl.OK)
+
+    def test_a_token_in_one_block_only_fails(self):
+        self._write_template(["--bg", "--ink", "--edge-write"], ["--bg", "--ink"])
+        result = checkctl.check_theme_token_parity()
+        self.assertEqual(result.status, checkctl.FAIL)
+        self.assertTrue(any("--edge-write" in d for d in result.details))
+
+    def test_the_real_template_passes_right_now(self):
+        import shutil
+        real = CLAUDE_DIR / "console" / "console.template.html"
+        shutil.copy(real, self.root / ".claude" / "console" / "console.template.html")
+        self.assertEqual(checkctl.check_theme_token_parity().status, checkctl.OK,
+                         "the shipped template must satisfy its own parity gate")
