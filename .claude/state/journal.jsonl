@@ -20,3 +20,4 @@
 {"ts": "2026-08-25T15:11:20Z", "action": "tooling", "change_type": "verifier", "what": "theme-token-parity CHECK step (retro P1)", "evidence": "L-7 class occurred twice in one day; check follows the no_machine_paths precedent"}
 {"ts": "2026-08-25T15:11:20Z", "action": "tooling", "change_type": "memory", "what": "lesson L-8: render checks must match the target container (retro P2)", "evidence": "button wrap shipped past a 900px local check"}
 {"ts": "2026-08-25T15:12:42Z", "action": "note", "text": "ritual complete (20260825T145854Z-353823) first real ritual: 2 retro proposals confirmed and implemented"}
+{"ts": "2026-08-25T15:14:56Z", "action": "note", "text": "ritual complete (20260825T151456Z-57fdbc) v0.2.0 release prep"}

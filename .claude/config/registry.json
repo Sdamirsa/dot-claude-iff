@@ -8,7 +8,7 @@
     "or key that does not exist (a dead card is worse than no card), WARN when a scalar in a",
     "watched file has no card (incompleteness informs, it does not block)."
   ],
-  "system_version": "0.1.0",
+  "system_version": "0.2.0",
   "lint": {
     "watched_files": [
       "memory",
