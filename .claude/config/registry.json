@@ -8,7 +8,7 @@
     "or key that does not exist (a dead card is worse than no card), WARN when a scalar in a",
     "watched file has no card (incompleteness informs, it does not block)."
   ],
-  "system_version": "0.2.1",
+  "system_version": "0.2.2",
   "lint": {
     "watched_files": [
       "memory",
@@ -348,15 +348,28 @@
     {
       "key": "console.port",
       "title": "Console port",
-      "description": "Port for console.py.",
+      "description": "Port for console.py. \"auto\" (the shipped default) derives a stable port from the repo folder name (7100-7899) so projects on one machine never collide; an explicit integer is a decided-once override.",
       "layer": "CONSOLE",
       "target": {
         "kind": "config",
         "file": "console",
         "path": "port"
       },
-      "type": "int",
-      "default": 7717
+      "type": "int | \"auto\"",
+      "default": "auto"
+    },
+    {
+      "key": "console.monitor.enabled",
+      "title": "System monitor",
+      "description": "Serve live CPU/RAM/GPU/VRAM samples at /live/system.json and render the System strip on the NOW tab. Live-only: samples never enter the built payload, the record, or the published demo. Kits ship this off.",
+      "layer": "CONSOLE",
+      "target": {
+        "kind": "config",
+        "file": "console",
+        "path": "monitor.enabled"
+      },
+      "type": "bool",
+      "default": false
     },
     {
       "key": "console.autostart",

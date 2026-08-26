@@ -6,7 +6,8 @@ A generalizable `.claude/` operating system for any project. This repo builds it
 to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gates.
 
 > Start here: `.claude/STATUS.md` (where we are) · `.claude/tasks/` (active work) · the console
-> (`http://127.0.0.1:7717/console.html`, meant for half your screen beside this terminal).
+> (`http://127.0.0.1:7146/console.html`, meant for half your screen beside this terminal;
+> the port is this repo's decided-once value from `.claude/config/console.json`).
 > This file is a map, not a dump.
 
 ## Session ritual
@@ -44,11 +45,12 @@ to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gat
 
 ```
 python3 .claude/tools/statectl.py  start|pointer|task|milestone|decision|loop|note|intent|gate
-                                   tooling|need|refresh|resume|status
+                                   tooling|need|device|refresh|resume|status
 python3 .claude/tools/checkctl.py  run --phase check|polish|publish · probe · generators · status
 python3 .claude/tools/obsctl.py    ingest|seal|rollup|anchor|report|story|size|analyze
 python3 .claude/tools/mapctl.py    scan|lint|compile|show
 python3 .claude/tools/consolectl.py build|payload|serve
+python3 .claude/tools/sysmon.py                   # one system snapshot (CPU/RAM/GPU), stdlib
 python3 .claude/tools/tests/run_tests.py          # the whole suite
 ```
 

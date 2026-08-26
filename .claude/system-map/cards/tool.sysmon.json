@@ -1,0 +1,20 @@
+{
+  "id": "tool.sysmon",
+  "kind": "code",
+  "layer": null,
+  "package": null,
+  "title": "Sysmon",
+  "path": ".claude/tools/sysmon.py",
+  "description": "sysmon.py - optional system-monitor probes: CPU, RAM, GPU/VRAM.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-26",
+    "hash": "69aa2a1f78bf518916e444adbaa1031a6a1f6171e4ef1ae6aa1fc850573ea9cd",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

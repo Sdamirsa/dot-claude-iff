@@ -1,27 +1,27 @@
 {
-  "generated_at": "2026-08-26T09:07:00Z",
-  "last_event_ts": "2026-08-26T09:07:00Z",
+  "generated_at": "2026-08-26T12:47:06Z",
+  "last_event_ts": "2026-08-26T12:47:06Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "v0.2.1 merged to main (db77bb8); user pushes the v0.2.1 tag (branch-scoped credentials cannot); next: evolution-session backlog",
+  "resume_pointer": "cutting release v0.2.2: version bump, changelog pin, polish rebuild, commit+tag+push, gh release with fresh zips; user runs /project-memory after",
   "open_loops": [],
   "open_intents": [],
   "tasks": [],
   "counts": {
-    "events": 32,
+    "events": 45,
     "tasks_total": 0,
     "tasks_done": 0,
     "tasks_open": 0,
     "open_loops": 0,
-    "milestones": 3,
-    "decisions": 0,
+    "milestones": 5,
+    "decisions": 1,
     "tooling": 2
   },
   "heartbeat": {
-    "ts": "2026-08-26T08:32:36Z",
+    "ts": "2026-08-26T12:36:55Z",
     "note": "turn ended"
   },
   "recent_milestones": [
@@ -39,9 +39,25 @@
       "id": "v0.2.1",
       "title": "v0.2.1 field-report hardening: issues #1-#3 fixed, distribution gated, adopt skill rewritten",
       "ts": "2026-08-26T08:28:17Z"
+    },
+    {
+      "id": "windows-portability",
+      "title": "Windows portability: policy gate fail-open fixed, full suite green (212/212)",
+      "ts": "2026-08-26T11:45:36Z"
+    },
+    {
+      "id": "monitor-device-ports",
+      "title": "System monitor, device identity, derived console ports shipped (suite 225/225)",
+      "ts": "2026-08-26T12:35:42Z"
     }
   ],
-  "recent_decisions": [],
+  "recent_decisions": [
+    {
+      "text": "console port 7146 for this repo",
+      "why": "shipped default 7717 is held by another project's console on this machine; 7146 = 7100 + sha256('dot-claude-iff') % 800 (deterministic, bookmarkable); distctl now normalizes shipped kits back to 7717 so one machine's decision never rides into the zips",
+      "ts": "2026-08-26T11:34:01Z"
+    }
+  ],
   "recent_tooling": [
     {
       "change_type": "verifier",

@@ -27,6 +27,7 @@ import http.server
 import ipaddress
 import json
 import os
+import socket
 import socketserver
 import subprocess
 import sys
@@ -106,8 +107,17 @@ def resolve_request_path(url_path: str) -> Path | None:
 
 class ConsoleServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     daemon_threads = True
-    allow_reuse_address = True
+    # POSIX SO_REUSEADDR eases TIME_WAIT rebinds and still refuses an actively-held port.
+    # On Windows the SAME flag lets a second bind silently steal a port that is in use,
+    # which defeats the loud-collision contract in main() - so there it stays off and
+    # server_bind() asks for exclusive use instead.
+    allow_reuse_address = sys.platform != "win32"
     once = False  # set by make_server(once=True): shut down after the first request
+
+    def server_bind(self):
+        if sys.platform == "win32" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
 
 
 class ConsoleHandler(http.server.BaseHTTPRequestHandler):
@@ -122,7 +132,11 @@ class ConsoleHandler(http.server.BaseHTTPRequestHandler):
         host_header = self.headers.get("Host", "")
         hostname = host_header.rsplit(":", 1)[0] if ":" in host_header else host_header
         hostname = hostname.strip("[]").lower()
-        return hostname in ("127.0.0.1", "localhost", "::1")
+        # *.localhost is loopback by construction: browsers resolve every such name locally
+        # (RFC 6761), never through a resolver an attacker could poison - so accepting the
+        # whole family keeps the DNS-rebinding defence intact while allowing the
+        # folder-name URL (http://<project>.localhost:<port>/).
+        return hostname in ("127.0.0.1", "localhost", "::1") or hostname.endswith(".localhost")
 
     # -- routing -------------------------------------------------------------------------
 
@@ -136,6 +150,10 @@ class ConsoleHandler(http.server.BaseHTTPRequestHandler):
 
             if path == "/live/console.json":
                 self._serve_payload()
+                return
+
+            if path == "/live/system.json":
+                self._serve_system()
                 return
 
             target = resolve_request_path(path)
@@ -208,6 +226,17 @@ class ConsoleHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _serve_system(self) -> None:
+        """Live system metrics, opt-in and live-only: the samples exist ONLY behind this
+        endpoint - they never enter the built payload, so neither the committed console.html
+        nor the published demo can carry a machine's stats, and the build write-gate never
+        sees a volatile number."""
+        mon = _lib.load_config("console").get("monitor") or {}
+        if not mon.get("enabled", False):
+            self.send_error(404, "Not Found")
+            return
+        self._send_json(200, _system_sample())
+
     def _serve_payload(self) -> None:
         data = consolectl.payload(live=True)
         data["server_ts"] = _lib.utc_now()
@@ -247,27 +276,72 @@ def make_server(host: str, port: int, once: bool = False) -> ConsoleServer:
     return server
 
 
+# Sampling costs real milliseconds (nvidia-smi, counter reads); polls reuse a short-lived
+# sample instead of probing on every 5s tick.
+_SYSTEM_CACHE: dict = {"ts": 0.0, "data": None}
+_SYSTEM_TTL_SECONDS = 10.0
+
+
+def _system_sample() -> dict:
+    import time
+    now = time.monotonic()
+    if _SYSTEM_CACHE["data"] is None or now - _SYSTEM_CACHE["ts"] > _SYSTEM_TTL_SECONDS:
+        import sysmon
+        _SYSTEM_CACHE["data"] = sysmon.snapshot()
+        _SYSTEM_CACHE["ts"] = now
+    return _SYSTEM_CACHE["data"]
+
+
+def _config_port_is_explicit(cfg: dict) -> bool:
+    try:
+        int(cfg.get("port", "auto"))
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def bind_server(host: str, cfg: dict, cli_port: int | None, once: bool = False) -> ConsoleServer:
+    """Bind the decided port. An explicit port (a --port flag, or an integer in
+    console.json) is a decided-once value: a collision there fails loudly with the named
+    fix, never silently elsewhere. The shipped "auto" derives the port from the folder name
+    and, on the rare hash collision, walks a few slots forward - the startup line and the
+    session-start hook print whatever actually bound."""
+    explicit = cli_port is not None or _config_port_is_explicit(cfg)
+    base = cli_port if cli_port is not None else _lib.console_port(cfg)
+    candidates = [base] if explicit else [base + i for i in range(10)]
+    last_exc: OSError | None = None
+    for candidate in candidates:
+        try:
+            return make_server(host, candidate, once=once)
+        except OSError as exc:
+            last_exc = exc
+    raise last_exc if last_exc else OSError(f"could not bind any of {candidates}")
+
+
 def main(argv: list | None = None) -> int:
     cfg = _lib.load_config("console")
     parser = argparse.ArgumentParser(prog="console.py", description="Serve the dot-claude-iff console.")
     parser.add_argument("--host", default=cfg.get("host", "127.0.0.1"))
-    parser.add_argument("--port", type=int, default=cfg.get("port", 7717))
+    parser.add_argument("--port", type=int, default=None,
+                        help="explicit port (default: console.json, or derived from the folder name)")
     parser.add_argument("--pidfile", default=None, help="write the server pid here while running")
     parser.add_argument("--once", action="store_true", help="handle exactly one request, then exit (tests)")
     args = parser.parse_args(argv)
 
     try:
-        server = make_server(args.host, args.port, once=args.once)
+        server = bind_server(args.host, cfg, args.port, once=args.once)
     except _lib.LibError as exc:
         print(f"CONSOLE_FAIL: {exc}", file=sys.stderr)
         return 2
     except OSError as exc:
-        # Every project that keeps the shipped default port collides with the next one on
-        # the same machine. The port is decided ONCE per project (adopt skill, Phase 4);
-        # this message is what turns "console silently absent" into a one-line fix.
-        print(f"CONSOLE_FAIL: cannot bind http://{args.host}:{args.port}/ ({exc}). "
+        # An explicit port that collides fails loudly with the named fix; "auto" only lands
+        # here when the whole candidate walk was taken, which means something is squatting
+        # a broad range. Either way the message names where the port is decided.
+        wanted = args.port if args.port is not None else _lib.console_port(cfg)
+        print(f"CONSOLE_FAIL: cannot bind http://{args.host}:{wanted}/ ({exc}). "
               f"The port is likely held by another project's console. Set a unique 'port' "
-              f"in .claude/config/console.json - decided once per project - and restart.",
+              f"in .claude/config/console.json - decided once per project - and restart, "
+              f"or keep \"auto\" to derive one from the folder name.",
               file=sys.stderr)
         return 2
 
@@ -276,7 +350,8 @@ def main(argv: list | None = None) -> int:
         pidfile.write_text(str(os.getpid()), encoding="utf-8")
 
     bound_host, bound_port = server.server_address[:2]
-    print(f"CONSOLE serving http://{bound_host}:{bound_port}/")
+    print(f"CONSOLE serving http://{bound_host}:{bound_port}/ "
+          f"(http://{_lib.console_hostname()}:{bound_port}/console.html)")
 
     try:
         server.serve_forever()

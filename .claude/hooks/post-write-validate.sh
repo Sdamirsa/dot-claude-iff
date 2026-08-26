@@ -47,7 +47,7 @@ except OSError:
     sys.exit(0)
 
 try:
-    rel = str(path.relative_to(root))
+    rel = path.relative_to(root).as_posix()
 except ValueError:
     sys.exit(0)
 if not rel.startswith(".claude/"):

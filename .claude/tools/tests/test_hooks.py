@@ -327,6 +327,33 @@ class TestPolicyGate(HookCase):
                    "cwd": str(self.root)}
         self.assertEqual(self.decision(self.run_hook("policy-gate.sh", payload)), "deny")
 
+    def test_powershell_is_a_shell_lane_too(self):
+        """On Windows the PowerShell tool mutates files exactly like Bash does; an unmatched
+        tool name meant every ring was open to it. Same judgment, same command string."""
+        cases = [
+            ("Remove-Item -Recurse -Force .claude-iff", "deny"),
+            (f"Set-Content {self.record}/segments/x.jsonl 'gone'", "deny"),
+            ("Get-Content .claude-iff/obs/anchor.json", None),
+        ]
+        for command, expected in cases:
+            with self.subTest(command=command):
+                payload = {"tool_name": "PowerShell", "tool_input": {"command": command},
+                           "cwd": str(self.root)}
+                self.assertEqual(self.decision(self.run_hook("policy-gate.sh", payload)), expected)
+
+    def test_powershell_denied_commands_match_subagents(self):
+        payload = {"tool_name": "PowerShell", "tool_input": {"command": "git push"},
+                   "agent_type": "worker", "cwd": str(self.root)}
+        self.assertEqual(self.decision(self.run_hook("policy-gate.sh", payload)), "deny")
+
+    @unittest.skipUnless(os.name == "nt", "case-insensitive filesystem semantics")
+    def test_case_spoofed_protected_path_is_still_protected(self):
+        """Windows filesystems are case-insensitive: writing .ClAuDe/config/x lands in the
+        real .claude/config, so a case-exact prefix match was a spelling away from open."""
+        res = self.run_hook("policy-gate.sh",
+                            self.write_payload(".ClAuDe/Config/policy.json", "worker"))
+        self.assertEqual(self.decision(res), "deny")
+
     def test_unparseable_tool_input_is_denied(self):
         payload = {"tool_name": "Write", "tool_input": ["not", "an", "object"]}
         self.assertEqual(self.decision(self.run_hook("policy-gate.sh", payload)), "deny")

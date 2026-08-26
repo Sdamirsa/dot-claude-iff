@@ -88,8 +88,10 @@ You unzipped the dot-claude-iff system into a fresh repo. One session sets it up
    > reset STATUS to reality), 5 (verify, including the hooks-fire probe) and 6 (first
    > ritual) against this repo.
 
-4. Open the console beside your terminal: `python3 .claude/console/console.py`, then
-   http://127.0.0.1:7717/console.html - half the screen for it, half for Claude Code.
+4. Open the console beside your terminal: `python3 .claude/console/console.py` prints your
+   URL (http://<your-folder-name>.localhost:<derived-port>/console.html - the port derives
+   from the folder name, so projects never fight over one default). Half the screen for it,
+   half for Claude Code; every session start prints the URL again.
 
 What you get: one place to interact (Claude Code), one place to control (the console), one
 command to evolve (/project-memory). The manual is .claude/README.md.
@@ -163,6 +165,27 @@ def _adopter_memory_config(data: bytes) -> bytes:
     return (json.dumps(cfg, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 
+DEFAULT_CONSOLE_PORT = "auto"
+
+
+def _adopter_console_config(data: bytes) -> bytes:
+    """The shipped console.json lands with port "auto" (derived from the adopting repo's
+    folder name - no per-project decision, no shared default to collide on) and with the
+    system monitor OFF: shipping one machine's explicit port or monitoring preference would
+    export this repo's local choices as everyone's defaults."""
+    try:
+        cfg = json.loads(data.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return data
+    monitor = cfg.get("monitor") if isinstance(cfg.get("monitor"), dict) else {}
+    changed = cfg.get("port") != DEFAULT_CONSOLE_PORT or monitor.get("enabled", False)
+    if not changed:
+        return data
+    cfg["port"] = DEFAULT_CONSOLE_PORT
+    cfg["monitor"] = dict(monitor, enabled=False)
+    return (json.dumps(cfg, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
 def _payload_entries(root: Path) -> tuple[list, list]:
     """(entries, skipped_untracked): (archive_path, bytes) pairs for the system payload in
     deterministic order, plus the files the tracked-manifest rule kept out (reported, never
@@ -191,6 +214,8 @@ def _payload_entries(root: Path) -> tuple[list, list]:
         data = path.read_bytes()
         if rel == "config/memory.json":
             data = _adopter_memory_config(data)
+        elif rel == "config/console.json":
+            data = _adopter_console_config(data)
         entries.append((f".claude/{rel}", data))
 
     template = claude / "skills" / "adopt" / "CLAUDE.template.md"

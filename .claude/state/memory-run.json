@@ -1,24 +1,24 @@
 {
-  "run_id": "20260826T082817Z-4b70d0",
-  "started": "2026-08-26T08:28:17Z",
-  "status": "done",
-  "phase": "publish",
-  "step": null,
+  "run_id": "20260826T124726Z-10ba46",
+  "started": "2026-08-26T12:47:26Z",
+  "status": "running",
+  "phase": "polish",
+  "step": "dist_build",
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-08-26T08:28:17Z",
+      "ts": "2026-08-26T12:47:27Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "29 events parse",
+          "message": "45 events parse",
           "details": []
         },
         {
           "name": "heartbeat_present",
           "status": "OK",
-          "message": "last turn ended 49 min ago",
+          "message": "last turn ended 10 min ago",
           "details": []
         },
         {
@@ -39,26 +39,17 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 13 warning(s)",
-            "  WARN   agent.anatomist: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   config.memory: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   config.policy: auto.hash is stale (source changed since last scan; description may be stale)",
+            "MAP LINT: 0 error(s), 4 warning(s)",
             "  WARN   config.registry: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   console.server: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   hook.session-start: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
-            "  WARN   skill.adopt: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool._lib: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   tool._lib: layer is null (unplaced)",
-            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool.distctl: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool.mapctl: auto.hash is stale (source changed since last scan; description may be stale)"
+            "  WARN   tool.sysmon: layer is null (unplaced)"
           ]
         },
         {
           "name": "config_registry_lint",
           "status": "OK",
-          "message": "30 knobs registered, none dead",
+          "message": "31 knobs registered, none dead",
           "details": []
         },
         {
@@ -70,11 +61,11 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 13.7 KB at /home/user/dot-claude-iff_claude_iff",
+          "message": "record is 47.4 KB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
-            "spool: 13.6 KB",
-            "console.log: 78 B",
-            "console.pid: 4 B"
+            "spool: 47.4 KB",
+            "console.pid: 6 B",
+            "console.log: 0 B"
           ]
         },
         {
@@ -86,7 +77,7 @@
         {
           "name": "task_reality",
           "status": "OK",
-          "message": "0 active task(s), checkpoints match disk",
+          "message": "1 active task(s), checkpoints match disk",
           "details": []
         },
         {
@@ -98,7 +89,7 @@
         {
           "name": "gitignore_shadowing",
           "status": "OK",
-          "message": "123 shippable path(s), none shadowed",
+          "message": "129 shippable path(s), none shadowed",
           "details": []
         },
         {
@@ -106,12 +97,18 @@
           "status": "OK",
           "message": "13 dark tokens, both blocks agree",
           "details": []
+        },
+        {
+          "name": "changelog_parity",
+          "status": "OK",
+          "message": "5 version(s) pinned in CHANGELOG.md",
+          "details": []
         }
       ]
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-08-26T08:28:25Z",
+      "ts": "2026-08-26T12:47:28Z",
       "results": [
         {
           "name": "map_scan",
@@ -150,44 +147,8 @@
           "details": []
         }
       ]
-    },
-    "publish": {
-      "status": "OK",
-      "ts": "2026-08-26T08:28:45Z",
-      "results": [
-        {
-          "name": "polish_complete",
-          "status": "OK",
-          "message": "polish complete",
-          "details": []
-        },
-        {
-          "name": "obs_ingest",
-          "status": "OK",
-          "message": "obsctl.py ingest",
-          "details": []
-        },
-        {
-          "name": "obs_seal",
-          "status": "OK",
-          "message": "obsctl.py seal",
-          "details": []
-        },
-        {
-          "name": "obs_rollup",
-          "status": "OK",
-          "message": "obsctl.py rollup",
-          "details": []
-        },
-        {
-          "name": "obs_anchor",
-          "status": "OK",
-          "message": "obsctl.py anchor",
-          "details": []
-        }
-      ]
     }
   },
   "last_completed": "2026-08-26T08:28:45Z",
-  "updated": "2026-08-26T08:28:45Z"
+  "updated": "2026-08-26T12:47:28Z"
 }

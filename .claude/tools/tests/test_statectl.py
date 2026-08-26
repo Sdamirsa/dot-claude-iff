@@ -281,6 +281,43 @@ class TestNeedsHumanLifecycle(StatectlCase):
 
 # --------------------------------------------------------------------------- 5. write gating
 
+class TestDeviceIdentity(StatectlCase):
+    """state/machine.json: `statectl device` is the ONLY writer; the session-start check
+    just compares and nags, so a device change stays loud until a human names the box."""
+
+    def test_unnamed_machine_is_flagged_without_writing(self):
+        line = _lib.machine_check()
+        self.assertIn("not named yet", line)
+        self.assertFalse(_lib.machine_state_path().exists(),
+                         "machine_check must stay read-only; the hook prints it every session")
+
+    def test_fingerprint_is_stable_and_anonymous(self):
+        fp = _lib.machine_fingerprint()
+        self.assertRegex(fp, r"^[0-9a-f]{12}$", "12 hex chars, no username, no hostname")
+        self.assertEqual(fp, _lib.machine_fingerprint())
+
+    def test_device_names_the_machine_and_journals_it(self):
+        code, out, _err = self.run_cli("device", "test-box")
+        self.assertEqual(code, 0)
+        self.assertVerdict(out, "OK")
+        snap = _lib.read_json(_lib.machine_state_path())
+        self.assertEqual(snap["device_alias"], "test-box")
+        self.assertEqual(snap["fingerprint"], _lib.machine_fingerprint())
+        self.assertNotIn("last_seen", snap, "no volatile fields: an unchanged machine is zero churn")
+        self.assertIsNone(_lib.machine_check(), "a named, matching machine has nothing to say")
+        noted = [e for e in _lib.journal_read() if "device named 'test-box'" in str(e.get("text", ""))]
+        self.assertTrue(noted, "naming a device must land in the journal")
+
+    def test_changed_fingerprint_is_loud_and_names_the_old_device(self):
+        self.run_cli("device", "old-box")
+        snap = _lib.read_json(_lib.machine_state_path())
+        snap["fingerprint"] = "deadbeef0000"
+        _lib.atomic_write_json(_lib.machine_state_path(), snap)
+        line = _lib.machine_check()
+        self.assertIn("DEVICE CHANGE", line)
+        self.assertIn("old-box", line)
+
+
 class TestRefreshWriteGating(StatectlCase):
     def test_second_refresh_with_no_new_events_touches_nothing(self):
         self.run_cli("task", "T1", "--title", "a", "--status", "doing")

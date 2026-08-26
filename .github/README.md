@@ -152,4 +152,7 @@ examples live in [the Partner Guide](../.claude/README.md#for-humans-how-to-coll
 
 ---
 
-<p align="center"><i>"We rise by lifting others."</i><br><i>"Good unite hearts, cover all, break none."</i></p>
+<p align="center">
+  <img src="../docs/assets/logo-small.png" alt="dot-claude-iff" height="40" align="middle">
+  &nbsp;<i>"We rise by lifting others." · "Good unite hearts, cover all, break none."</i>
+</p>

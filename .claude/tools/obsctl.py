@@ -63,12 +63,13 @@ FAILURE_HOOK_EVENTS = {"PostToolUseFailure", "StopFailure", "PermissionDenied"}
 # --------------------------------------------------------------------------- ingest
 
 def _project_slug(root: Path) -> str:
-    """Claude Code's own ~/.claude/projects directory naming: '/' AND '.' both become '-'.
-    Verified empirically against a live projects dir: a git-worktree path
-    .../my-repo/.claude/worktrees/x sits as '...my-repo--claude-worktrees-x' - the '.' in
-    '.claude' converts too, not only path separators. Guessing '/'-only would silently
-    produce a slug that matches nothing for every worktree."""
-    return re.sub(r"[/.]", "-", str(root.resolve()))
+    """Claude Code's own ~/.claude/projects directory naming: '/', '.', ':' and '\\' all
+    become '-'. Verified empirically against live projects dirs on two platforms: a
+    git-worktree path .../my-repo/.claude/worktrees/x sits as '...my-repo--claude-worktrees-x'
+    (the '.' converts too, not only separators), and a Windows root C:\\Users\\x\\repo sits as
+    'C--Users-x-repo' (drive colon and backslashes convert). Guessing '/'-only made ingest
+    scan nothing on Windows - token tracking was silently empty there."""
+    return re.sub(r"[/.:\\]", "-", str(root.resolve()))
 
 
 def _usage_event_from_record(rec) -> dict | None:

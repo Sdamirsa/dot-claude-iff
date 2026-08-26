@@ -251,17 +251,113 @@ def tilde(path) -> str:
     text = str(path)
     home = str(Path.home())
     if home and text.startswith(home):
-        return "~" + text[len(home):]
+        tail = text[len(home):]
+        if os.name == "nt":
+            # Display form is posix everywhere: these strings land in committed files and
+            # console payloads, where a backslash form would name the platform.
+            tail = tail.replace("\\", "/")
+        return "~" + tail
     return text
 
 
 def rel(path: Path, base: Path | None = None) -> str:
-    """Repo-relative display path; falls back to the absolute path when outside."""
+    """Repo-relative display path, posix-form on every platform (these strings land in
+    committed surfaces - cards, messages); falls back to the absolute path when outside."""
     b = (base or project_root()).resolve()
     try:
-        return str(Path(path).resolve().relative_to(b))
+        return Path(path).resolve().relative_to(b).as_posix()
     except ValueError:
         return str(path)
+
+
+# --------------------------------------------------------------------------- console endpoint
+
+def console_port(cfg: dict | None = None) -> int:
+    """The console's port. An explicit integer in console.json is a decided-once override;
+    the shipped default "auto" (or an absent key) derives a stable port from the repo FOLDER
+    NAME - stable across machines and clones, unlike the absolute path - spreading projects
+    across 7100-7899 so the second adoption on one machine stops colliding with the first."""
+    if cfg is None:
+        cfg = load_config("console")
+    port = cfg.get("port", "auto")
+    try:
+        return int(port)
+    except (TypeError, ValueError):
+        import hashlib
+        digest = hashlib.sha256(project_root().name.encode("utf-8")).hexdigest()
+        return 7100 + int(digest, 16) % 800
+
+
+def console_hostname() -> str:
+    """Folder-name host for display URLs: browsers resolve every *.localhost name to
+    loopback with zero configuration (RFC 6761), so http://<folder>.localhost:<port>/ names
+    the project in the browser tab. Sanitized to hostname-legal characters; the server still
+    binds the loopback IP - this name is identity, not reachability."""
+    name = re.sub(r"[^a-z0-9-]+", "-", project_root().name.lower()).strip("-")
+    return (name or "project") + ".localhost"
+
+
+def console_url(cfg: dict | None = None) -> str:
+    return f"http://{console_hostname()}:{console_port(cfg)}/console.html"
+
+
+# --------------------------------------------------------------------------- machine identity
+
+def machine_state_path() -> Path:
+    return state_dir() / "machine.json"
+
+
+def machine_fingerprint() -> str:
+    """12 hex chars of sha256(user|host): enough to tell two machines apart in a committed
+    file without committing the username or the hostname themselves."""
+    import getpass
+    import hashlib
+    import socket
+    try:
+        user = getpass.getuser()
+    except Exception:
+        user = os.environ.get("USERNAME") or os.environ.get("USER") or "unknown"
+    try:
+        host = socket.gethostname()
+    except Exception:
+        host = "unknown"
+    return hashlib.sha256(f"{user}|{host}".encode("utf-8")).hexdigest()[:12]
+
+
+def machine_snapshot(alias: str | None) -> dict:
+    import platform
+    return {
+        "fingerprint": machine_fingerprint(),
+        "os": sys.platform,
+        "arch": platform.machine(),
+        "python": platform.python_version(),
+        "device_alias": alias,
+    }
+
+
+def machine_check() -> str | None:
+    """Compare the running machine to state/machine.json and return a line for the human
+    when something needs saying: an unnamed machine, or a device change (the repo traveled
+    - a clone, a sync, a copied disk). READ-ONLY on purpose: the session-start hook prints
+    this, and that hook's contract is to never write project state - so the line repeats,
+    loudly, every session until `statectl device` names the machine, and that command is
+    what writes the file and journals the transition. Telemetry: fails open."""
+    try:
+        stored = read_json(machine_state_path(), None)
+        current = machine_fingerprint()
+        if not isinstance(stored, dict) or not stored.get("fingerprint"):
+            return (f"DEVICE: this machine is not named yet ({sys.platform}, fp {current}). "
+                    f'Name it: python3 .claude/tools/statectl.py device "<alias>"')
+        if stored.get("fingerprint") == current:
+            return None
+        was = stored.get("device_alias") or f"fp {stored.get('fingerprint')}"
+        return (f"DEVICE CHANGE: this repo last ran on '{was}' ({stored.get('os', '?')}), "
+                f"now on a different {sys.platform} machine (fp {current}). Paths, GPUs and "
+                f"installed tools may differ - re-check machine-specific assumptions and "
+                f"update any memory that assumed the old device, then name this one: "
+                f'python3 .claude/tools/statectl.py device "<alias>"')
+    except Exception:
+        return None
 
 
 # --------------------------------------------------------------------------- atomic io

@@ -4,12 +4,18 @@
     "as a labelled static snapshot; console.py adds live polling when it is running.",
     "It binds 127.0.0.1 only, checks the Host header (DNS-rebinding), and serves ONLY the",
     "console directory plus the explicit read allowlist below - never the repo root, which",
-    "would expose .env and everything else on localhost."
+    "would expose .env and everything else on localhost. Port \"auto\" derives a stable",
+    "per-project port from the repo folder name (7100-7899); an explicit integer overrides",
+    "it, decided once per project. monitor.enabled turns on the live system strip (CPU,",
+    "RAM, GPU) on the NOW tab - live-only, never in snapshots; kits ship it off."
   ],
   "version": 1,
   "host": "127.0.0.1",
-  "port": 7717,
+  "port": "auto",
   "autostart": true,
+  "monitor": {
+    "enabled": true
+  },
   "poll_active_seconds": 5,
   "poll_idle_seconds": 30,
   "active_window_minutes": 10,

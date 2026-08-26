@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# policy-gate.sh - PreToolUse gate on Write|Edit|MultiEdit|NotebookEdit|Bash.
+# policy-gate.sh - PreToolUse gate on Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell.
 #
 # A thin wrapper. The judgment lives in policy_gate.py; this script's whole job is to hand the
 # payload over WITHOUT truncating it and to fail closed when the judge cannot run.
@@ -50,7 +50,8 @@ status=$?
 
 if [ "$status" -ne 0 ]; then
   # The judge did not judge. Fail closed for the protected tree only.
-  if grep -qE '\.claude/(hooks|tools|config|agents|protocols|skills|console)/|\.claude-iff|settings\.json|_claude_iff' "$payload_file" 2>/dev/null; then
+  # [/\\]+ accepts the posix form and the JSON-escaped Windows form (.claude\\config) alike.
+  if grep -qE '\.claude[/\\]+(hooks|tools|config|agents|protocols|skills|console)[/\\]|\.claude-iff|settings\.json|_claude_iff' "$payload_file" 2>/dev/null; then
     printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"the policy gate could not run (python3 missing or the judge crashed) and this call touches the protected tree. Failing closed. Fix the gate before editing it."}}'
   fi
 fi

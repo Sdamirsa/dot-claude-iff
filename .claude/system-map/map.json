@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-08-26T08:28:24Z",
+  "generated_at": "2026-08-26T12:47:27Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -269,7 +269,7 @@
         "envelope"
       ],
       "flows": [],
-      "exists": false
+      "exists": true
     },
     {
       "id": "store.needs_human",
@@ -642,6 +642,18 @@
       "title": "Lib",
       "path": ".claude/tools/_lib.py",
       "description": "_lib.py - shared foundation for the dot-claude-iff tools.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "tool.sysmon",
+      "kind": "code",
+      "layer": null,
+      "package": null,
+      "title": "Sysmon",
+      "path": ".claude/tools/sysmon.py",
+      "description": "sysmon.py - optional system-monitor probes: CPU, RAM, GPU/VRAM.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -1147,11 +1159,11 @@
     }
   ],
   "stats": {
-    "nodes": 49,
+    "nodes": 50,
     "edges": 97,
     "by_kind": {
       "agent": 3,
-      "code": 16,
+      "code": 17,
       "data": 29,
       "human": 1
     },
@@ -1161,15 +1173,16 @@
       "GOVERN": 10,
       "MEMORY": 9,
       "OBSERVE": 10,
-      "UNPLACED": 2
+      "UNPLACED": 3
     },
-    "unplaced": 2
+    "unplaced": 3
   },
   "lint": {
     "errors": [],
     "warnings": [
       "human.maintainer: layer is null (unplaced)",
-      "tool._lib: layer is null (unplaced)"
+      "tool._lib: layer is null (unplaced)",
+      "tool.sysmon: layer is null (unplaced)"
     ]
   }
 }

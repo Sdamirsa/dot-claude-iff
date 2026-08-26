@@ -138,6 +138,33 @@ git add -A && git commit -m "<type>: <what changed>"
 
 Never `--force`, never `--no-verify`, never push when CHECK failed.
 
+**Cutting a release - home repo only, and only when the maintainer names a version.** Releases
+are the maintainer's call, never yours. When they say "release vX.Y.Z":
+
+1. Set `system_version` to `X.Y.Z` in `.claude/config/registry.json` - the tag and the stamp
+   move in step.
+2. Pin the changelog: in `CHANGELOG.md` (repo root), retitle `## Unreleased` to
+   `## vX.Y.Z - YYYY-MM-DD` and curate it from `Project-log.jsonl` since the previous tag -
+   written for readers of the release, not a commit dump - then start a fresh `## Unreleased`
+   above it. The `changelog_parity` check FAILS the ritual if any version tag or the stamped
+   `system_version` lacks its section, so a release cannot quietly outrun its changelog.
+3. Commit `release: vX.Y.Z - <one line>` and tag `git tag vX.Y.Z`. Push per the `push` knob;
+   if this session's credentials cannot push tags (branch-scoped tokens cannot), hand the
+   maintainer the exact commands and say so in the report.
+4. Pin it to the GitHub release: write the version's section to a temp file, then
+
+   ```
+   gh release create vX.Y.Z .claude/dist/dot-claude-iff-fresh.zip \
+     .claude/dist/dot-claude-iff-adopt-kit.zip --title "vX.Y.Z" --notes-file <temp-file>
+   ```
+
+Why adopters never see any of this: `CHANGELOG.md` lives at the repo ROOT deliberately - the
+zips package only the tracked `.claude/` tree plus files distctl authors, and the adopt skill
+copies only `.claude/` paths, so the system's own history structurally cannot reach an
+adopting repo and there is no filter to maintain. The `changelog_parity` check rides the same
+knob as the home-only generators (`distribution.enabled`, absent reads false): in an adopting
+project it reports SKIP, in this repo it enforces the pin.
+
 ---
 
 ## Phase 4 - EVOLVE

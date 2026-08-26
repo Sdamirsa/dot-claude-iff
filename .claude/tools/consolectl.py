@@ -460,10 +460,13 @@ def build(demo: bool = False, out: str | None = None) -> dict:
     rebuild that touches it on every ritual even when nothing happened is exactly the kind
     of noise that makes "did anything actually change" unanswerable from git status - the
     same reasoning behind statectl.py's `_write_gated`, mirrored here for the same reason.
-    Comparison strips only the top-level `generated_at` (a nested one, e.g. a story-feed
-    rebuild's own `generated_at`, is a genuine content change and is deliberately NOT
-    masked). Deterministic serialization (sorted keys, sorted globs) is what makes two
-    payloads from the same source state compare equal in the first place.
+    Comparison masks only the two wall-clock fields, the top-level `generated_at` and
+    `now.heartbeat_age_seconds` (a nested `generated_at`, e.g. a story-feed rebuild's own,
+    is a genuine content change and is deliberately NOT masked), and compares the full
+    RENDERED page, not just the payload - a template edit with an unchanged payload must
+    still reach the output, or the ledger marks the generator fresh while the file on disk
+    lags the template. Deterministic serialization (sorted keys, sorted globs) is what
+    makes two renders from the same source state compare equal in the first place.
     """
     data = payload(live=False)
     if demo:
@@ -473,16 +476,25 @@ def build(demo: bool = False, out: str | None = None) -> dict:
         data["demo"] = True
     out_path = (_lib.project_root() / out) if out else (_lib.console_dir() / "console.html")
 
-    old_data = None
+    old_text = None
     try:
-        old_data = _extract_embedded_data(out_path.read_text(encoding="utf-8"))
+        old_text = out_path.read_text(encoding="utf-8")
     except OSError:
         pass
+    old_data = _extract_embedded_data(old_text) if old_text is not None else None
 
-    stripped_new = {k: v for k, v in data.items() if k != "generated_at"}
-    stripped_old = {k: v for k, v in old_data.items() if k != "generated_at"} if old_data else None
-
-    wrote = stripped_old != stripped_new
+    wrote = True
+    if old_text is not None and old_data is not None and "generated_at" in old_data:
+        comparable = dict(data)
+        comparable["generated_at"] = old_data["generated_at"]
+        # now.heartbeat_age_seconds is wall-clock age computed at payload time - it differs
+        # on every run and would defeat the gate entirely. A genuine heartbeat change still
+        # shows, because now.heartbeat.ts is compared unmasked.
+        if isinstance(comparable.get("now"), dict) and isinstance(old_data.get("now"), dict) \
+                and "heartbeat_age_seconds" in old_data["now"]:
+            comparable["now"] = dict(comparable["now"])
+            comparable["now"]["heartbeat_age_seconds"] = old_data["now"]["heartbeat_age_seconds"]
+        wrote = render(comparable) != old_text
     if wrote:
         _lib.atomic_write_text(out_path, render(data), durable=False)
     return {"path": out_path, "data": data, "wrote": wrote}
@@ -529,7 +541,7 @@ def _cmd_serve(args: argparse.Namespace) -> int:
 def _cmd_open(args: argparse.Namespace) -> int:
     cfg = _lib.load_config("console")
     host = cfg.get("host", "127.0.0.1")
-    port = cfg.get("port", 7717)
+    port = _lib.console_port(cfg)
     html_path = _lib.console_dir() / "console.html"
     print(f"file://{html_path}")
     print(f"python3 {_lib.rel(_lib.console_dir() / 'console.py')} --host {host} --port {port}")

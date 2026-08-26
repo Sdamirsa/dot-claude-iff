@@ -20,7 +20,8 @@
   ],
   "distribution": {
     "_comment": [
-      "Gate for the two home-repo-only generators, demo_build and dist_build. They are the",
+      "Gate for the home-repo-only steps: the demo_build and dist_build generators and the",
+      "changelog_parity check (the release changelog is this repo's history). Generators are the",
       "point in dot-claude-iff's own source repo (publish the adoption kit and the docs demo)",
       "and a privacy leak everywhere else: in an adopting project they would package that",
       "project's private .claude/ into redistributable zips and render its real session state",
@@ -42,7 +43,8 @@
       "task_reality",
       "no_machine_paths",
       "gitignore_shadowing",
-      "theme_token_parity"
+      "theme_token_parity",
+      "changelog_parity"
     ],
     "polish": [
       "map_scan",

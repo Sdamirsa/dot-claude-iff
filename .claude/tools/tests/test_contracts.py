@@ -493,6 +493,38 @@ class TestGitignoreShadowing(FixtureCase):
         self.assertEqual(checkctl.check_gitignore_shadowing().status, checkctl.SKIP)
 
 
+class TestChangelogParity(FixtureCase):
+    """The release flow pins one CHANGELOG.md section per version; this check is the
+    mechanical half of that promise, and it must stay silent outside the home repo."""
+
+    def test_gated_off_outside_the_home_repo(self):
+        cfg = _lib.load_config("memory")
+        cfg["distribution"] = {"enabled": False}
+        self.write_config("memory", cfg)
+        self.assertEqual(checkctl.check_changelog_parity().status, checkctl.SKIP)
+
+    def test_missing_changelog_fails_in_the_home_repo(self):
+        self.assertEqual(checkctl.check_changelog_parity().status, checkctl.FAIL)
+
+    def test_pinned_section_passes(self):
+        version = _lib.system_version()
+        (self.root / "CHANGELOG.md").write_text(
+            f"# Changelog\n\n## v{version} - 2026-01-01\n\n- something\n", encoding="utf-8")
+        self.assertEqual(checkctl.check_changelog_parity().status, checkctl.OK)
+
+    def test_a_version_without_a_section_is_named(self):
+        (self.root / "CHANGELOG.md").write_text(
+            "# Changelog\n\n## v9.9.9 - 2026-01-01\n", encoding="utf-8")
+        result = checkctl.check_changelog_parity()
+        self.assertEqual(result.status, checkctl.FAIL)
+        self.assertIn(f"missing '## v{_lib.system_version()}'", result.details)
+
+    def test_a_longer_version_does_not_satisfy_a_prefix(self):
+        version = _lib.system_version()
+        (self.root / "CHANGELOG.md").write_text(
+            f"# Changelog\n\n## v{version}0 - 2026-01-01\n", encoding="utf-8")
+        self.assertEqual(checkctl.check_changelog_parity().status, checkctl.FAIL)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

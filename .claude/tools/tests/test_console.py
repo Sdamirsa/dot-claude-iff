@@ -342,6 +342,129 @@ class CLIVerdictTests(FixtureCase):
         self._assert_exactly_one_token(out + err)
 
 
+class PortDerivationTests(FixtureCase):
+    """Port "auto" derives from the folder name: stable, in range, and never one shared
+    default for every adoption on a machine. An explicit port stays a decided-once value."""
+
+    def test_explicit_integer_wins(self):
+        self.assertEqual(_lib.console_port({"port": 7300}), 7300)
+        self.assertEqual(_lib.console_port({"port": "7301"}), 7301)
+
+    def test_auto_and_absent_derive_the_same_stable_port(self):
+        a = _lib.console_port({"port": "auto"})
+        b = _lib.console_port({})
+        self.assertEqual(a, b)
+        self.assertTrue(7100 <= a <= 7899, f"derived port {a} out of the documented range")
+
+    def test_hostname_is_sanitized_folder_name(self):
+        name = _lib.console_hostname()
+        self.assertRegex(name, r"^[a-z0-9-]+\.localhost$")
+
+    def test_auto_walks_past_a_collision(self):
+        cfg = dict(_lib.load_config("console"), port="auto")
+        self.write_config("console", cfg)
+        base = _lib.console_port(cfg)
+        try:
+            blocker = console.make_server("127.0.0.1", base)
+        except OSError:
+            self.skipTest(f"derived port {base} already taken on this machine")
+        try:
+            server = console.bind_server("127.0.0.1", cfg, None)
+            try:
+                self.assertEqual(server.server_address[1], base + 1)
+            finally:
+                server.server_close()
+        finally:
+            blocker.server_close()
+
+    def test_explicit_config_port_still_fails_loudly(self):
+        blocker = console.make_server("127.0.0.1", 0)
+        port = blocker.server_address[1]
+        cfg = dict(_lib.load_config("console"), port=port)
+        self.write_config("console", cfg)
+        try:
+            with self.assertRaises(OSError):
+                console.bind_server("127.0.0.1", cfg, None)
+        finally:
+            blocker.server_close()
+
+    def test_folder_localhost_host_header_is_allowed_and_others_stay_refused(self):
+        server = console.make_server("127.0.0.1", 0)
+        port = server.server_address[1]
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            for host_header, expected in (
+                    (f"anything.localhost:{port}", 200),
+                    (f"evil.example.com:{port}", 403)):
+                with self.subTest(host=host_header):
+                    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+                    conn.request("GET", "/live/console.json", headers={"Host": host_header})
+                    res = conn.getresponse()
+                    res.read()
+                    conn.close()
+                    self.assertEqual(res.status, expected)
+        finally:
+            server.shutdown()
+            server.server_close()
+
+
+class SystemEndpointTests(FixtureCase):
+    """/live/system.json is opt-in and live-only: 404 when the monitor is off (nothing to
+    distinguish it from a route that does not exist), a fresh sample when on."""
+
+    def _serve(self):
+        server = console.make_server("127.0.0.1", 0)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        return server, server.server_address[1]
+
+    def _get(self, port: int, path: str):
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+        conn.request("GET", path)
+        res = conn.getresponse()
+        body = res.read()
+        conn.close()
+        return res.status, body
+
+    def test_disabled_monitor_is_a_404(self):
+        cfg = dict(_lib.load_config("console"), monitor={"enabled": False})
+        self.write_config("console", cfg)
+        server, port = self._serve()
+        try:
+            status, _body = self._get(port, "/live/system.json")
+            self.assertEqual(status, 404)
+        finally:
+            server.shutdown()
+            server.server_close()
+
+    def test_enabled_monitor_serves_a_sample(self):
+        cfg = dict(_lib.load_config("console"), monitor={"enabled": True})
+        self.write_config("console", cfg)
+        server, port = self._serve()
+        try:
+            status, body = self._get(port, "/live/system.json")
+            self.assertEqual(status, 200)
+            sample = json.loads(body)
+            for key in ("os", "cpu_percent", "load1", "ram", "gpu"):
+                self.assertIn(key, sample)
+        finally:
+            server.shutdown()
+            server.server_close()
+
+
+class SysmonTests(unittest.TestCase):
+    def test_snapshot_never_raises_and_keeps_its_shape(self):
+        import sysmon
+        sample = sysmon.snapshot(interval=0.05)
+        self.assertEqual(set(sample), {"os", "cpu_percent", "load1", "ram", "gpu"})
+        if sample["ram"] is not None:
+            self.assertIn("total", sample["ram"])
+            self.assertIsInstance(sample["ram"]["total"], int)
+        if sample["gpu"] is not None:
+            self.assertIn("vram_total", sample["gpu"])
+
+
 class PortCollisionTests(FixtureCase):
     """Port 7717 shipped as every project's default, so the second adoption on one machine
     lost the bind every session - silently, because the failure went only to a log nobody

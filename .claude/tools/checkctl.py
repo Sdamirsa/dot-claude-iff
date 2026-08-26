@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import uuid
@@ -652,6 +653,33 @@ def check_theme_token_parity() -> Result:
     return Result("theme_token_parity", OK, f"{len(media)} dark tokens, both blocks agree")
 
 
+def check_changelog_parity() -> Result:
+    """Every released version keeps its pinned section in CHANGELOG.md. The release steps in
+    the project-memory skill write the section; this is the mechanical half of that promise,
+    so a tag can never quietly outrun its changelog. Home-repo-only: an adopting project has
+    its own history and no CHANGELOG.md - same fail-closed knob as the home-only generators.
+    """
+    if not distribution_enabled():
+        return Result("changelog_parity", SKIP,
+                      "home-repo-only, disabled (memory.json distribution.enabled)")
+    root = _lib.project_root()
+    versions = {"v" + _lib.system_version()}
+    tags = _lib.git_output(["tag", "-l", "v*"], root=root) or ""
+    versions |= {t for t in tags.split() if re.fullmatch(r"v\d+\.\d+\.\d+", t)}
+    try:
+        text = (root / "CHANGELOG.md").read_text(encoding="utf-8")
+    except OSError:
+        return Result("changelog_parity", FAIL, "CHANGELOG.md is missing at the repo root",
+                      [f"expected sections for: {', '.join(sorted(versions))}"])
+    missing = sorted(v for v in versions
+                     if not re.search(rf"^## {re.escape(v)}\b", text, re.MULTILINE))
+    if missing:
+        return Result("changelog_parity", FAIL,
+                      f"{len(missing)} released version(s) lack a CHANGELOG.md section",
+                      [f"missing '## {v}'" for v in missing])
+    return Result("changelog_parity", OK, f"{len(versions)} version(s) pinned in CHANGELOG.md")
+
+
 CHECKS = {
     "journal_parses": check_journal_parses,
     "heartbeat_present": check_heartbeat,
@@ -665,6 +693,7 @@ CHECKS = {
     "no_machine_paths": check_no_machine_paths,
     "gitignore_shadowing": check_gitignore_shadowing,
     "theme_token_parity": check_theme_token_parity,
+    "changelog_parity": check_changelog_parity,
 }
 
 

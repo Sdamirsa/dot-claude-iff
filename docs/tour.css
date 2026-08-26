@@ -75,6 +75,7 @@ h1 .iff { color: var(--accent); }
 .topbar .brand { font-weight: 700; font-size: 15px; text-decoration: none; color: var(--ink);
                   letter-spacing: -.01em; }
 .topbar .brand .iff { color: var(--accent); }
+.brand-logo { height: 20px; width: auto; vertical-align: -5px; margin-right: 7px; }
 #theme { margin-left: auto; background: var(--sunken); border: 1px solid var(--line);
   border-radius: 999px; width: 34px; height: 34px; cursor: pointer; color: var(--ink); font: inherit; }
 

@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-25T12:26:41Z",
+  "generated_at": "2026-08-26T12:35:42Z",
   "counts": {
     "open": 0,
-    "resolved": 1,
+    "resolved": 4,
     "by_band": {
       "SEV0": 0,
       "SEV1": 0,
@@ -17,6 +17,24 @@
       "title": "Fill model-prices.json with verified prices",
       "answer": "billing set to subscription: costs read 'in plan', token counts tracked; api mode with a filled price table stays one knob away",
       "resolved": "2026-08-25T12:26:41Z"
+    },
+    {
+      "id": "NH-20260826113401-51a1",
+      "title": "Windows portability: 26 test failures, policy gate may fail open",
+      "answer": "done in-session: gate fixed (protected-tree ring, record ring, post-write validator, PowerShell lane), obsctl slug and display-path fixes; suite 212/212 on Windows, real-repo probes deny correctly",
+      "resolved": "2026-08-26T11:45:36Z"
+    },
+    {
+      "id": "NH-20260826113413-f456",
+      "title": "Approve /plan-task: system monitor + device identity",
+      "answer": "approved and implemented: sysmon.py stdlib probes + /live/system.json (opt-in, live-only) + System strip on NOW; machine.json identity with statectl device naming and read-only session-start check; this machine named sdami-win11",
+      "resolved": "2026-08-26T12:35:41Z"
+    },
+    {
+      "id": "NH-20260826113413-083e",
+      "title": "Approve derived console ports + folder-name URLs",
+      "answer": "approved and implemented: port 'auto' derives from folder name (7100-7899, walk-on-collision), explicit int stays decided-once, *.localhost Host accepted, kits ship auto+monitor-off; suite 225/225",
+      "resolved": "2026-08-26T12:35:42Z"
     }
   ]
 }

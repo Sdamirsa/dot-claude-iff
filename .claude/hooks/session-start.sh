@@ -73,6 +73,15 @@ try:
 except Exception:
     pass
 
+# 2b. machine identity: loud when the repo wakes on a different (or unnamed) machine.
+# Read-only, like everything else in this hook: `statectl device` is the writer.
+try:
+    line = _lib.machine_check()
+    if line:
+        lines.append(line)
+except Exception:
+    pass
+
 # 3. console autostart (pidfile-guarded, never blocking)
 try:
     import socket
@@ -81,7 +90,7 @@ try:
     console_py = root / ".claude" / "console" / "console.py"
     if cfg.get("autostart", True) and console_py.exists():
         host = cfg.get("host", "127.0.0.1")
-        port = int(cfg.get("port", 7717))
+        port = _lib.console_port(cfg)
         record = _lib.record_paths()["root"]
         pidfile = record / "console.pid"
         alive = False
@@ -123,7 +132,8 @@ try:
                 f"session. Details, if any: {_lib.tilde(record / 'console.log')}"
             )
         elif alive:
-            lines.append(f"CONSOLE: http://{host}:{port}/console.html (open it beside this terminal)")
+            lines.append(f"CONSOLE: http://{_lib.console_hostname()}:{port}/console.html "
+                         f"(open it beside this terminal; http://{host}:{port}/console.html works too)")
 except Exception:
     pass
 

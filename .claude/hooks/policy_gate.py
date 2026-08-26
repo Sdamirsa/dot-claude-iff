@@ -24,6 +24,7 @@ Two rings:
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -40,10 +41,14 @@ FALLBACK_PROTECTED = (
 )
 
 # Shell verbs that can mutate or destroy. Reading the record stays allowed on purpose: the
-# maintainer inspects it and obsctl analyze reads it.
+# maintainer inspects it and obsctl analyze reads it. The second line is PowerShell's
+# mutating cmdlets: on Windows the PowerShell tool is a shell lane too, and a gate that only
+# reads bash verbs waves `Remove-Item` straight through.
 MUTATORS = (
     ">", ">>", "rm ", "rmdir ", "mv ", "cp ", "chmod ", "chown ", "truncate ", "tee ", "dd ",
     "sed -i", "shred ", "unlink", "rmtree", "-delete", "-exec rm", "mkdir ", "touch ",
+    "remove-item", "move-item", "copy-item", "rename-item", "new-item", "set-content",
+    "add-content", "clear-content", "out-file",
 )
 
 # A single, simple, read-only git invocation. Anchored and flag-tolerant, but it refuses
@@ -97,11 +102,13 @@ def norm(path_text: str, root: Path, cwd: str) -> Path:
 
 
 def under(path: Path, prefix: Path) -> bool:
-    try:
-        path.relative_to(prefix)
-        return True
-    except ValueError:
-        return False
+    """Containment on resolved paths. String-compared through os.path.normcase rather than
+    pathlib.relative_to: Windows filesystems are case-insensitive and accept both slash
+    forms, so a lowercased or mixed-slash spelling of the record path must still count as
+    inside it. On POSIX normcase is the identity and this is plain prefix matching."""
+    a = os.path.normcase(str(path))
+    b = os.path.normcase(str(prefix)).rstrip("\\/")
+    return a == b or a.startswith(b + os.sep)
 
 
 def segments_of(command: str) -> list:
@@ -134,7 +141,9 @@ def main(argv: list) -> int:
     identity = agent_type or agent_name or "orchestrator"
     is_main = not (agent_type or agent_name)
 
-    if tool not in ("Write", "Edit", "MultiEdit", "NotebookEdit", "Bash"):
+    # PowerShell is the Windows shell lane: same judgment as Bash, over the same command
+    # string. Leaving it unmatched left every ring open to one tool on one platform.
+    if tool not in ("Write", "Edit", "MultiEdit", "NotebookEdit", "Bash", "PowerShell"):
         allow()
 
     if not isinstance(raw_input, dict):
@@ -198,15 +207,22 @@ def main(argv: list) -> int:
             )
 
         try:
-            rel = str(path.relative_to(root))
+            rel = path.relative_to(root).as_posix()
         except ValueError:
             allow()
+        # Case-fold the comparison on Windows: the filesystem is case-insensitive there, so
+        # a Write to ".ClAuDe/config/x" lands in the real .claude/config and a case-exact
+        # prefix match is a spelling away from open. POSIX stays case-exact.
+        fold = str.lower if os.name == "nt" else str
         rel_slash = rel + ("/" if path.is_dir() else "")
-        hit = next((p for p in protected if rel_slash.startswith(p) or rel == p.rstrip("/")), None)
+        hit = next((p for p in protected
+                    if fold(rel_slash).startswith(fold(p)) or fold(rel) == fold(p).rstrip("/")),
+                   None)
         if hit:
             if is_main:
                 allow()
-            if any(rel_slash.startswith(g) for g in tuple(grants.get("write_paths") or ())):
+            if any(fold(rel_slash).startswith(fold(g))
+                   for g in tuple(grants.get("write_paths") or ())):
                 allow()
             reason = (
                 f"{rel} is in the protected tree ({hit}) and sub-agent '{identity}' has no write "
@@ -261,8 +277,11 @@ def main(argv: list) -> int:
     # used to deny `mkdir -p <other-project>/.claude-iff/obs` - the exact step the adopt skill
     # instructs when installing into a target repo. Another project's record is that project's
     # own gate's business.
+    # The mention classes include ':' and '\\' so a Windows absolute path (C:\Users\...) is
+    # captured whole; without them the drive prefix was cut off, the tail resolved against
+    # cwd to a path that exists nowhere, and the record ring never armed on Windows.
     mention_re = re.compile(
-        r"[\w~./-]*(?:\.claude-iff|" + re.escape(record_root.name.lower()) + r")[\w./-]*"
+        r"[\w~.:/\\-]*(?:\.claude-iff|" + re.escape(record_root.name.lower()) + r")[\w.:/\\-]*"
     )
 
     def targets_this_record(seg: str) -> bool:

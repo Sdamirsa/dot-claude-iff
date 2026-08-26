@@ -160,6 +160,22 @@ class TestDistributionGate(DistCase):
                 self.assertFalse(cfg["distribution"]["enabled"],
                                  "a kit installing with the knob on leaks on the first ritual")
 
+    def test_shipped_kits_land_with_auto_port_and_monitor_off(self):
+        cfg = _lib.read_json(self.root / ".claude" / "config" / "console.json", {}) or {}
+        cfg["port"] = 7146                    # a home repo's decided-once port must not ship
+        cfg["monitor"] = {"enabled": True}    # nor its monitoring preference
+        self.write_config("console", cfg)
+        distctl.build(self.root)
+        for zip_name, entry in (("dot-claude-iff-fresh.zip", ".claude/config/console.json"),
+                                ("dot-claude-iff-adopt-kit.zip",
+                                 "dot-claude-iff-kit/.claude/config/console.json")):
+            with self.subTest(zip=zip_name):
+                shipped = json.loads(self.read(zip_name, entry))
+                self.assertEqual(shipped["port"], "auto",
+                                 "a kit shipping one machine's port just moves the collision")
+                self.assertFalse(shipped["monitor"]["enabled"],
+                                 "the monitor is opt-in; kits must land with it off")
+
     def test_ritual_reports_gated_generators_as_skipped(self):
         import checkctl
         self._set_knob(False)

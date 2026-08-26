@@ -463,6 +463,20 @@ def cmd_note(args) -> int:
     return 0
 
 
+def cmd_device(args) -> int:
+    """Name the running machine. The one writer of state/machine.json: the session-start
+    hook only compares and nags, so a device change stays loud until this runs."""
+    snap = _lib.machine_snapshot(args.alias)
+    _lib.atomic_write_json(_lib.machine_state_path(), snap)
+    _lib.journal_append("note", text=f"device named '{args.alias}' "
+                                     f"(fp {snap['fingerprint']}, {snap['os']}/{snap['arch']})",
+                        tags=["device-change"])
+    refresh_all()
+    print(f"device '{args.alias}' recorded (fp {snap['fingerprint']})")
+    _lib.print_verdict("STATE", True)
+    return 0
+
+
 def cmd_intent(args) -> int:
     files = [f.strip() for f in args.files.split(",") if f.strip()] if args.files is not None else None
     warn = False
@@ -762,6 +776,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sp = need_sub.add_parser("list")
     sp.set_defaults(func=cmd_need_list)
+
+    sp = sub.add_parser("device", help="name this machine in state/machine.json")
+    sp.add_argument("alias")
+    sp.set_defaults(func=cmd_device)
 
     sp = sub.add_parser("refresh", help="rebuild all three projections")
     sp.set_defaults(func=cmd_refresh)
