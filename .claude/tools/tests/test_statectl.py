@@ -446,10 +446,6 @@ class TestVerdictAndUsage(StatectlCase):
         self.assertIn("do not hand-edit", first_line.lower())
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
-
-
 class TestDurableWriteOnWindows(FixtureCase):
     """atomic_write_text(durable=True) fsyncs the parent directory - a POSIX-only idiom.
     On Windows, os.open() on a directory raises PermissionError, which bricked checkctl
@@ -493,3 +489,8 @@ class TestDurableWriteOnWindows(FixtureCase):
             _lib.atomic_write_json(self.root / ".claude" / "state" / "p.json", {"x": 1}, durable=True)
         self.assertGreaterEqual(len(synced), 2,
                                 "durable=True must fsync the file AND its directory on POSIX")
+
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

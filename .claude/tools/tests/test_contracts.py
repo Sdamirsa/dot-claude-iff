@@ -268,10 +268,6 @@ class TestJournalVocabulary(FixtureCase):
         self.assertTrue(hasattr(statectl, "main"))
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
-
-
 class TestRecordIntegrity(FixtureCase):
     """The record is the tier everything else trusts. These are the ways it silently lied."""
 
@@ -495,3 +491,8 @@ class TestGitignoreShadowing(FixtureCase):
         import shutil as _shutil
         _shutil.rmtree(self.root / ".git")
         self.assertEqual(checkctl.check_gitignore_shadowing().status, checkctl.SKIP)
+
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

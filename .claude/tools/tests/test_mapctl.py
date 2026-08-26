@@ -326,10 +326,6 @@ class TestVerdictContract(MapctlCase):
         self.assertEqual(code, 2)
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
-
-
 class TestUndeclaredStoreCard(MapctlCase):
     """A store card with no KNOWN_STORES entry is invisible to scan's bookkeeping: it never
     refreshes and never ghosts, it just silently drops out of the accounting (how store.dist
@@ -350,3 +346,8 @@ class TestUndeclaredStoreCard(MapctlCase):
         shipped |= {p.stem for p in cards.glob("human.*.json")}
         self.assertLessEqual(shipped, declared,
                              f"cards shipped for undeclared stores: {sorted(shipped - declared)}")
+
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

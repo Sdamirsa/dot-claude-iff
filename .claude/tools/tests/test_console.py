@@ -342,10 +342,6 @@ class CLIVerdictTests(FixtureCase):
         self._assert_exactly_one_token(out + err)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class PortCollisionTests(FixtureCase):
     """Port 7717 shipped as every project's default, so the second adoption on one machine
     lost the bind every session - silently, because the failure went only to a log nobody
@@ -366,3 +362,8 @@ class PortCollisionTests(FixtureCase):
                           "the failure message must name where the port is decided")
         finally:
             blocker.server_close()
+
+
+
+if __name__ == "__main__":
+    unittest.main()

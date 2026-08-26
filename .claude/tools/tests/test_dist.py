@@ -124,10 +124,6 @@ class TestBilling(FixtureCase):
         self.assertEqual(result.status, checkctl.WARN)
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
-
-
 class TestDistributionGate(DistCase):
     """demo_build/dist_build are home-repo-only: in an adopting project they would package
     and publish that project's private memory. The gate must fail closed (absent knob =
@@ -251,3 +247,8 @@ class TestGitTrackedManifest(DistCase):
         self.assertNotIn(".claude/reference/stray.md", names)
         self.assertIn("stray.md", out.getvalue(),
                       "a file the manifest keeps out must be named, never silently dropped")
+
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

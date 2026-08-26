@@ -428,10 +428,6 @@ class TestSessionStart(HookCase):
         self.assertIn("RITUAL", res.stdout)
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
-
-
 class TestSymbolicRefIsNotReadOnly(HookCase):
     """`git symbolic-ref NAME REF` WRITES the ref, so it must not ride the read-only
     carve-out - neither via policy.json's allowlist nor via the fallback regex in
@@ -474,3 +470,8 @@ class TestConsolePortCollision(HookCase):
                              "a busy port must not print a URL that points at another project")
         finally:
             blocker.close()
+
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)
