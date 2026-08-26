@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-08-25T12:26:02Z",
+  "generated_at": "2026-08-26T08:28:24Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -269,7 +269,7 @@
         "envelope"
       ],
       "flows": [],
-      "exists": true
+      "exists": false
     },
     {
       "id": "store.needs_human",

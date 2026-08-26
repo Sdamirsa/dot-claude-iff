@@ -1,0 +1,24 @@
+{
+  "date": "2026-08-26",
+  "generated_at": "2026-08-26T08:28:45Z",
+  "events": {
+    "total": 0,
+    "by_event": {},
+    "errors": 0
+  },
+  "sessions": 0,
+  "tokens": {
+    "input": 0,
+    "output": 0,
+    "cache_read": 0,
+    "cache_creation": 0,
+    "by_model": {}
+  },
+  "cost": {
+    "usd": 0.0,
+    "known": true,
+    "unknown_models": [],
+    "unpriced_classes": [],
+    "billing": "subscription"
+  }
+}

@@ -22,3 +22,9 @@
 {"ts": "2026-08-25T15:12:42Z", "action": "note", "text": "ritual complete (20260825T145854Z-353823) first real ritual: 2 retro proposals confirmed and implemented"}
 {"ts": "2026-08-25T15:14:56Z", "action": "note", "text": "ritual complete (20260825T151456Z-57fdbc) v0.2.0 release prep"}
 {"ts": "2026-08-26T07:35:56Z", "action": "pointer", "text": "Issues #1-#3 root-caused; surgical fix plan presented to user, awaiting approval before implementing on claude/dot-claude-iff-bug-analysis-nn6r66"}
+{"ts": "2026-08-26T08:15:33Z", "action": "pointer", "text": "WS-A committed; next: WS-B distribution gating (memory.json knob + checkctl skips + distctl tracked-only manifest)"}
+{"ts": "2026-08-26T08:19:51Z", "action": "pointer", "text": "WS-B committed; next: WS-C adopt skill surgery (9 text fixes + sibling mode + anatomist grace note)"}
+{"ts": "2026-08-26T08:23:14Z", "action": "pointer", "text": "WS-C committed; next: WS-D gitignore_shadowing check + console port collision surfacing"}
+{"ts": "2026-08-26T08:26:48Z", "action": "pointer", "text": "WS-D committed; next: full ritual (check+polish), version bump 0.2.1, verifier pass, push"}
+{"ts": "2026-08-26T08:28:17Z", "action": "milestone", "id": "v0.2.1", "title": "v0.2.1 field-report hardening: issues #1-#3 fixed, distribution gated, adopt skill rewritten"}
+{"ts": "2026-08-26T08:28:45Z", "action": "note", "text": "ritual complete (20260826T082817Z-4b70d0) v0.2.1 field-report hardening"}

@@ -1,33 +1,36 @@
 {
-  "run_id": "20260825T151456Z-57fdbc",
-  "started": "2026-08-25T15:14:56Z",
+  "run_id": "20260826T082817Z-4b70d0",
+  "started": "2026-08-26T08:28:17Z",
   "status": "done",
   "phase": "publish",
   "step": null,
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-08-25T15:14:56Z",
+      "ts": "2026-08-26T08:28:17Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "22 events parse",
+          "message": "29 events parse",
           "details": []
         },
         {
           "name": "heartbeat_present",
           "status": "OK",
-          "message": "last turn ended 1 min ago",
+          "message": "last turn ended 49 min ago",
           "details": []
         },
         {
           "name": "generator_freshness",
           "status": "WARN",
-          "message": "3 generator(s) need a POLISH rebuild",
+          "message": "6 generator(s) need a POLISH rebuild",
           "details": [
             "map_scan: inputs changed since the last run (POLISH will rebuild)",
+            "map_compile: inputs changed since the last run (POLISH will rebuild)",
             "story_build: inputs changed since the last run (POLISH will rebuild)",
+            "console_build: inputs changed since the last run (POLISH will rebuild)",
+            "demo_build: inputs changed since the last run (POLISH will rebuild)",
             "dist_build: inputs changed since the last run (POLISH will rebuild)"
           ]
         },
@@ -36,16 +39,26 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 3 warning(s)",
+            "MAP LINT: 0 error(s), 13 warning(s)",
+            "  WARN   agent.anatomist: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   config.memory: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   config.policy: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   config.registry: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   console.server: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   hook.session-start: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
-            "  WARN   tool._lib: layer is null (unplaced)"
+            "  WARN   skill.adopt: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool._lib: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool._lib: layer is null (unplaced)",
+            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool.distctl: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool.mapctl: auto.hash is stale (source changed since last scan; description may be stale)"
           ]
         },
         {
           "name": "config_registry_lint",
           "status": "OK",
-          "message": "29 knobs registered, none dead",
+          "message": "30 knobs registered, none dead",
           "details": []
         },
         {
@@ -57,13 +70,11 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 23.4 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "message": "record is 13.7 KB at /home/user/dot-claude-iff_claude_iff",
           "details": [
-            "raw: 22.7 MB",
-            "spool: 412.1 KB",
-            "segments: 202.4 KB",
-            "sealed-raw: 20.1 KB",
-            "cursors.json: 4.7 KB"
+            "spool: 13.6 KB",
+            "console.log: 78 B",
+            "console.pid: 4 B"
           ]
         },
         {
@@ -85,6 +96,12 @@
           "details": []
         },
         {
+          "name": "gitignore_shadowing",
+          "status": "OK",
+          "message": "123 shippable path(s), none shadowed",
+          "details": []
+        },
+        {
           "name": "theme_token_parity",
           "status": "OK",
           "message": "13 dark tokens, both blocks agree",
@@ -94,7 +111,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-08-25T15:14:56Z",
+      "ts": "2026-08-26T08:28:25Z",
       "results": [
         {
           "name": "map_scan",
@@ -136,7 +153,7 @@
     },
     "publish": {
       "status": "OK",
-      "ts": "2026-08-25T15:14:56Z",
+      "ts": "2026-08-26T08:28:45Z",
       "results": [
         {
           "name": "polish_complete",
@@ -171,6 +188,6 @@
       ]
     }
   },
-  "last_completed": "2026-08-25T15:14:56Z",
-  "updated": "2026-08-25T15:14:56Z"
+  "last_completed": "2026-08-26T08:28:45Z",
+  "updated": "2026-08-26T08:28:45Z"
 }

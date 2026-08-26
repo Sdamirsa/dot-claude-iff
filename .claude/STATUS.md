@@ -4,22 +4,27 @@ _Rewritten by `/project-memory`. Read this first, every session._
 
 ## Current focus
 
-The system is live and public: v0.1.1 released, tour and demo console on Pages, README as a
-showcase funnel, Partner Guide as the human learning path. The build-and-polish arc is done;
-what remains is real use.
+v0.2.1: the hardening release distilled from the first three real adoptions (issues #1-#3 -
+Linux repo with published docs/, a divergent sibling system, Windows). All confirmed findings
+fixed: Windows durable-write crash, the two distribution privacy leaks (now gated by
+`memory.json distribution.enabled`, kits ship it false), adopt-skill surgery (tracked-only
+copy manifest, CLAUDE.md exclusion, history guard, sibling mode), gitignore-shadow lint,
+loud console-port collisions.
 
 ## Active tasks
 
-- none. The Phase 2 build task is archived; new work starts with `/plan-task`.
+- none. New work starts with `/plan-task`.
 
 ## Next steps
 
-1. Use the system for real project work and run `/project-memory` at natural boundaries.
-2. Adopt into a second, real repo with `/adopt` to exercise the kit beyond the smoke test.
+1. Merge the v0.2.1 PR; the three field-report issues close with it.
+2. Re-run an `/adopt` against a real second repo to validate the new Phase 3/4 rules end to
+   end (especially sibling mode and the decide-once console port).
 3. Configure the analysis engine (STORY tab setup guide) and run a first retrospective pass.
-4. Hard-gear session when ready: `/project-memory --hard`, with the two queued improvements
-   (adopt from git HEAD instead of the working tree; a durable proposal drop-box for
-   gate-denied sub-agent work).
+4. Hard-gear session when ready: `/project-memory --hard`, with the queued improvements
+   (a durable proposal drop-box for gate-denied sub-agent work; the deferred field-report
+   items: verifier's scripted invoker, memory-spine stores in mapctl, a `command` kind for
+   adopter `commands/*.md`).
 
 ## Blockers / open decisions
 
