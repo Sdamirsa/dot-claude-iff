@@ -13,7 +13,7 @@ harnesses the agent, records everything locally, and hands you one live page to 
 
 <p align="center">
   <a href="https://sdamirsa.github.io/dot-claude-iff/demo/console.html"><img src="../docs/assets/btn-demo.svg" alt="Open the demo - the real console, real data, zero setup" width="31%"></a>
-  <a href="../../releases/latest"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="31%"></a>
+  <a href="https://github.com/Sdamirsa/dot-claude-iff/releases/latest"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="31%"></a>
   <a href="https://sdamirsa.github.io/dot-claude-iff/"><img src="../docs/assets/btn-tour.svg" alt="Take the tour - understand, set up, learn by doing" width="31%"></a>
 </p>
 
@@ -117,8 +117,10 @@ safe to share.
 <details>
 <summary><b>Contribute back</b></summary>
 
-**[⭐ Star](../../stargazers)** the repo to say the ideas earned it.
-**[🐛 Open an issue](../../issues/new)** when something is wrong, unclear, or missing - and
+**[⭐ Star](https://github.com/Sdamirsa/dot-claude-iff/stargazers)** the repo to say the ideas
+earned it.
+**[🐛 Open an issue](https://github.com/Sdamirsa/dot-claude-iff/issues/new)** when something is
+wrong, unclear, or missing - and
 hold it to this system's own communication contract: say what is going on, why it matters, and
 the one concrete thing you are asking for. That is exactly how the agents here are required to
 ask *you*.
