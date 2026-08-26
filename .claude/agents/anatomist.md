@@ -84,7 +84,10 @@ you expect. If a component vanished from the map, find out why before moving on.
 
 Check and report (do not silently fix):
 
-- `.claude/CLAUDE.md` over ~80 lines, or drifting into a dump rather than a map.
+- `.claude/CLAUDE.md` over ~80 lines, or drifting into a dump rather than a map. One grace:
+  a guide grown past the line by an adoption-day fold of the target's pre-existing guide (the
+  adopt skill mandates folding it verbatim) is flagged as "fold pending condensation", not as
+  drift, until an evolution pass has had a chance to condense it.
 - A skill whose `description` does not state its trigger, so nothing will ever invoke it.
 - A component with no card, or a card whose file is gone (a ghost).
 - A store written by more than one writer without a stated single-writer rule.

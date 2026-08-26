@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import sys
 import zipfile
 from pathlib import Path
@@ -35,6 +36,9 @@ FIXED_DATE = (2026, 1, 1, 0, 0, 0)  # determinism: content decides the bytes, no
 # What a distribution NEVER carries: this project's own history and derived surfaces.
 EXCLUDE_DIRS = {"state", "dist", "__pycache__", ".pytest_cache"}
 EXCLUDE_FILES = {"console/console.html", "system-map/map.json", "settings.local.json"}
+# Nested trees that are private by convention (gitignored in the home repo). Excluded even
+# on the no-git fallback path, where the tracked-files manifest cannot protect them.
+EXCLUDE_SUBDIRS = ("reference/private",)
 # Directories where only the scaffold travels; the content is this project's, not the system's.
 TEMPLATE_ONLY_DIRS = {"tasks", "research"}
 # Files replaced with fresh-start content rather than copied.
@@ -124,10 +128,48 @@ settings.local.json
 """
 
 
-def _payload_entries(root: Path) -> list:
-    """(archive_path, bytes) for the system payload, deterministic order, exclusions applied."""
+def distribution_enabled(root: Path) -> bool:
+    """The gate the zips live behind. In an adopting project the payload below would BE that
+    project's private .claude/, so an absent knob reads as false: the leak fails closed."""
+    cfg = _lib.read_json(root / ".claude" / "config" / "memory.json", {}) or {}
+    dist = cfg.get("distribution") or {}
+    return bool(dist.get("enabled", False))
+
+
+def _tracked_claude_files(root: Path) -> set | None:
+    """Repo-relative POSIX paths of git-tracked files under .claude/, or None when git (or a
+    repository, or any tracked file there) is unavailable. The walk below intersects with
+    this: the working tree supplies file CONTENT, git decides WHICH files ship, so nothing
+    gitignored or untracked - a private reference tree, a stray .env, an editor artifact -
+    can ride into the zips."""
+    out = _lib.git_output(["ls-files", "-z", "--", ".claude"], root=root)
+    if not out:
+        return None
+    return {name for name in out.split("\0") if name}
+
+
+def _adopter_memory_config(data: bytes) -> bytes:
+    """The shipped memory.json lands with the home-only generators OFF: the knob is what
+    keeps an adopting project from packaging its own memory on its very first ritual."""
+    try:
+        cfg = json.loads(data.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return data
+    dist = cfg.get("distribution")
+    if not isinstance(dist, dict):
+        dist = {}
+        cfg["distribution"] = dist
+    dist["enabled"] = False
+    return (json.dumps(cfg, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
+def _payload_entries(root: Path) -> tuple[list, list]:
+    """(entries, skipped_untracked): (archive_path, bytes) pairs for the system payload in
+    deterministic order, plus the files the tracked-manifest rule kept out (reported, never
+    silent - an untracked file that should ship needs a `git add`, not a mystery)."""
     claude = root / ".claude"
-    entries = []
+    tracked = _tracked_claude_files(root)
+    entries, skipped_untracked = [], []
     for path in sorted(claude.rglob("*")):
         if not path.is_file():
             continue
@@ -137,11 +179,19 @@ def _payload_entries(root: Path) -> list:
             continue
         if rel in EXCLUDE_FILES or path.suffix == ".pyc":
             continue
+        if any(rel == sub or rel.startswith(sub + "/") for sub in EXCLUDE_SUBDIRS):
+            continue
         if parts[0] in TEMPLATE_ONLY_DIRS and path.name != "_template.md":
             continue
         if rel in RESET_FILES:
             continue
-        entries.append((f".claude/{rel}", path.read_bytes()))
+        if tracked is not None and f".claude/{rel}" not in tracked:
+            skipped_untracked.append(f".claude/{rel}")
+            continue
+        data = path.read_bytes()
+        if rel == "config/memory.json":
+            data = _adopter_memory_config(data)
+        entries.append((f".claude/{rel}", data))
 
     template = claude / "skills" / "adopt" / "CLAUDE.template.md"
     fresh_claude_md = template.read_bytes() if template.exists() else b"# {{PROJECT_NAME}}\n"
@@ -154,7 +204,7 @@ def _payload_entries(root: Path) -> list:
     iff_readme = root / ".claude-iff" / "README.md"
     if iff_readme.exists():
         entries.append((".claude-iff/README.md", iff_readme.read_bytes()))
-    return entries
+    return entries, skipped_untracked
 
 
 def _write_zip(out_path: Path, entries: list) -> bool:
@@ -175,8 +225,17 @@ def _write_zip(out_path: Path, entries: list) -> bool:
 
 def build(root: Path | None = None) -> dict:
     root = root or _lib.project_root()
+    if not distribution_enabled(root):
+        raise _lib.LibError(
+            "distribution.enabled is false (or absent) in .claude/config/memory.json: refusing "
+            "to package this repo's .claude/ into redistributable zips. This generator is "
+            "home-repo-only; in an adopting project the zips would carry that project's "
+            "private memory. Set the knob true only in the dot-claude-iff source repo."
+        )
     dist = root / ".claude" / DIST_DIR_NAME
-    payload = _payload_entries(root)
+    payload, skipped_untracked = _payload_entries(root)
+    for name in skipped_untracked:
+        print(f"skipped (not git-tracked): {name}")
 
     fresh = payload + [("START-HERE.md", START_HERE.encode()), (".gitignore", GITIGNORE.encode())]
     kit = [(f"dot-claude-iff-kit/{p}", d) for p, d in payload]
@@ -199,7 +258,12 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "build":
-        results = build()
+        try:
+            results = build()
+        except _lib.LibError as exc:
+            print(exc)
+            _lib.print_verdict("DIST", False)
+            return 2
         for name, r in results.items():
             state = "wrote" if r["wrote"] else "unchanged"
             print(f"{state} {name}: {r['entries']} entries, {_lib.human_bytes(r['bytes'])}")

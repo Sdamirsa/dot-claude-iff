@@ -65,12 +65,13 @@
     "_read_only_comment": [
       "Subcommands that cannot mutate, whatever flags follow. branch, tag and remote are NOT",
       "here on purpose: `git branch -D`, `git tag -d` and `git remote set-url` all destroy or",
-      "redirect. Allowlist read-only OPERATIONS, never nouns that happen to have a read-only",
-      "spelling."
+      "redirect. Neither is symbolic-ref: its two-argument form WRITES the ref;",
+      "`rev-parse --symbolic-full-name` covers the read use. Allowlist read-only OPERATIONS,",
+      "never nouns that happen to have a read-only spelling."
     ],
     "read_only_subcommands": {
       "git": ["diff", "log", "show", "status", "ls-files", "rev-parse", "blame", "describe",
-              "shortlog", "cat-file", "grep", "show-ref", "symbolic-ref", "for-each-ref",
+              "shortlog", "cat-file", "grep", "show-ref", "for-each-ref",
               "count-objects", "var"]
     },
     "write_paths": [".claude/state/handshakes/", ".claude/tasks/", ".claude/research/"]

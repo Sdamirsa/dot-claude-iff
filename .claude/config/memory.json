@@ -18,6 +18,17 @@
     "ask",
     "never"
   ],
+  "distribution": {
+    "_comment": [
+      "Gate for the two home-repo-only generators, demo_build and dist_build. They are the",
+      "point in dot-claude-iff's own source repo (publish the adoption kit and the docs demo)",
+      "and a privacy leak everywhere else: in an adopting project they would package that",
+      "project's private .claude/ into redistributable zips and render its real session state",
+      "into docs/, which many repos publish. Kits ship this false and /adopt keeps it false;",
+      "an ABSENT key also reads as false, so the leak fails closed, never open."
+    ],
+    "enabled": true
+  },
   "phases": {
     "check": [
       "journal_parses",
@@ -30,6 +41,7 @@
       "needs_human_sync",
       "task_reality",
       "no_machine_paths",
+      "gitignore_shadowing",
       "theme_token_parity"
     ],
     "polish": [

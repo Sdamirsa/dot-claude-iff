@@ -428,5 +428,50 @@ class TestSessionStart(HookCase):
         self.assertIn("RITUAL", res.stdout)
 
 
+class TestSymbolicRefIsNotReadOnly(HookCase):
+    """`git symbolic-ref NAME REF` WRITES the ref, so it must not ride the read-only
+    carve-out - neither via policy.json's allowlist nor via the fallback regex in
+    policy_gate.py (the two must stay in step)."""
+
+    def test_subagent_symbolic_ref_is_denied(self):
+        payload = {"tool_name": "Bash",
+                   "tool_input": {"command": "git symbolic-ref refs/heads/main refs/heads/evil"},
+                   "agent_type": "worker"}
+        self.assertEqual(self.decision(self.run_hook("policy-gate.sh", payload)), "deny")
+
+    def test_read_only_alternative_still_allowed(self):
+        payload = {"tool_name": "Bash",
+                   "tool_input": {"command": "git rev-parse --symbolic-full-name HEAD"},
+                   "agent_type": "worker"}
+        self.assertIsNone(self.decision(self.run_hook("policy-gate.sh", payload)))
+
+
+class TestConsolePortCollision(HookCase):
+    """autostart used to swallow a lost bind entirely: the hook printed the URL of whatever
+    process held the port (usually another project's console) and nothing ever said so."""
+
+    def test_busy_port_is_reported_not_silently_swallowed(self):
+        import socket
+        import _lib
+        blocker = socket.socket()
+        try:
+            blocker.bind(("127.0.0.1", 0))
+            blocker.listen(1)
+            port = blocker.getsockname()[1]
+            (self.root / ".claude" / "console").mkdir(parents=True, exist_ok=True)
+            (self.root / ".claude" / "console" / "console.py").write_text("# stub\n", encoding="utf-8")
+            cfg = _lib.read_json(self.root / ".claude" / "config" / "console.json", {}) or {}
+            cfg.update({"autostart": True, "host": "127.0.0.1", "port": port})
+            _lib.atomic_write_json(self.root / ".claude" / "config" / "console.json", cfg)
+            res = self.run_hook("session-start.sh", {"hook_event_name": "SessionStart"})
+            self.assertEqual(res.returncode, 0)
+            self.assertIn("already in use", res.stdout)
+            self.assertNotIn("console.html (open it", res.stdout,
+                             "a busy port must not print a URL that points at another project")
+        finally:
+            blocker.close()
+
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

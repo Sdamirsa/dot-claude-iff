@@ -75,9 +75,13 @@ except Exception:
 
 # 3. console autostart (pidfile-guarded, never blocking)
 try:
+    import socket
+
     cfg = _lib.load_config("console")
     console_py = root / ".claude" / "console" / "console.py"
     if cfg.get("autostart", True) and console_py.exists():
+        host = cfg.get("host", "127.0.0.1")
+        port = int(cfg.get("port", 7717))
         record = _lib.record_paths()["root"]
         pidfile = record / "console.pid"
         alive = False
@@ -87,7 +91,19 @@ try:
             alive = True
         except Exception:
             alive = False
+        busy = False
         if not alive:
+            # Probe BEFORE spawning: a dead pidfile plus a listening port means some OTHER
+            # process holds it - usually another project's console still on the shipped
+            # default. Spawning would die into console.log and the printed URL would point
+            # at the other project's console; a named collision beats a silent no-op.
+            try:
+                probe = socket.create_connection((host, port), timeout=0.25)
+                probe.close()
+                busy = True
+            except OSError:
+                busy = False
+        if not alive and not busy:
             _lib.ensure_dir(record)
             # `with` so this hook does not leak a descriptor on every session start. The child
             # keeps its own duplicated handle after we close ours.
@@ -99,9 +115,14 @@ try:
                 )
             pidfile.write_text(str(proc.pid), encoding="utf-8")
             alive = True
-        if alive:
-            host = cfg.get("host", "127.0.0.1")
-            port = cfg.get("port", 7717)
+        if busy:
+            lines.append(
+                f"CONSOLE: port {port} is already in use by another process (likely another "
+                f"project's console on the same default). Set a unique 'port' in "
+                f".claude/config/console.json - decided once per project - and start a new "
+                f"session. Details, if any: {_lib.tilde(record / 'console.log')}"
+            )
+        elif alive:
             lines.append(f"CONSOLE: http://{host}:{port}/console.html (open it beside this terminal)")
 except Exception:
     pass

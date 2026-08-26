@@ -261,6 +261,15 @@ def main(argv: list | None = None) -> int:
     except _lib.LibError as exc:
         print(f"CONSOLE_FAIL: {exc}", file=sys.stderr)
         return 2
+    except OSError as exc:
+        # Every project that keeps the shipped default port collides with the next one on
+        # the same machine. The port is decided ONCE per project (adopt skill, Phase 4);
+        # this message is what turns "console silently absent" into a one-line fix.
+        print(f"CONSOLE_FAIL: cannot bind http://{args.host}:{args.port}/ ({exc}). "
+              f"The port is likely held by another project's console. Set a unique 'port' "
+              f"in .claude/config/console.json - decided once per project - and restart.",
+              file=sys.stderr)
+        return 2
 
     pidfile = Path(args.pidfile) if args.pidfile else None
     if pidfile:

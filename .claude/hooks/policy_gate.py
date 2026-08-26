@@ -48,10 +48,12 @@ MUTATORS = (
 
 # A single, simple, read-only git invocation. Anchored and flag-tolerant, but it refuses
 # anything with a shell operator in it, so `git log && git push` can never match.
+# symbolic-ref is deliberately absent (here AND in policy.json's read_only_subcommands,
+# which must stay in step): its two-argument form writes the ref.
 READONLY_GIT = re.compile(
     r"^\s*git\s+(?:-[-\w]+(?:[= ]\S+)?\s+)*"
     r"(?:diff|log|show|status|ls-files|rev-parse|blame|describe|shortlog|cat-file|grep|"
-    r"show-ref|symbolic-ref|for-each-ref|count-objects|var)\b[^;&|`$]*$"
+    r"show-ref|for-each-ref|count-objects|var)\b[^;&|`$]*$"
 )
 
 

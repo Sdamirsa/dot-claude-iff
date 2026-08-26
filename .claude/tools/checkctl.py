@@ -107,6 +107,24 @@ GENERATORS = {
     },
 }
 
+# The two home-repo-only generators: meaningful where publishing the kit and the docs demo
+# is the point (dot-claude-iff's own source repo), a privacy leak everywhere else - in an
+# adopting project they would package THAT project's private .claude/ into redistributable
+# zips and render its real session state into docs/. Gated by memory.json's
+# distribution.enabled; an ABSENT key reads as false so the leak fails closed. Kits ship
+# the knob false; this repo's own config carries true.
+HOME_ONLY_GENERATORS = ("demo_build", "dist_build")
+
+
+def distribution_enabled() -> bool:
+    dist = _lib.load_config("memory").get("distribution") or {}
+    return bool(dist.get("enabled", False))
+
+
+def generator_gated_off(name: str) -> bool:
+    return name in HOME_ONLY_GENERATORS and not distribution_enabled()
+
+
 # Publish-phase steps: mechanical, ordered, not generators (their outputs live in the record).
 PUBLISH_STEPS = {
     "obs_ingest": ("obsctl.py", ["ingest"]),
@@ -232,6 +250,9 @@ def generator_freshness_report() -> list:
     root = _lib.project_root()
     findings = []
     for name, spec in GENERATORS.items():
+        if generator_gated_off(name):
+            findings.append((name, SKIP, "home-repo-only, disabled (memory.json distribution.enabled)"))
+            continue
         if not tool_path(spec["tool"]).exists():
             findings.append((name, SKIP, f"{spec['tool']} not installed"))
             continue
@@ -469,7 +490,10 @@ def check_task_reality() -> Result:
             if label.strip().strip("*_ ").lower() != "state files":
                 continue
             for token in value.split(","):
-                candidate = token.strip().strip("*_`").strip()
+                # The strip set needs the space: after "**State files:**" the partition
+                # leaves "** `a.py`" as the first token, and without " " in the set the
+                # strip stops at the space and the leading backtick survives into the path.
+                candidate = token.strip().strip("*_` ").strip()
                 if not candidate or candidate.lower() in ("none", "n/a", "-", "-"):
                     continue
                 if not (_lib.project_root() / candidate).exists():
@@ -518,6 +542,68 @@ def check_no_machine_paths() -> Result:
                       f"use _lib.tilde() for display strings, or move the value to env/.env",
                       offenders[:15])
     return Result("no_machine_paths", OK, "no home-directory paths in shippable trees")
+
+
+def _deliberately_ignored(rel: str) -> bool:
+    """The system's own intended ignores: private reference material, console runtime,
+    machine-local settings, caches. Everything else in the shippable trees is meant to be
+    trackable, so an ignore rule catching it is a shadow, not a choice."""
+    if rel.startswith(".claude/reference/private/"):
+        return True
+    if rel.endswith((".pyc", ".tmp", ".pid", ".log")):
+        return True
+    if "__pycache__" in rel:
+        return True
+    if rel.endswith("settings.local.json") or rel.endswith("/.env"):
+        return True
+    return False
+
+
+def check_gitignore_shadowing() -> Result:
+    """A generic ignore pattern (dist/, build/, *.zip) matches at ANY depth, so a repo's
+    .gitignore can silently untrack shipped .claude/ paths - the adoption kits under
+    .claude/dist/ vanished from git exactly this way in the field and nothing warned. Ask
+    git itself: check-ignore over the shippable trees, warn on any hit that is not one of
+    the system's own deliberate ignores."""
+    root = _lib.project_root()
+    if not (root / ".git").exists():
+        return Result("gitignore_shadowing", SKIP, "not a git repository")
+    candidates = []
+    for base in (root / ".claude", root / ".claude-iff"):
+        if not base.is_dir():
+            continue
+        for path in base.rglob("*"):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root).as_posix()
+            if rel.startswith(".claude/dist/") or _deliberately_ignored(rel):
+                continue
+            candidates.append(rel)
+    # The dist zips are probed by NAME, existing or not: in the home repo they must stay
+    # reachable by git, and probing the path catches the shadow before the first build does.
+    if distribution_enabled():
+        candidates += [".claude/dist/dot-claude-iff-fresh.zip",
+                       ".claude/dist/dot-claude-iff-adopt-kit.zip"]
+    if not candidates:
+        return Result("gitignore_shadowing", OK, "nothing to probe")
+    try:
+        res = subprocess.run(
+            ["git", "check-ignore", "-v", "--stdin"],
+            input="\n".join(candidates) + "\n",
+            capture_output=True, text=True, timeout=30, cwd=str(root), check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return Result("gitignore_shadowing", SKIP, f"git unavailable: {exc}")
+    if res.returncode not in (0, 1):  # 0 = some path ignored, 1 = none ignored
+        return Result("gitignore_shadowing", SKIP,
+                      f"git check-ignore failed (exit {res.returncode})")
+    hits = [line for line in res.stdout.splitlines() if line.strip()]
+    if hits:
+        return Result("gitignore_shadowing", WARN,
+                      f"{len(hits)} shippable path(s) are gitignored: an over-broad pattern "
+                      f"(a generic dist/, build/ or *.zip) is silently untracking them",
+                      hits[:15])
+    return Result("gitignore_shadowing", OK, f"{len(candidates)} shippable path(s), none shadowed")
 
 
 def check_theme_token_parity() -> Result:
@@ -577,6 +663,7 @@ CHECKS = {
     "needs_human_sync": check_needs_human_sync,
     "task_reality": check_task_reality,
     "no_machine_paths": check_no_machine_paths,
+    "gitignore_shadowing": check_gitignore_shadowing,
     "theme_token_parity": check_theme_token_parity,
 }
 
@@ -638,6 +725,11 @@ def run_polish(run: dict) -> list:
             continue
         run["step"] = name
         save_run(run)
+        if generator_gated_off(name):
+            results.append(Result(name, SKIP,
+                                  "home-repo-only generator, disabled by memory.json "
+                                  "distribution.enabled (correct outside the source repo)"))
+            continue
         if not tool_path(spec["tool"]).exists():
             results.append(Result(name, SKIP, f"{spec['tool']} not installed"))
             continue
@@ -677,6 +769,7 @@ def polish_complete(run: dict) -> tuple[bool, str]:
     missed = [
         name for name in phase_steps("polish")
         if name in GENERATORS
+        and not generator_gated_off(name)
         and tool_path(GENERATORS[name]["tool"]).exists()
         and ledger.get(name, {}).get("run_id") != run.get("run_id")
     ]

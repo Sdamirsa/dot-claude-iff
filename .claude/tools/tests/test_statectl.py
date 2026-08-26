@@ -446,5 +446,51 @@ class TestVerdictAndUsage(StatectlCase):
         self.assertIn("do not hand-edit", first_line.lower())
 
 
+class TestDurableWriteOnWindows(FixtureCase):
+    """atomic_write_text(durable=True) fsyncs the parent directory - a POSIX-only idiom.
+    On Windows, os.open() on a directory raises PermissionError, which bricked checkctl
+    (and with it the whole ritual) on the first real Windows adoption. These tests try to
+    BREAK the guard: simulate the Windows behavior and prove the durable write still lands,
+    then prove POSIX still pays for the directory fsync it promises."""
+
+    def test_fsync_dir_is_a_deliberate_noop_off_posix(self):
+        # os.name is patched only around _fsync_dir itself: pathlib picks its Path flavour
+        # from os.name, so a wider patch would break every Path() the code under test makes.
+        import os as os_mod
+        from unittest import mock
+        target_dir = self.root / ".claude" / "state"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        real_open = os_mod.open
+
+        def windows_like_open(path, flags, *args, **kwargs):
+            # On Windows, opening a DIRECTORY raises PermissionError. If the guard were
+            # gone, this poison pill is what the durable path would swallow.
+            if isinstance(path, str) and os_mod.path.isdir(path):
+                raise PermissionError(13, "Permission denied", path)
+            return real_open(path, flags, *args, **kwargs)
+
+        with mock.patch.object(_lib.os, "name", "nt"), \
+             mock.patch.object(_lib.os, "open", side_effect=windows_like_open):
+            _lib._fsync_dir(target_dir)  # must not raise, and must not open the directory
+
+    def test_posix_durable_write_still_fsyncs_the_directory(self):
+        import os as os_mod
+        from unittest import mock
+        if os_mod.name != "posix":
+            self.skipTest("directory fsync is a POSIX-only guarantee")
+        synced = []
+        real_fsync = os_mod.fsync
+
+        def counting_fsync(fd):
+            synced.append(fd)
+            return real_fsync(fd)
+
+        with mock.patch.object(_lib.os, "fsync", side_effect=counting_fsync):
+            _lib.atomic_write_json(self.root / ".claude" / "state" / "p.json", {"x": 1}, durable=True)
+        self.assertGreaterEqual(len(synced), 2,
+                                "durable=True must fsync the file AND its directory on POSIX")
+
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

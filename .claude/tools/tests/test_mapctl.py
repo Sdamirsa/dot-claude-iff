@@ -326,5 +326,28 @@ class TestVerdictContract(MapctlCase):
         self.assertEqual(code, 2)
 
 
+class TestUndeclaredStoreCard(MapctlCase):
+    """A store card with no KNOWN_STORES entry is invisible to scan's bookkeeping: it never
+    refreshes and never ghosts, it just silently drops out of the accounting (how store.dist
+    hid for a release). Scan must say so instead."""
+
+    def test_scan_warns_on_a_store_card_mapctl_does_not_declare(self):
+        self.write_card(minimal_card("store.bogus", path=".claude/bogus"))
+        code, out, err = self.run_cli("scan")
+        self.assertEqual(code, 0)
+        self.assertIn("UNDECLARED", out)
+        self.assertIn("store.bogus", out)
+        self.assertVerdict(out, "WARN")
+
+    def test_every_shipped_store_and_human_card_is_declared(self):
+        declared = {s["id"] for s in mapctl.KNOWN_STORES} | {mapctl.HUMAN["id"]}
+        cards = CLAUDE_DIR / "system-map" / "cards"
+        shipped = {p.stem for p in cards.glob("store.*.json")}
+        shipped |= {p.stem for p in cards.glob("human.*.json")}
+        self.assertLessEqual(shipped, declared,
+                             f"cards shipped for undeclared stores: {sorted(shipped - declared)}")
+
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

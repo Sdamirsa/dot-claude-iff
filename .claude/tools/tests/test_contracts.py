@@ -268,10 +268,6 @@ class TestJournalVocabulary(FixtureCase):
         self.assertTrue(hasattr(statectl, "main"))
 
 
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
-
-
 class TestRecordIntegrity(FixtureCase):
     """The record is the tier everything else trusts. These are the ways it silently lied."""
 
@@ -429,3 +425,74 @@ class TestThemeTokenParity(FixtureCase):
         shutil.copy(real, self.root / ".claude" / "console" / "console.template.html")
         self.assertEqual(checkctl.check_theme_token_parity().status, checkctl.OK,
                          "the shipped template must satisfy its own parity gate")
+
+
+class TestTaskReality(FixtureCase):
+    """check_task_reality parses human markdown. The bold-label form from its own docstring
+    ("- **State files:** `a.py`") used to leave a backtick glued to the first path, so the
+    checker reported a file that exists as missing - a claim-checker emitting a false claim."""
+
+    def _task(self, line: str) -> None:
+        (self.root / ".claude" / "tasks" / "20260101-t.md").write_text(
+            f"# Task: t\n\nStatus: active\n\n{line}\n", encoding="utf-8")
+
+    def test_bold_label_with_backticked_paths_matches_disk(self):
+        (self.root / "a.py").write_text("x\n", encoding="utf-8")
+        (self.root / "b.py").write_text("x\n", encoding="utf-8")
+        self._task("- **State files:** `a.py`, `b.py`")
+        result = checkctl.check_task_reality()
+        self.assertEqual(result.status, checkctl.OK, result.details)
+
+    def test_plain_label_still_works(self):
+        (self.root / "a.py").write_text("x\n", encoding="utf-8")
+        self._task("- State files: a.py")
+        self.assertEqual(checkctl.check_task_reality().status, checkctl.OK)
+
+    def test_missing_file_is_reported_with_a_clean_name(self):
+        self._task("- **State files:** `gone.py`")
+        result = checkctl.check_task_reality()
+        self.assertEqual(result.status, checkctl.WARN)
+        self.assertTrue(any("names gone.py," in d for d in result.details),
+                        f"the reported name must carry no markdown residue: {result.details}")
+
+
+class TestGitignoreShadowing(FixtureCase):
+    """A generic dist/ or *.zip ignore matches at any depth and silently untracks shipped
+    .claude/ paths (it hid the adoption kits in the field). The check asks git itself."""
+
+    def setUp(self):
+        super().setUp()
+        import shutil as _shutil
+        import subprocess as _subprocess
+        if not _shutil.which("git"):
+            self.skipTest("git not available")
+        r = _subprocess.run(["git", "init", "-q"], cwd=str(self.root),
+                            capture_output=True, text=True, check=False)
+        if r.returncode != 0:
+            self.skipTest(f"git init failed: {r.stderr}")
+
+    def test_generic_dist_pattern_is_caught(self):
+        (self.root / ".gitignore").write_text("dist/\n", encoding="utf-8")
+        result = checkctl.check_gitignore_shadowing()
+        self.assertEqual(result.status, checkctl.WARN)
+        self.assertTrue(any("dist" in d for d in result.details), result.details)
+
+    def test_clean_ignores_pass(self):
+        self.assertEqual(checkctl.check_gitignore_shadowing().status, checkctl.OK)
+
+    def test_deliberate_private_ignore_is_not_a_shadow(self):
+        private = self.root / ".claude" / "reference" / "private"
+        private.mkdir(parents=True)
+        (private / "x.md").write_text("secret\n", encoding="utf-8")
+        (self.root / ".gitignore").write_text(".claude/reference/private/\n", encoding="utf-8")
+        self.assertEqual(checkctl.check_gitignore_shadowing().status, checkctl.OK)
+
+    def test_outside_a_repo_skips(self):
+        import shutil as _shutil
+        _shutil.rmtree(self.root / ".git")
+        self.assertEqual(checkctl.check_gitignore_shadowing().status, checkctl.SKIP)
+
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

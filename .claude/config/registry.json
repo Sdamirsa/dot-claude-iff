@@ -8,7 +8,7 @@
     "or key that does not exist (a dead card is worse than no card), WARN when a scalar in a",
     "watched file has no card (incompleteness informs, it does not block)."
   ],
-  "system_version": "0.2.0",
+  "system_version": "0.2.1",
   "lint": {
     "watched_files": [
       "memory",
@@ -44,6 +44,19 @@
     ]
   },
   "entries": [
+    {
+      "key": "memory.distribution.enabled",
+      "title": "Distribution generators",
+      "description": "Run the home-repo-only generators (demo_build, dist_build) in POLISH. True only in dot-claude-iff's own source repo: in an adopting project they would package and publish that project's private .claude/. Kits ship this false; an absent key reads as false.",
+      "layer": "EVOLVE",
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "distribution.enabled"
+      },
+      "type": "bool",
+      "default": false
+    },
     {
       "key": "memory.push",
       "title": "Push policy",
