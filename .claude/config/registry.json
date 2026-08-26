@@ -45,6 +45,19 @@
   },
   "entries": [
     {
+      "key": "memory.distribution.enabled",
+      "title": "Distribution generators",
+      "description": "Run the home-repo-only generators (demo_build, dist_build) in POLISH. True only in dot-claude-iff's own source repo: in an adopting project they would package and publish that project's private .claude/. Kits ship this false; an absent key reads as false.",
+      "layer": "EVOLVE",
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "distribution.enabled"
+      },
+      "type": "bool",
+      "default": false
+    },
+    {
       "key": "memory.push",
       "title": "Push policy",
       "description": "Whether PUBLISH pushes after committing. always: push without asking. ask (default): one question per ritual. never: commit only.",

@@ -107,6 +107,24 @@ GENERATORS = {
     },
 }
 
+# The two home-repo-only generators: meaningful where publishing the kit and the docs demo
+# is the point (dot-claude-iff's own source repo), a privacy leak everywhere else - in an
+# adopting project they would package THAT project's private .claude/ into redistributable
+# zips and render its real session state into docs/. Gated by memory.json's
+# distribution.enabled; an ABSENT key reads as false so the leak fails closed. Kits ship
+# the knob false; this repo's own config carries true.
+HOME_ONLY_GENERATORS = ("demo_build", "dist_build")
+
+
+def distribution_enabled() -> bool:
+    dist = _lib.load_config("memory").get("distribution") or {}
+    return bool(dist.get("enabled", False))
+
+
+def generator_gated_off(name: str) -> bool:
+    return name in HOME_ONLY_GENERATORS and not distribution_enabled()
+
+
 # Publish-phase steps: mechanical, ordered, not generators (their outputs live in the record).
 PUBLISH_STEPS = {
     "obs_ingest": ("obsctl.py", ["ingest"]),
@@ -232,6 +250,9 @@ def generator_freshness_report() -> list:
     root = _lib.project_root()
     findings = []
     for name, spec in GENERATORS.items():
+        if generator_gated_off(name):
+            findings.append((name, SKIP, "home-repo-only, disabled (memory.json distribution.enabled)"))
+            continue
         if not tool_path(spec["tool"]).exists():
             findings.append((name, SKIP, f"{spec['tool']} not installed"))
             continue
@@ -641,6 +662,11 @@ def run_polish(run: dict) -> list:
             continue
         run["step"] = name
         save_run(run)
+        if generator_gated_off(name):
+            results.append(Result(name, SKIP,
+                                  "home-repo-only generator, disabled by memory.json "
+                                  "distribution.enabled (correct outside the source repo)"))
+            continue
         if not tool_path(spec["tool"]).exists():
             results.append(Result(name, SKIP, f"{spec['tool']} not installed"))
             continue
@@ -680,6 +706,7 @@ def polish_complete(run: dict) -> tuple[bool, str]:
     missed = [
         name for name in phase_steps("polish")
         if name in GENERATORS
+        and not generator_gated_off(name)
         and tool_path(GENERATORS[name]["tool"]).exists()
         and ledger.get(name, {}).get("run_id") != run.get("run_id")
     ]
