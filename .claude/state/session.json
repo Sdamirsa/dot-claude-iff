@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-08-26T08:34:22Z",
-  "last_event_ts": "2026-08-26T08:28:45Z",
+  "generated_at": "2026-08-26T09:05:14Z",
+  "last_event_ts": "2026-08-26T09:05:14Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "WS-D committed; next: full ritual (check+polish), version bump 0.2.1, verifier pass, push",
+  "resume_pointer": "v0.2.1 complete on PR #4 (ready for review, all issues closed); after merge: tag v0.2.1 on the merge commit",
   "open_loops": [],
   "open_intents": [],
   "tasks": [],
   "counts": {
-    "events": 30,
+    "events": 31,
     "tasks_total": 0,
     "tasks_done": 0,
     "tasks_open": 0,
