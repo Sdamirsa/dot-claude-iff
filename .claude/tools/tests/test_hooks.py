@@ -430,3 +430,21 @@ class TestSessionStart(HookCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestSymbolicRefIsNotReadOnly(HookCase):
+    """`git symbolic-ref NAME REF` WRITES the ref, so it must not ride the read-only
+    carve-out - neither via policy.json's allowlist nor via the fallback regex in
+    policy_gate.py (the two must stay in step)."""
+
+    def test_subagent_symbolic_ref_is_denied(self):
+        payload = {"tool_name": "Bash",
+                   "tool_input": {"command": "git symbolic-ref refs/heads/main refs/heads/evil"},
+                   "agent_type": "worker"}
+        self.assertEqual(self.decision(self.run_hook("policy-gate.sh", payload)), "deny")
+
+    def test_read_only_alternative_still_allowed(self):
+        payload = {"tool_name": "Bash",
+                   "tool_input": {"command": "git rev-parse --symbolic-full-name HEAD"},
+                   "agent_type": "worker"}
+        self.assertIsNone(self.decision(self.run_hook("policy-gate.sh", payload)))

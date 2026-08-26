@@ -429,3 +429,32 @@ class TestThemeTokenParity(FixtureCase):
         shutil.copy(real, self.root / ".claude" / "console" / "console.template.html")
         self.assertEqual(checkctl.check_theme_token_parity().status, checkctl.OK,
                          "the shipped template must satisfy its own parity gate")
+
+
+class TestTaskReality(FixtureCase):
+    """check_task_reality parses human markdown. The bold-label form from its own docstring
+    ("- **State files:** `a.py`") used to leave a backtick glued to the first path, so the
+    checker reported a file that exists as missing - a claim-checker emitting a false claim."""
+
+    def _task(self, line: str) -> None:
+        (self.root / ".claude" / "tasks" / "20260101-t.md").write_text(
+            f"# Task: t\n\nStatus: active\n\n{line}\n", encoding="utf-8")
+
+    def test_bold_label_with_backticked_paths_matches_disk(self):
+        (self.root / "a.py").write_text("x\n", encoding="utf-8")
+        (self.root / "b.py").write_text("x\n", encoding="utf-8")
+        self._task("- **State files:** `a.py`, `b.py`")
+        result = checkctl.check_task_reality()
+        self.assertEqual(result.status, checkctl.OK, result.details)
+
+    def test_plain_label_still_works(self):
+        (self.root / "a.py").write_text("x\n", encoding="utf-8")
+        self._task("- State files: a.py")
+        self.assertEqual(checkctl.check_task_reality().status, checkctl.OK)
+
+    def test_missing_file_is_reported_with_a_clean_name(self):
+        self._task("- **State files:** `gone.py`")
+        result = checkctl.check_task_reality()
+        self.assertEqual(result.status, checkctl.WARN)
+        self.assertTrue(any("names gone.py," in d for d in result.details),
+                        f"the reported name must carry no markdown residue: {result.details}")

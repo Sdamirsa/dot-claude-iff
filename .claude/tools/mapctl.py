@@ -88,6 +88,11 @@ KNOWN_STORES = [
      "description": "Law-1 anti-rot ledger: content hash of each generator's inputs/output, stamped "
                      "after it runs through the ritual.",
      "glyphs": ["derived"]},
+    {"id": "store.dist", "path": ".claude/dist", "title": "distribution zips",
+     "description": "The two release artifacts: dot-claude-iff-fresh.zip (new repo) and "
+                     "dot-claude-iff-adopt-kit.zip (existing repo). Derived: rebuilt by every "
+                     "ritual so a download can never lag the repo.",
+     "glyphs": ["derived"]},
 ]
 
 HUMAN = {"id": "human.maintainer", "path": None, "title": "Maintainer",
@@ -542,6 +547,15 @@ def cmd_scan(_args) -> int:
         if full is not None and not full.exists():
             ghosts.append(cid)
 
+    # Declared components (stores, human) are never discovered by the glob walk, so a card
+    # whose store is missing from KNOWN_STORES is invisible to every count above: it neither
+    # refreshes nor ghosts, it just silently stops being accounted for. Surface that.
+    declared_ids = {s["id"] for s in KNOWN_STORES} | {HUMAN["id"]}
+    undeclared = sorted(
+        cid for cid in cards_by_id
+        if cid.startswith(("store.", "human.")) and cid not in declared_ids
+    )
+
     print(f"MAP SCAN: {len(created)} created, {len(refreshed)} refreshed, "
           f"{len(unchanged)} unchanged, {len(ghosts)} ghost(s), {len(malformed)} malformed")
     for cid in created:
@@ -550,10 +564,13 @@ def cmd_scan(_args) -> int:
         print(f"  REFRESHED  {cid}")
     for cid in ghosts:
         print(f"  GHOST      {cid} (card exists, source file gone)")
+    for cid in undeclared:
+        print(f"  UNDECLARED {cid} (card exists, but this store is not declared in "
+              f"mapctl KNOWN_STORES - scan cannot account for it)")
     for m in malformed:
         print(f"  MALFORMED  {m}")
 
-    _lib.print_verdict("MAP", True, warn=bool(ghosts or malformed))
+    _lib.print_verdict("MAP", True, warn=bool(ghosts or malformed or undeclared))
     return 0
 
 

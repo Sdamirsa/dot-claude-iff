@@ -469,7 +469,10 @@ def check_task_reality() -> Result:
             if label.strip().strip("*_ ").lower() != "state files":
                 continue
             for token in value.split(","):
-                candidate = token.strip().strip("*_`").strip()
+                # The strip set needs the space: after "**State files:**" the partition
+                # leaves "** `a.py`" as the first token, and without " " in the set the
+                # strip stops at the space and the leading backtick survives into the path.
+                candidate = token.strip().strip("*_` ").strip()
                 if not candidate or candidate.lower() in ("none", "n/a", "-", "-"):
                     continue
                 if not (_lib.project_root() / candidate).exists():

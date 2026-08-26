@@ -274,12 +274,29 @@ def _current_umask() -> int:
     return mask
 
 
+def _fsync_dir(path: Path) -> None:
+    """Fsync a directory so a just-renamed entry survives power loss.
+
+    POSIX only: Windows cannot os.open() a directory (it raises PermissionError; the
+    needed FILE_FLAG_BACKUP_SEMANTICS cannot be passed through os.open) and has no
+    directory fsync at all, so there the file fsync is the strongest guarantee
+    available and this is deliberately a no-op.
+    """
+    if os.name != "posix":
+        return
+    dir_fd = os.open(str(path), os.O_RDONLY)
+    try:
+        os.fsync(dir_fd)
+    finally:
+        os.close(dir_fd)
+
+
 def atomic_write_text(path: Path, text: str, durable: bool = False) -> Path:
     """Write via temp-file + rename, so a reader sees old or new content, never torn.
 
-    durable=True additionally fsyncs the file and its directory (survives power loss);
-    use it for sources of truth only - derived views are cheap to rebuild and paying
-    two fsyncs per regenerated console is waste.
+    durable=True additionally fsyncs the file and (on POSIX) its directory (survives
+    power loss); use it for sources of truth only - derived views are cheap to rebuild
+    and paying two fsyncs per regenerated console is waste.
     """
     path = Path(path)
     ensure_dir(path.parent)
@@ -297,11 +314,7 @@ def atomic_write_text(path: Path, text: str, durable: bool = False) -> Path:
         os.chmod(tmp, 0o666 & ~_current_umask())
         os.replace(tmp, path)
         if durable:
-            dir_fd = os.open(str(path.parent), os.O_RDONLY)
-            try:
-                os.fsync(dir_fd)
-            finally:
-                os.close(dir_fd)
+            _fsync_dir(path.parent)
     except BaseException:
         tmp.unlink(missing_ok=True)
         raise
