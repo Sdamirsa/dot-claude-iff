@@ -1,37 +1,34 @@
 {
-  "run_id": "20260826T124726Z-10ba46",
-  "started": "2026-08-26T12:47:26Z",
+  "run_id": "20260826T125020Z-603d1a",
+  "started": "2026-08-26T12:50:20Z",
   "status": "running",
-  "phase": "polish",
-  "step": "dist_build",
+  "phase": "publish",
+  "step": "obs_anchor",
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-08-26T12:47:27Z",
+      "ts": "2026-08-26T12:50:21Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "45 events parse",
+          "message": "46 events parse",
           "details": []
         },
         {
           "name": "heartbeat_present",
           "status": "OK",
-          "message": "last turn ended 10 min ago",
+          "message": "last turn ended 1 min ago",
           "details": []
         },
         {
           "name": "generator_freshness",
           "status": "WARN",
-          "message": "6 generator(s) need a POLISH rebuild",
+          "message": "3 generator(s) need a POLISH rebuild",
           "details": [
-            "map_scan: inputs changed since the last run (POLISH will rebuild)",
-            "map_compile: inputs changed since the last run (POLISH will rebuild)",
             "story_build: inputs changed since the last run (POLISH will rebuild)",
             "console_build: inputs changed since the last run (POLISH will rebuild)",
-            "demo_build: inputs changed since the last run (POLISH will rebuild)",
-            "dist_build: inputs changed since the last run (POLISH will rebuild)"
+            "demo_build: inputs changed since the last run (POLISH will rebuild)"
           ]
         },
         {
@@ -39,8 +36,7 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 4 warning(s)",
-            "  WARN   config.registry: auto.hash is stale (source changed since last scan; description may be stale)",
+            "MAP LINT: 0 error(s), 3 warning(s)",
             "  WARN   human.maintainer: layer is null (unplaced)",
             "  WARN   tool._lib: layer is null (unplaced)",
             "  WARN   tool.sysmon: layer is null (unplaced)"
@@ -61,9 +57,9 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 47.4 KB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "message": "record is 50.3 KB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
-            "spool: 47.4 KB",
+            "spool: 50.3 KB",
             "console.pid: 6 B",
             "console.log: 0 B"
           ]
@@ -108,7 +104,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-08-26T12:47:28Z",
+      "ts": "2026-08-26T12:53:46Z",
       "results": [
         {
           "name": "map_scan",
@@ -147,8 +143,44 @@
           "details": []
         }
       ]
+    },
+    "publish": {
+      "status": "OK",
+      "ts": "2026-08-26T12:54:11Z",
+      "results": [
+        {
+          "name": "polish_complete",
+          "status": "OK",
+          "message": "polish complete",
+          "details": []
+        },
+        {
+          "name": "obs_ingest",
+          "status": "OK",
+          "message": "obsctl.py ingest",
+          "details": []
+        },
+        {
+          "name": "obs_seal",
+          "status": "OK",
+          "message": "obsctl.py seal",
+          "details": []
+        },
+        {
+          "name": "obs_rollup",
+          "status": "OK",
+          "message": "obsctl.py rollup",
+          "details": []
+        },
+        {
+          "name": "obs_anchor",
+          "status": "OK",
+          "message": "obsctl.py anchor",
+          "details": []
+        }
+      ]
     }
   },
   "last_completed": "2026-08-26T08:28:45Z",
-  "updated": "2026-08-26T12:47:28Z"
+  "updated": "2026-08-26T12:54:11Z"
 }

@@ -6,8 +6,9 @@ A generalizable `.claude/` operating system for any project. This repo builds it
 to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gates.
 
 > Start here: `.claude/STATUS.md` (where we are) · `.claude/tasks/` (active work) · the console
-> (`http://127.0.0.1:7146/console.html`, meant for half your screen beside this terminal;
-> the port is this repo's decided-once value from `.claude/config/console.json`).
+> (`http://dot-claude-iff.localhost:7146/console.html`, meant for half your screen beside this
+> terminal). The port derives from the folder name (`console.json` port `"auto"`); every
+> session start prints the URL that actually bound.
 > This file is a map, not a dump.
 
 ## Session ritual

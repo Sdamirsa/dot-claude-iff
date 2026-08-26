@@ -1,5 +1,7 @@
 # Task: system monitor + device identity + derived console ports
 
+_Created 2026-08-26 · Status: done_
+
 ## Goal
 
 Ship the two maintainer-approved features: (A) console ports derived from the repo folder

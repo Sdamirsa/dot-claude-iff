@@ -43,3 +43,5 @@
 {"ts": "2026-08-26T12:35:42Z", "action": "milestone", "id": "monitor-device-ports", "title": "System monitor, device identity, derived console ports shipped (suite 225/225)"}
 {"ts": "2026-08-26T12:35:42Z", "action": "pointer", "text": "features shipped and live-verified; awaiting /project-memory (session restart arms PowerShell gate matcher)"}
 {"ts": "2026-08-26T12:47:06Z", "action": "pointer", "text": "cutting release v0.2.2: version bump, changelog pin, polish rebuild, commit+tag+push, gh release with fresh zips; user runs /project-memory after"}
+{"ts": "2026-08-26T12:48:25Z", "action": "pointer", "text": "v0.2.2 released (tag+push+GitHub release with zips done); next: user runs /project-memory to close the session"}
+{"ts": "2026-08-26T12:53:36Z", "action": "pointer", "text": "v0.2.2 shipped; next session: restart to arm the PowerShell gate matcher, then /adopt dry-run against a second repo to validate port auto"}

@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-08-26T12:47:06Z",
-  "last_event_ts": "2026-08-26T12:47:06Z",
+  "generated_at": "2026-08-26T12:53:36Z",
+  "last_event_ts": "2026-08-26T12:53:36Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "cutting release v0.2.2: version bump, changelog pin, polish rebuild, commit+tag+push, gh release with fresh zips; user runs /project-memory after",
+  "resume_pointer": "v0.2.2 shipped; next session: restart to arm the PowerShell gate matcher, then /adopt dry-run against a second repo to validate port auto",
   "open_loops": [],
   "open_intents": [],
   "tasks": [],
   "counts": {
-    "events": 45,
+    "events": 47,
     "tasks_total": 0,
     "tasks_done": 0,
     "tasks_open": 0,
@@ -21,7 +21,7 @@
     "tooling": 2
   },
   "heartbeat": {
-    "ts": "2026-08-26T12:36:55Z",
+    "ts": "2026-08-26T12:48:39Z",
     "note": "turn ended"
   },
   "recent_milestones": [
