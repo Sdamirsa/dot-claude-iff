@@ -1,9 +1,9 @@
 {
   "run_id": "20260826T125020Z-603d1a",
   "started": "2026-08-26T12:50:20Z",
-  "status": "running",
+  "status": "done",
   "phase": "polish",
-  "step": "dist_build",
+  "step": null,
   "phases": {
     "check": {
       "status": "WARN",
@@ -181,6 +181,6 @@
       ]
     }
   },
-  "last_completed": "2026-08-26T08:28:45Z",
-  "updated": "2026-08-26T13:23:18Z"
+  "last_completed": "2026-08-26T13:23:35Z",
+  "updated": "2026-08-26T13:23:35Z"
 }
