@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-26T13:23:53Z",
+  "generated_at": "2026-08-26T14:26:19Z",
   "last_event_ts": "2026-08-26T13:23:35Z",
   "session": {
     "id": "phase2-build",
@@ -21,7 +21,7 @@
     "tooling": 5
   },
   "heartbeat": {
-    "ts": "2026-08-26T12:48:39Z",
+    "ts": "2026-08-26T14:21:27Z",
     "note": "turn ended"
   },
   "recent_milestones": [
