@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-08-26T09:05:14Z",
-  "last_event_ts": "2026-08-26T09:05:14Z",
+  "generated_at": "2026-08-26T09:07:00Z",
+  "last_event_ts": "2026-08-26T09:07:00Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "v0.2.1 complete on PR #4 (ready for review, all issues closed); after merge: tag v0.2.1 on the merge commit",
+  "resume_pointer": "v0.2.1 merged to main (db77bb8); user pushes the v0.2.1 tag (branch-scoped credentials cannot); next: evolution-session backlog",
   "open_loops": [],
   "open_intents": [],
   "tasks": [],
   "counts": {
-    "events": 31,
+    "events": 32,
     "tasks_total": 0,
     "tasks_done": 0,
     "tasks_open": 0,
