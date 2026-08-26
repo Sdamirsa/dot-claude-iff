@@ -41,6 +41,7 @@
       "needs_human_sync",
       "task_reality",
       "no_machine_paths",
+      "gitignore_shadowing",
       "theme_token_parity"
     ],
     "polish": [

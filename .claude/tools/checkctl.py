@@ -544,6 +544,68 @@ def check_no_machine_paths() -> Result:
     return Result("no_machine_paths", OK, "no home-directory paths in shippable trees")
 
 
+def _deliberately_ignored(rel: str) -> bool:
+    """The system's own intended ignores: private reference material, console runtime,
+    machine-local settings, caches. Everything else in the shippable trees is meant to be
+    trackable, so an ignore rule catching it is a shadow, not a choice."""
+    if rel.startswith(".claude/reference/private/"):
+        return True
+    if rel.endswith((".pyc", ".tmp", ".pid", ".log")):
+        return True
+    if "__pycache__" in rel:
+        return True
+    if rel.endswith("settings.local.json") or rel.endswith("/.env"):
+        return True
+    return False
+
+
+def check_gitignore_shadowing() -> Result:
+    """A generic ignore pattern (dist/, build/, *.zip) matches at ANY depth, so a repo's
+    .gitignore can silently untrack shipped .claude/ paths - the adoption kits under
+    .claude/dist/ vanished from git exactly this way in the field and nothing warned. Ask
+    git itself: check-ignore over the shippable trees, warn on any hit that is not one of
+    the system's own deliberate ignores."""
+    root = _lib.project_root()
+    if not (root / ".git").exists():
+        return Result("gitignore_shadowing", SKIP, "not a git repository")
+    candidates = []
+    for base in (root / ".claude", root / ".claude-iff"):
+        if not base.is_dir():
+            continue
+        for path in base.rglob("*"):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root).as_posix()
+            if rel.startswith(".claude/dist/") or _deliberately_ignored(rel):
+                continue
+            candidates.append(rel)
+    # The dist zips are probed by NAME, existing or not: in the home repo they must stay
+    # reachable by git, and probing the path catches the shadow before the first build does.
+    if distribution_enabled():
+        candidates += [".claude/dist/dot-claude-iff-fresh.zip",
+                       ".claude/dist/dot-claude-iff-adopt-kit.zip"]
+    if not candidates:
+        return Result("gitignore_shadowing", OK, "nothing to probe")
+    try:
+        res = subprocess.run(
+            ["git", "check-ignore", "-v", "--stdin"],
+            input="\n".join(candidates) + "\n",
+            capture_output=True, text=True, timeout=30, cwd=str(root), check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return Result("gitignore_shadowing", SKIP, f"git unavailable: {exc}")
+    if res.returncode not in (0, 1):  # 0 = some path ignored, 1 = none ignored
+        return Result("gitignore_shadowing", SKIP,
+                      f"git check-ignore failed (exit {res.returncode})")
+    hits = [line for line in res.stdout.splitlines() if line.strip()]
+    if hits:
+        return Result("gitignore_shadowing", WARN,
+                      f"{len(hits)} shippable path(s) are gitignored: an over-broad pattern "
+                      f"(a generic dist/, build/ or *.zip) is silently untracking them",
+                      hits[:15])
+    return Result("gitignore_shadowing", OK, f"{len(candidates)} shippable path(s), none shadowed")
+
+
 def check_theme_token_parity() -> Result:
     """The console template defines its dark palette twice (the prefers-color-scheme media
     block and the explicit [data-theme="dark"] selector), with different indentation. A token
@@ -601,6 +663,7 @@ CHECKS = {
     "needs_human_sync": check_needs_human_sync,
     "task_reality": check_task_reality,
     "no_machine_paths": check_no_machine_paths,
+    "gitignore_shadowing": check_gitignore_shadowing,
     "theme_token_parity": check_theme_token_parity,
 }
 

@@ -344,3 +344,25 @@ class CLIVerdictTests(FixtureCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PortCollisionTests(FixtureCase):
+    """Port 7717 shipped as every project's default, so the second adoption on one machine
+    lost the bind every session - silently, because the failure went only to a log nobody
+    reads. A refused bind must be loud and name the one-line fix."""
+
+    def test_bind_failure_exits_with_a_named_fix(self):
+        import contextlib
+        import io
+        blocker = console.make_server("127.0.0.1", 0)
+        port = blocker.server_address[1]
+        try:
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = console.main(["--port", str(port)])
+            self.assertEqual(code, 2)
+            self.assertIn("CONSOLE_FAIL", err.getvalue())
+            self.assertIn("console.json", err.getvalue(),
+                          "the failure message must name where the port is decided")
+        finally:
+            blocker.server_close()
