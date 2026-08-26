@@ -10,7 +10,8 @@
     "config.policy",
     "config.observe",
     "config.registry",
-    "store.journal"
+    "store.journal",
+    "store.machine"
   ],
   "writes": [
     "store.journal",

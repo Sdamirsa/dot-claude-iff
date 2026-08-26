@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-08-26T12:47:27Z",
+  "generated_at": "2026-08-26T13:16:48Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -92,6 +92,18 @@
       "exists": true
     },
     {
+      "id": "reference.distribution-boundary",
+      "kind": "data",
+      "layer": "MEMORY",
+      "package": null,
+      "title": "Distribution Boundary",
+      "path": ".claude/reference/distribution-boundary.md",
+      "description": "The three mechanisms that keep home-repo-only content out of the adoption kits (structural placement outside .claude/, the distribution.enabled knob, distctl content normalization) and the decision rule for picking one.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
       "id": "store.handoff",
       "kind": "data",
       "layer": "MEMORY",
@@ -130,6 +142,18 @@
       "glyphs": [
         "append-only"
       ],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "store.machine",
+      "kind": "data",
+      "layer": "MEMORY",
+      "package": null,
+      "title": "Machine identity",
+      "path": ".claude/state/machine.json",
+      "description": "Device identity: a salted fingerprint (sha256 of user|host, truncated to 12 hex chars) plus a human-chosen alias. No username or hostname is stored. Single writer: `statectl.py device`; the session-start hook only reads and nags via `_lib.machine_check()`.",
+      "glyphs": [],
       "flows": [],
       "exists": true
     },
@@ -753,6 +777,11 @@
       "type": "invokes"
     },
     {
+      "from": "console.server",
+      "to": "tool.sysmon",
+      "type": "invokes"
+    },
+    {
       "from": "hook.heartbeat",
       "to": "store.heartbeat",
       "type": "writes"
@@ -785,6 +814,11 @@
     {
       "from": "hook.session-start",
       "to": "store.memory_run",
+      "type": "reads"
+    },
+    {
+      "from": "hook.session-start",
+      "to": "store.machine",
       "type": "reads"
     },
     {
@@ -890,6 +924,11 @@
     {
       "from": "tool._lib",
       "to": "store.journal",
+      "type": "reads"
+    },
+    {
+      "from": "tool._lib",
+      "to": "store.machine",
       "type": "reads"
     },
     {
@@ -1156,22 +1195,27 @@
       "from": "tool.statectl",
       "to": "store.needs_human",
       "type": "writes"
+    },
+    {
+      "from": "tool.statectl",
+      "to": "store.machine",
+      "type": "writes"
     }
   ],
   "stats": {
-    "nodes": 50,
-    "edges": 97,
+    "nodes": 52,
+    "edges": 101,
     "by_kind": {
       "agent": 3,
       "code": 17,
-      "data": 29,
+      "data": 31,
       "human": 1
     },
     "by_layer": {
       "CONSOLE": 8,
       "EVOLVE": 10,
       "GOVERN": 10,
-      "MEMORY": 9,
+      "MEMORY": 11,
       "OBSERVE": 10,
       "UNPLACED": 3
     },

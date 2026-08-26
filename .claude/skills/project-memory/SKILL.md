@@ -151,12 +151,19 @@ are the maintainer's call, never yours. When they say "release vX.Y.Z":
 3. Commit `release: vX.Y.Z - <one line>` and tag `git tag vX.Y.Z`. Push per the `push` knob;
    if this session's credentials cannot push tags (branch-scoped tokens cannot), hand the
    maintainer the exact commands and say so in the report.
-4. Pin it to the GitHub release: write the version's section to a temp file, then
+4. **Do not create the GitHub release by hand.** Pushing the tag fires
+   `.github/workflows/release.yml`, which is the ONE publisher: it runs the suite on every
+   supported OS, rebuilds both zips with the same registered generator the ritual uses, and
+   publishes with this version's CHANGELOG section as the notes. Running `gh release create`
+   yourself races it and leaves a red run behind ("a release with the same tag name already
+   exists") - that is exactly what happened on v0.2.2. Instead, watch it land:
 
    ```
-   gh release create vX.Y.Z .claude/dist/dot-claude-iff-fresh.zip \
-     .claude/dist/dot-claude-iff-adopt-kit.zip --title "vX.Y.Z" --notes-file <temp-file>
+   gh run watch $(gh run list --workflow=release --limit 1 --json databaseId -q '.[0].databaseId')
    ```
+
+   Report the run's verdict. If the suite fails there, the release does not exist and the tag
+   needs a fix-forward commit and a new tag - never a force-push over a published tag.
 
 Why adopters never see any of this: `CHANGELOG.md` lives at the repo ROOT deliberately - the
 zips package only the tracked `.claude/` tree plus files distctl authors, and the adopt skill

@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-08-26T12:53:45Z",
+  "generated_at": "2026-08-26T13:23:18Z",
   "clock": {
     "wall_min": "2026-08-25",
     "wall_max": "2026-08-26",
@@ -22,8 +22,8 @@
         "skills": 3,
         "hooks": 6,
         "tools": 7,
-        "cards": 50,
-        "components": 69
+        "cards": 52,
+        "components": 71
       },
       "data": {},
       "analysis": {}
@@ -43,8 +43,8 @@
         "skills": 3,
         "hooks": 6,
         "tools": 7,
-        "cards": 50,
-        "components": 69
+        "cards": 52,
+        "components": 71
       },
       "data": {},
       "analysis": {}
@@ -106,6 +106,27 @@
       "kind": "milestone",
       "text": "System monitor, device identity, derived console ports shipped (suite 225/225)",
       "ref": "monitor-device-ports"
+    },
+    {
+      "date": "2026-08-26",
+      "t_tokens_cum": 202669,
+      "kind": "tooling",
+      "text": "release.yml: test matrix on ubuntu + windows gates the release job",
+      "ref": "the policy gate shipped fail-open on Windows through v0.2.0 and v0.2.1; CI was ubuntu-only and never saw it. Operationalizes L-9's prevention rule."
+    },
+    {
+      "date": "2026-08-26",
+      "t_tokens_cum": 202669,
+      "kind": "tooling",
+      "text": "one release publisher: workflow uses the CHANGELOG section as notes; the skill's recipe now says push the tag and watch the run, never gh release create by hand",
+      "ref": "pushing v0.2.2 raced the workflow, which failed with 'a release with the same tag name already exists' - a red run behind a correct release"
+    },
+    {
+      "date": "2026-08-26",
+      "t_tokens_cum": 202669,
+      "kind": "tooling",
+      "text": "reference/distribution-boundary.md + store.machine declared in mapctl KNOWN_STORES",
+      "ref": "the home-vs-adopter split was re-derived twice this session across three undocumented mechanisms; the new store card warned UNDECLARED until mapctl learned it"
     }
   ]
 }

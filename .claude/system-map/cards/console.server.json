@@ -11,7 +11,8 @@
   ],
   "writes": [],
   "invokes": [
-    "tool.consolectl"
+    "tool.consolectl",
+    "tool.sysmon"
   ],
   "flows": [],
   "glyphs": [],

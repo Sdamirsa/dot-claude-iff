@@ -44,6 +44,12 @@ KNOWN_STORES = [
     {"id": "store.handoff", "path": ".claude/state/HANDOFF.md", "title": "Handoff note",
      "description": "Derived human-readable resume note, projected from the journal.",
      "glyphs": ["derived"]},
+    {"id": "store.machine", "path": ".claude/state/machine.json", "title": "Machine identity",
+     "description": "Which machine this repo last ran on: a salted user|host fingerprint plus a "
+                     "human-chosen alias - never a username or hostname. statectl device is the "
+                     "only writer; the session-start hook compares read-only and says so loudly "
+                     "when the repo wakes somewhere new.",
+     "glyphs": []},
     {"id": "store.needs_human", "path": ".claude/state/needs-human.jsonl", "title": "Needs-human queue",
      "description": "Async needs-human queue: SEV0-3 bands, queue-as-view. Bundles the append-only "
                      "source (needs-human.jsonl) and its derived projection (needs-human.json).",

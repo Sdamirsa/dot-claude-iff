@@ -2,8 +2,8 @@
   "run_id": "20260826T125020Z-603d1a",
   "started": "2026-08-26T12:50:20Z",
   "status": "running",
-  "phase": "publish",
-  "step": "obs_anchor",
+  "phase": "polish",
+  "step": "dist_build",
   "phases": {
     "check": {
       "status": "WARN",
@@ -104,7 +104,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-08-26T12:53:46Z",
+      "ts": "2026-08-26T13:23:18Z",
       "results": [
         {
           "name": "map_scan",
@@ -182,5 +182,5 @@
     }
   },
   "last_completed": "2026-08-26T08:28:45Z",
-  "updated": "2026-08-26T12:54:11Z"
+  "updated": "2026-08-26T13:23:18Z"
 }

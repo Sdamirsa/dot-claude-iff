@@ -66,6 +66,7 @@ evolution) · `verifier` (adversarial claim checking).
 |------|------|
 | `.claude/STATUS.md` · `Project-log.jsonl` · `LESSONS.jsonl` | the memory spine |
 | `.claude/protocols/` | handshake · human-gates · honesty · evolution |
+| `.claude/reference/` | glossary · distribution-boundary |
 | `.claude/state/` | `journal.jsonl` is truth; session/HANDOFF/needs-human/map are projections |
 | `.claude/system-map/` | `layers.json` + one card per component → compiled `map.json` |
 | `.claude/console/` | the single-page console + its stdlib server |

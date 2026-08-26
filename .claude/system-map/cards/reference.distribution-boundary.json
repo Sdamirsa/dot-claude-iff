@@ -1,0 +1,20 @@
+{
+  "id": "reference.distribution-boundary",
+  "kind": "data",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "Distribution Boundary",
+  "path": ".claude/reference/distribution-boundary.md",
+  "description": "The three mechanisms that keep home-repo-only content out of the adoption kits (structural placement outside .claude/, the distribution.enabled knob, distctl content normalization) and the decision rule for picking one.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-26",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

@@ -9,6 +9,7 @@
   "reads": [
     "store.journal",
     "store.memory_run",
+    "store.machine",
     "config.console"
   ],
   "writes": [],

@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-26T12:53:36Z",
-  "last_event_ts": "2026-08-26T12:53:36Z",
+  "generated_at": "2026-08-26T13:23:08Z",
+  "last_event_ts": "2026-08-26T13:23:08Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
@@ -11,14 +11,14 @@
   "open_intents": [],
   "tasks": [],
   "counts": {
-    "events": 47,
+    "events": 50,
     "tasks_total": 0,
     "tasks_done": 0,
     "tasks_open": 0,
     "open_loops": 0,
     "milestones": 5,
     "decisions": 1,
-    "tooling": 2
+    "tooling": 5
   },
   "heartbeat": {
     "ts": "2026-08-26T12:48:39Z",
@@ -68,6 +68,21 @@
       "change_type": "memory",
       "what": "lesson L-8: render checks must match the target container (retro P2)",
       "ts": "2026-08-25T15:11:20Z"
+    },
+    {
+      "change_type": "gate",
+      "what": "release.yml: test matrix on ubuntu + windows gates the release job",
+      "ts": "2026-08-26T13:23:07Z"
+    },
+    {
+      "change_type": "process",
+      "what": "one release publisher: workflow uses the CHANGELOG section as notes; the skill's recipe now says push the tag and watch the run, never gh release create by hand",
+      "ts": "2026-08-26T13:23:07Z"
+    },
+    {
+      "change_type": "doc",
+      "what": "reference/distribution-boundary.md + store.machine declared in mapctl KNOWN_STORES",
+      "ts": "2026-08-26T13:23:08Z"
     }
   ],
   "open_gates": []

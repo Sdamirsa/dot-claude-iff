@@ -15,7 +15,8 @@
     "store.journal",
     "store.session",
     "store.handoff",
-    "store.needs_human"
+    "store.needs_human",
+    "store.machine"
   ],
   "invokes": [],
   "flows": [],

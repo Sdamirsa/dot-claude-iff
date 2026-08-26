@@ -1,0 +1,21 @@
+{
+  "id": "store.machine",
+  "kind": "data",
+  "layer": "MEMORY",
+  "package": null,
+  "title": "Machine identity",
+  "path": ".claude/state/machine.json",
+  "description": "Device identity: a salted fingerprint (sha256 of user|host, truncated to 12 hex chars) plus a human-chosen alias. No username or hostname is stored. Single writer: `statectl.py device`; the session-start hook only reads and nags via `_lib.machine_check()`.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-08-26",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

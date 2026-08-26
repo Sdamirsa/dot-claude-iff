@@ -19,14 +19,34 @@ permissions:
   contents: write   # gh release create needs to write releases
 
 jobs:
+  # The gate runs on every OS this system claims to support. It is not symmetry for its own
+  # sake: the PreToolUse policy gate shipped FAIL-OPEN on Windows through two releases
+  # (backslash paths compared against posix prefixes, plus an unmatched PowerShell lane) and
+  # was caught by a human running Windows, never by CI. Lesson L-9's prevention rule is this
+  # job. The interpreter differs by runner - `python3` on ubuntu, `python` on windows - so the
+  # matrix carries the name rather than adding a setup action that would also move the
+  # ubuntu job's proven Python version.
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            py: python3
+          - os: windows-latest
+            py: python
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test (the gate - no release over a red suite)
+        run: ${{ matrix.py }} .claude/tools/tests/run_tests.py -q
+
   release:
-    runs-on: ubuntu-latest
+    needs: test
+    runs-on: ubuntu-latest   # zips stay single-OS: determinism is the whole point of them
     steps:
       - uses: actions/checkout@v4
 
-      - name: Test (the gate - no release over a red suite)
-        run: |
-          python3 .claude/tools/tests/run_tests.py -q
       - name: Build distribution zips
         run: |
           python3 .claude/tools/distctl.py build
@@ -41,14 +61,25 @@ jobs:
             TAG="manual-$(date -u +%Y%m%d-%H%M%S)"
             git tag "$TAG" && git push origin "$TAG"
           fi
+          # Notes come from the tag's own CHANGELOG.md section - the changelog_parity CHECK
+          # step guarantees it exists, so a release can never outrun its changelog. The
+          # boilerplate below it is the same for every release.
+          python3 - "$TAG" > /tmp/release-notes.md <<'PY'
+          import re, sys
+          tag = sys.argv[1]
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          m = re.search(rf"^## {re.escape(tag)}\b[^\n]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
+          print((m.group(1).strip() if m else "See CHANGELOG.md.") + "\n")
+          PY
           {
-            echo "One place to interact (Claude Code), one place to control (the console), one command to evolve (/project-memory)."
+            echo ""
+            echo "---"
             echo ""
             echo "**Fresh start**: unzip \`dot-claude-iff-fresh.zip\` into a new or empty repo root and follow its \`START-HERE.md\`."
             echo "**Existing repo**: unzip \`dot-claude-iff-adopt-kit.zip\` anywhere outside your repo and follow its \`ADOPT.md\` - your files are merged, never overwritten."
             echo ""
             echo "Manual: \`.claude/README.md\` in either zip."
-          } > /tmp/release-notes.md
+          } >> /tmp/release-notes.md
           gh release create "$TAG" \
             ".claude/dist/dot-claude-iff-fresh.zip#Fresh start (unzip into a new repo)" \
             ".claude/dist/dot-claude-iff-adopt-kit.zip#Adopt kit (for an existing repo)" \
