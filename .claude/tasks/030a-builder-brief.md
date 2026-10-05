@@ -31,6 +31,10 @@ task's **Definition of done** true and its **Test** command green, nothing more.
 
 ## Rules
 
+- CI runs the suite on Ubuntu and on Windows under Git Bash. Tests must not assume `bash` on PATH
+  is Git Bash outside that, must not depend on the developer's home paths, and must pass on a
+  clean checkout (no local state files, no heartbeat).
+
 - Hooks and tools are bash + python3 standard library only. No new dependencies.
 - Paths: build with `as_posix()`, compare with `os.path.normcase` (lesson L-9). A gate that
   enumerates tool names needs one test per shell lane (L-10).
@@ -62,6 +66,8 @@ task's **Definition of done** true and its **Test** command green, nothing more.
 ```json
 {
   "task_id": "T6",
+  "agent_id": "builder-T6",
+  "status": "ok | partial | blocked (same value as STATUS; the current validator hook wants both)",
   "agent": "builder",
   "model": "opus",
   "STATUS": "ok | partial | blocked",
