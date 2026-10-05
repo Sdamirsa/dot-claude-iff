@@ -115,8 +115,8 @@ system cannot protect.
 ## Get it into your own project
 
 Grab a zip from the repo's **GitHub Releases** (built by CI from a tested tree), or from
-`.claude/dist/` in a checkout - the same generator builds both, rebuilt by every ritual so
-they can never go stale:
+`.claude/dist/` in a checkout of `main` or a release tag - the same generator builds both, and
+there they are guaranteed equal to a rebuild (on `dev` they may lag between releases):
 
 - **`dot-claude-iff-fresh.zip`**: for a NEW or empty repo. Unzip into the repo root, open
   Claude Code there, trust the hooks when asked, and follow the unzipped `START-HERE.md`.
@@ -182,7 +182,7 @@ inspectable next to the project it belongs to. Override it with `record_root` in
 
 ```
 python3 .claude/tools/statectl.py   pointer|task|milestone|decision|loop|note|need|refresh|resume
-                                    mode|phase|proposal|dispatch
+                                    mode|phase|proposal|dispatch|accept
 python3 .claude/tools/checkctl.py   run --phase check|polish|publish · probe · generators
                                     phase-exit --from plan|build|review|deploy · doctor
                                     handoff <task_id> [--run] [--root <worktree>]

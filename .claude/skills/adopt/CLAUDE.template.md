@@ -60,7 +60,7 @@ System commands:
 
 ```
 python3 .claude/tools/statectl.py  pointer|task|milestone|decision|loop|note|need|refresh|resume
-                                   mode|phase|proposal|dispatch
+                                   mode|phase|proposal|dispatch|accept
 python3 .claude/tools/checkctl.py  run --phase check|polish|publish · probe · generators
                                    phase-exit --from plan|build|review|deploy · doctor
                                    handoff <task_id> [--run] [--root <worktree>]

@@ -3,8 +3,9 @@
 # release.yml runs the same matrix as its gate, but only when a tag is pushed; before this file
 # a red suite on dev was found at release time. Same commands as release.yml's test job, on
 # purpose: the interpreter name differs by runner (`python3` on ubuntu, `python` on windows).
-# The suite includes test_dist's rebuild-equality test, so a commit whose payload changed
-# without a zip rebuild goes red here, not in someone's adoption.
+# The suite includes test_dist's rebuild-equality test, strict where _lib.zip_equality_required
+# says so (pushes to main, pull requests into main), so a stale zip goes red here, not in
+# someone's adoption. On dev it skips: the zips may lag until the release step rebuilds them.
 
 name: ci
 

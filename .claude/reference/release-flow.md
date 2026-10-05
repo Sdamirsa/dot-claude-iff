@@ -7,7 +7,8 @@ skips it on clone adoptions, and `test_dist.py` asserts it is absent from both z
 ## Branches
 
 - **`dev`** - all work lands here. Builders work in git worktrees under `.claude/worktrees/`
-  (gitignored, never packaged); the main session reviews, merges into `dev` and runs the suite.
+  (gitignored, never packaged), cut by `statectl.py dispatch`; the main session reviews,
+  merges into `dev` with `statectl.py accept` and runs the suite.
 - **`main`** - the last stable release, nothing else. It changes only through one pull request
   `dev` -> `main`, opened when a stable release is signed off.
 - **CI** - `.github/workflows/ci.yml` runs the whole suite on every push to `dev` or `main` and
@@ -30,17 +31,33 @@ skips it on clone adoptions, and `test_dist.py` asserts it is absent from both z
 
 ## Cutting one
 
-1. The maintainer names the version. Set `system_version`, pin the CHANGELOG section (the
-   release steps in the project-memory skill), and let the ritual's POLISH rebuild the zips.
-2. Commit the release with its zips. `python3 .claude/tools/distctl.py verify` must say fresh.
-3. Push the branch, then the tag. `release.yml` runs the suite on both OS, rebuilds the zips,
-   checks the rebuild equals the committed copies, and publishes. Watch it; never run
-   `gh release create` by hand.
+1. The maintainer names the version. Set `system_version` and pin the CHANGELOG section (the
+   release steps in the project-memory skill).
+2. **The zip step, on the release commit itself.** `python3 .claude/tools/distctl.py build`,
+   then `python3 .claude/tools/distctl.py verify` (it must say fresh), then commit the zips,
+   then tag. A pre-release cut from `dev` takes the same step before its tag: the tag is what
+   makes CI strict about the zips, so they must be rebuilt in the commit it points at.
+3. Push the branch, then the tag. `release.yml` runs the suite on both OS (strict about the
+   zips: a tag is in play), rebuilds the zips, checks the rebuild equals the committed copies,
+   and publishes. Watch it; never run `gh release create` by hand.
 
 ## The committed zips
 
-The zips stay committed at `.claude/dist/`, so they must never be stale. Three rules make that
-mechanical:
+The zips stay committed at `.claude/dist/`. Where they must equal a rebuild is decided in one
+place, `_lib.zip_equality_required()`: on the branch `main`, on a tag, on a pull request into
+`main`, and on CI for `main`. Anywhere else (`dev`, a feature branch, a builder's worktree) the
+suite skips the equality test with a one-line reason; `distctl.py verify` stays strict
+everywhere, and `release.yml` rebuilds and diffs before it publishes.
+
+**The consequence, stated plainly:** between releases the zips on `dev` may lag the tree. The
+copies on `main` and on every tag are guaranteed equal to a rebuild. The trade buys conflict-free
+merges: builders used to rebuild the zips in their worktrees while `dev` rebuilt them too, and
+two merges conflicted on binary files. Builders now never stage, commit or rebuild
+`.claude/dist/`, `statectl.py accept` restores any change there before it merges, and a merge on
+`dev` needs no rebuild. The ritual's POLISH still rebuilds the zips at home; only the lead
+commits on the working branch, so that cannot conflict.
+
+Three rules keep the copies that must be fresh mechanically fresh:
 
 - **Payload rule: the working tree decides which files ship and what they contain; git only
   vetoes what it ignores.** The generator ledger hashes the working tree, and PUBLISH commits
@@ -51,10 +68,10 @@ mechanical:
   reference tree, a stray `.env`) still never ships, and each one skipped is printed.
 - **Line endings: text ships as LF.** A Windows checkout converts LF to CRLF; distctl
   normalises every text entry back to LF, so one commit builds the same bytes on every OS.
-- **Equality test.** `test_dist.py` rebuilds both zips into a scratch directory and compares
-  them with `.claude/dist/` byte for byte. While payload files carry uncommitted edits it skips
-  (POLISH is about to rebuild); on a clean tree, which is every CI run, it is strict. Rebuild
-  with `distctl.py build` (or the ritual) and commit the zips with the change.
+- **Equality test.** Where `zip_equality_required()` says so, `test_dist.py` rebuilds both zips
+  into a scratch directory and compares them with `.claude/dist/` byte for byte. There, while
+  payload files carry uncommitted edits it still skips (the ritual's CHECK runs before POLISH
+  rebuilds); on a clean tree, which is every CI run, it is strict.
 
 ## Untracked by design
 

@@ -133,11 +133,20 @@ anyone may propose an addition.
 
 The `fableous-orchestrated` mode's vocabulary (`.claude/protocols/orchestration.md`).
 
+- **accept**: The lead taking a builder's work back, `statectl.py accept <id>`: rerun the
+  handoff check in the worktree (refuse on FAIL), restore `.claude/dist/` and the derived files
+  there, commit, merge into the working branch with `--no-ff`, remove the worktree and branch.
+  Stops on a merge conflict with the merge in progress; never pushes, never marks done.
 - **builder**: The agent (`.claude/agents/builder.md`, opus) that implements one task card
   in a git worktree the lead created, never commits, and hands back a builder envelope.
+- **dispatch**: The lead sending an agent to a task, `statectl.py dispatch <id>`: for a
+  builder, cut `.claude/worktrees/<id>` on branch `wt/<id>` from HEAD, write the stub and
+  print the filled builder brief; for any other agent, the stub only. Refuses with one line
+  and changes nothing when the task file, a clean tree or git is missing, or the worktree or
+  branch already exists.
 - **handoff**: A builder returning its work: the envelope it writes, checked by
   `checkctl.py handoff <task_id> [--run] [--root <worktree>]`, then the lead's diff review,
-  merge and suite run. In this mode `statectl.py task <id> --status done` refuses without a
+  **accept** and suite run. In this mode `statectl.py task <id> --status done` refuses without a
   valid envelope whose tests passed, unless `--no-envelope "<why>"`.
 - **lead**: The main session in the `fableous-orchestrated` mode: plans, designs, writes task
   cards, dispatches, reviews, merges, reports to the human, and owns the outcome. Labelled

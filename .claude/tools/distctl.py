@@ -16,8 +16,10 @@ are rebuilt by every ritual, so what people download can never quietly lag what 
 Zips are DETERMINISTIC: fixed timestamps, sorted entries, fixed permissions, LF line endings
 inside. Identical content produces identical bytes on every OS, so the ritual's write-gating
 keeps rebuilds out of git noise and the committed zips can be checked against a rebuild
-(`distctl.py verify`, and test_dist on every CI run). The payload rule and the release flow
-are written down in .claude/reference/release-flow.md (home repo only).
+(`distctl.py verify`, strict everywhere; test_dist where _lib.zip_equality_required says so:
+main, tags, pull requests into main). The payload rule and the release flow, including the
+release step that rebuilds and commits the zips, are written down in
+.claude/reference/release-flow.md (home repo only).
 
 Two more commands work in ANY project running the system (they are not behind the
 distribution knob; .claude/reference/public-private.md is their manual):

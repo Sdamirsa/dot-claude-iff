@@ -121,8 +121,9 @@ KNOWN_STORES = [
      "glyphs": ["derived"]},
     {"id": "store.dist", "path": ".claude/dist", "title": "distribution zips",
      "description": "The two release artifacts: dot-claude-iff-fresh.zip (new repo) and "
-                     "dot-claude-iff-adopt-kit.zip (existing repo). Derived: rebuilt by every "
-                     "ritual so a download can never lag the repo.",
+                     "dot-claude-iff-adopt-kit.zip (existing repo). Derived: rebuilt by the "
+                     "ritual and by the release step; equal to a rebuild on main and on every "
+                     "tag, while between releases the copies on dev may lag. Never a builder's.",
      "glyphs": ["derived"]},
 ]
 

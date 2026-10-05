@@ -19,6 +19,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import time
 import unittest
@@ -198,7 +199,9 @@ class TestStub(OrchCase):
         self.assertNotIn("since", flight["A"], "the console speaks the contract's name")
 
     def test_statectl_dispatch_writes_the_stub(self):
-        code, out = self.statectl("dispatch", "T7", "--worktree", ".claude/worktrees/t7")
+        # --no-worktree: today's stub-only dispatch, for a worktree the lead made by hand.
+        code, out = self.statectl("dispatch", "T7", "--worktree", ".claude/worktrees/t7",
+                                  "--no-worktree")
         self.assertEqual(code, 0, out)
         self.assertEqual(STATE_RE.findall(out), ["OK"])
         stub = json.loads(_lib.stub_path("T7").read_text(encoding="utf-8"))
@@ -208,6 +211,359 @@ class TestStub(OrchCase):
         notes = [e for e in _lib.journal_read() if e.get("action") == "note"]
         self.assertIn("dispatched builder for T7", notes[-1]["text"])
         self.assertEqual(consolectl.payload()["now"]["in_flight"][0]["task_id"], "T7")
+
+
+# =========================================================================== dispatch and accept
+
+TASK_T1 = """# Task: T1 - the thing
+
+_Created 2026-10-05 · Status: todo_
+
+Milestone: M1 · Shared contracts: `030a-00-ms.md`
+
+## Goal
+
+**Definition of done:** the thing works.
+
+**Test:** `python3 -c "pass"`
+"""
+
+# Isolation from the developer's own git: no global or system config, no inherited repo.
+_GIT_ENV_KEYS = ("GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM", "GIT_CEILING_DIRECTORIES",
+                 "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE")
+
+
+class GitIsolation(OrchCase):
+    """The env every git-backed case runs under, global config and system config shut out."""
+
+    def setUp(self) -> None:
+        if not shutil.which("git"):
+            self.skipTest("git not available")
+        super().setUp()
+        self._git_saved = {k: os.environ.get(k) for k in _GIT_ENV_KEYS}
+        for key in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
+            os.environ.pop(key, None)
+        empty = Path(self._tmp.name) / "empty.gitconfig"
+        empty.write_text("", encoding="utf-8")
+        os.environ["GIT_CONFIG_GLOBAL"] = str(empty)
+        os.environ["GIT_CONFIG_NOSYSTEM"] = "1"
+        os.environ["GIT_CEILING_DIRECTORIES"] = str(Path(self._tmp.name))
+
+    def tearDown(self) -> None:
+        if getattr(self, "_git_saved", None) is not None:
+            for key, value in self._git_saved.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+        super().tearDown()
+
+    def git(self, *args, cwd: Path | None = None, check: bool = True) -> str:
+        res = subprocess.run(["git", *args], cwd=str(cwd or self.root), capture_output=True,
+                             text=True, encoding="utf-8", errors="replace", check=False)
+        if check:
+            self.assertEqual(res.returncode, 0, f"git {' '.join(args)}: {res.stderr}")
+        return res.stdout.strip()
+
+
+class WorktreeCase(GitIsolation):
+    """A throwaway repo on branch dev, one commit, the minimum .claude fixture: two task files,
+    the shipped builder brief and agent, committed zips and derived files."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        try:
+            self._build_repo()
+        except BaseException:
+            self.tearDown()  # unittest skips tearDown when setUp fails: restore env, drop the tmp
+            raise
+
+    def _build_repo(self) -> None:
+        claude = self.root / ".claude"
+        tasks = claude / "tasks"
+        (tasks / "030a-t1-thing.md").write_text(TASK_T1, encoding="utf-8")
+        (tasks / "030a-t2-other.md").write_text(TASK_T1.replace("T1 - the thing", "T2 - other"),
+                                                encoding="utf-8")
+        (tasks / "030a-00-ms.md").write_text("# shared contracts\n", encoding="utf-8")
+        shutil.copy(CLAUDE_DIR / "tasks" / "_builder-brief.md", tasks / "_builder-brief.md")
+        (claude / "agents").mkdir(exist_ok=True)
+        shutil.copy(CLAUDE_DIR / "agents" / "builder.md", claude / "agents" / "builder.md")
+        (claude / "dist").mkdir(exist_ok=True)
+        (claude / "dist" / "kit.zip").write_bytes(b"zip-v1")
+        (claude / "console" / "console.html").write_text("<html>v1</html>\n", encoding="utf-8")
+        (claude / "system-map" / "map.json").write_text("{}\n", encoding="utf-8")
+        (self.root / ".gitignore").write_text(".claude/worktrees/\n__pycache__/\n", encoding="utf-8")
+        self.journal("note", text="fixture")
+        statectl.refresh_all()  # session.json, HANDOFF.md, needs-human.json: tracked, derived
+        self.git("init", "-q")
+        self.git("symbolic-ref", "HEAD", "refs/heads/dev")
+        for key, value in (("user.name", "t"), ("user.email", "t@t"), ("commit.gpgsign", "false"),
+                           ("core.autocrlf", "false"),
+                           ("core.hooksPath", (Path(self._tmp.name) / "no-hooks").as_posix())):
+            self.git("config", key, value)
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "init")
+        self.wt = self.root / ".claude" / "worktrees" / "t1"
+
+    def tearDown(self) -> None:
+        # Remove every worktree a test made (and its metadata) before the temp dir goes.
+        if (self.root / ".git").is_dir():
+            for line in self.git("worktree", "list", "--porcelain", check=False).splitlines():
+                if not line.startswith("worktree "):
+                    continue
+                path = line[len("worktree "):]
+                try:
+                    is_main = os.path.samefile(path, self.root)
+                except OSError:
+                    is_main = False
+                if not is_main:
+                    self.git("worktree", "remove", "--force", path, check=False)
+            self.git("worktree", "prune", check=False)
+        super().tearDown()
+
+    def snapshot(self) -> dict:
+        """What a refused dispatch must leave exactly as it was."""
+        journal = _lib.state_dir() / "journal.jsonl"
+        return {"journal": journal.read_text(encoding="utf-8") if journal.exists() else "",
+                "branches": self.git("branch", "--list"),
+                "worktrees": self.git("worktree", "list", "--porcelain"),
+                "stubs": sorted(p.name for p in _lib.handshakes_dir().glob("*.stub.json")),
+                "wt_dir": sorted(p.name for p in (self.root / ".claude" / "worktrees").glob("*"))}
+
+    def assert_refused(self, code: int, out: str, fragment: str, before: dict) -> None:
+        self.assertEqual(code, 1, out)
+        self.assertEqual(STATE_RE.findall(out), ["FAIL"])
+        self.assertIn("refused:", out)
+        self.assertIn(fragment, out)
+        self.assertEqual(self.snapshot(), before, "a refusal changes nothing")
+
+    @staticmethod
+    def prompt_of(out: str) -> str:
+        start = out.index("----- builder prompt")
+        return out[start:out.index("----- end of builder prompt", start)]
+
+
+class TestDispatch(WorktreeCase):
+    def test_dispatch_cuts_the_worktree_writes_the_stub_and_prints_the_brief(self):
+        code, out = self.statectl("dispatch", "T1")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(STATE_RE.findall(out), ["OK"])
+        self.assertTrue((self.wt / "src" / "app.py").is_file(), "a full checkout of HEAD")
+        self.assertEqual(self.git("rev-parse", "--abbrev-ref", "HEAD", cwd=self.wt), "wt/t1")
+        self.assertEqual(self.git("rev-parse", "HEAD", cwd=self.wt), self.git("rev-parse", "HEAD"))
+        self.assertEqual(self.git("rev-parse", "--abbrev-ref", "HEAD"), "dev", "the lead stays put")
+        stub = json.loads(_lib.stub_path("T1").read_text(encoding="utf-8"))
+        self.assertEqual((stub["agent"], stub["worktree"]), ("builder", ".claude/worktrees/t1"))
+        prompt = self.prompt_of(out)
+        for phrase in ("builder for task T1", "Task file: `.claude/tasks/030a-t1-thing.md`",
+                       "Worktree: `t1`", "`.claude/tasks/_builder-brief.md`",
+                       "at `.claude/worktrees/t1/` (branch `wt/t1`)", "cd .claude/worktrees/t1 &&",
+                       "worktree of the `dev` branch", "2. `.claude/tasks/030a-00-ms.md`",
+                       "3. Your task file, `.claude/tasks/030a-t1-thing.md`",
+                       '"agent_id": "builder-T1"', '"model": "opus"',
+                       "checkctl.py handoff T1"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, prompt)
+        self.assertNotIn("Scaffold, not a task", prompt)
+        self.assertIsNone(re.search(r"(?<!\w)<[A-Za-z_][\w -]*>", prompt), "every placeholder filled")
+        notes = [e for e in _lib.journal_read() if e.get("action") == "note"]
+        self.assertIn("dispatched builder for T1 in .claude/worktrees/t1", notes[-1]["text"])
+
+    def test_the_leads_bookkeeping_does_not_block_the_next_dispatch(self):
+        self.assertEqual(self.statectl("dispatch", "T1")[0], 0)
+        dirty = self.git("status", "--porcelain", "--untracked-files=no")
+        self.assertIn(".claude/state/journal.jsonl", dirty, "the first dispatch dirtied the journal")
+        (self.root / ".claude" / "console" / "console.html").write_text("rebuilt\n", encoding="utf-8")
+        code, out = self.statectl("dispatch", "T2")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.git("rev-parse", "--abbrev-ref", "HEAD",
+                                  cwd=self.root / ".claude" / "worktrees" / "t2"), "wt/t2")
+
+    def test_a_task_without_a_task_file_is_refused(self):
+        before = self.snapshot()
+        code, out = self.statectl("dispatch", "T9")
+        self.assert_refused(code, out, "no task file maps to T9", before)
+
+    def test_an_existing_worktree_path_is_refused(self):
+        self.wt.mkdir(parents=True)
+        before = self.snapshot()
+        code, out = self.statectl("dispatch", "T1")
+        self.assert_refused(code, out, ".claude/worktrees/t1 already exists", before)
+
+    def test_an_existing_branch_is_refused(self):
+        self.git("branch", "wt/t1")
+        before = self.snapshot()
+        code, out = self.statectl("dispatch", "T1")
+        self.assert_refused(code, out, "branch wt/t1 already exists", before)
+
+    def test_uncommitted_tracked_changes_are_refused(self):
+        (self.root / "src" / "app.py").write_text("x = 99\n", encoding="utf-8")
+        before = self.snapshot()
+        code, out = self.statectl("dispatch", "T1")
+        self.assert_refused(code, out, "uncommitted changes to tracked files (src/app.py)", before)
+        self.assertIn("Commit them first", out)
+
+    def test_an_uncommitted_task_file_is_refused(self):
+        (self.root / ".claude" / "tasks" / "030a-t3-new.md").write_text(
+            TASK_T1.replace("T1 - the thing", "T3 - new"), encoding="utf-8")
+        before = self.snapshot()
+        code, out = self.statectl("dispatch", "T3")
+        self.assert_refused(code, out, ".claude/tasks/030a-t3-new.md is not committed", before)
+
+    def test_a_worktree_outside_the_worktrees_folder_is_refused(self):
+        before = self.snapshot()
+        code, out = self.statectl("dispatch", "T1", "--worktree", "elsewhere/t1")
+        self.assert_refused(code, out, "a builder's worktree is .claude/worktrees/<name>", before)
+
+    def test_a_scout_gets_the_stub_and_no_worktree(self):
+        code, out = self.statectl("dispatch", "T1", "--agent", "scout")
+        self.assertEqual(code, 0, out)
+        self.assertFalse((self.root / ".claude" / "worktrees").exists())
+        self.assertEqual(self.git("branch", "--list", "wt/*"), "")
+        self.assertEqual(json.loads(_lib.stub_path("T1").read_text(encoding="utf-8"))["agent"], "scout")
+        self.assertNotIn("builder prompt", out)
+
+    def test_help_says_lead_only(self):
+        parser = statectl._build_parser()
+        sub = next(a for a in parser._actions if isinstance(a.choices, dict) and "accept" in a.choices)
+        for name in ("dispatch", "accept"):
+            with self.subTest(command=name):
+                self.assertIn("LEAD ONLY", sub.choices[name].format_help())
+
+
+class TestDispatchWithoutGit(GitIsolation):
+    def test_not_a_git_repository_is_refused(self):
+        (self.root / ".claude" / "tasks" / "030a-t1-thing.md").write_text(TASK_T1, encoding="utf-8")
+        code, out = self.statectl("dispatch", "T1")
+        self.assertEqual(code, 1, out)
+        self.assertIn("is not a git repository", out)
+        self.assertFalse(_lib.stub_path("T1").exists())
+        self.assertFalse((self.root / ".claude" / "worktrees").exists())
+
+
+class TestAccept(WorktreeCase):
+    def setUp(self) -> None:
+        super().setUp()
+        code, out = self.statectl("dispatch", "T1")
+        if code != 0:
+            self.tearDown()
+            self.fail(f"the fixture dispatch failed: {out}")
+        self.base = self.git("rev-parse", "HEAD")
+
+    def fake_builder(self, **envelope) -> None:
+        """What a builder leaves: real work, a new hook script, a rebuilt zip and projections (the
+        accidents accept must keep out of the merge), and its envelope."""
+        wt = self.wt
+        (wt / "src" / "app.py").write_text("x = 2\n", encoding="utf-8")
+        (wt / ".claude" / "hooks").mkdir(parents=True, exist_ok=True)
+        (wt / ".claude" / "hooks" / "new-hook.sh").write_text("#!/usr/bin/env bash\nexit 0\n",
+                                                              encoding="utf-8")
+        (wt / ".claude" / "dist" / "kit.zip").write_bytes(b"zip-REBUILT-by-the-builder")
+        (wt / ".claude" / "dist" / "extra.zip").write_bytes(b"new zip")
+        (wt / ".claude" / "state" / "session.json").write_text('{"builder": true}\n', encoding="utf-8")
+        (wt / ".claude" / "console" / "console.html").write_text("<html>builder</html>\n",
+                                                                 encoding="utf-8")
+        (wt / ".claude" / "system-map" / "map.json").write_text('{"x": 1}\n', encoding="utf-8")
+        envelope.setdefault("files_changed", ["src/app.py", ".claude/hooks/new-hook.sh"])
+        self.write_envelope("T1", root=wt, **envelope)
+
+    def test_accept_commits_merges_and_cleans_up(self):
+        self.fake_builder()
+        code, out = self.statectl("accept", "T1")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(STATE_RE.findall(out), ["OK"])
+        parents = self.git("rev-list", "--parents", "-n", "1", "HEAD").split()
+        self.assertEqual(len(parents), 3, "a --no-ff merge commit")
+        self.assertEqual(parents[1], self.base)
+        self.assertEqual(self.git("log", "-1", "--format=%s", "HEAD"), "merge T1: the thing")
+        self.assertEqual(self.git("log", "-1", "--format=%s", "HEAD^2"), "T1: the thing")
+        self.assertEqual((self.root / "src" / "app.py").read_text(encoding="utf-8"), "x = 2\n")
+        merged = self.git("diff", "--name-only", self.base, "HEAD").splitlines()
+        for path in ("src/app.py", ".claude/hooks/new-hook.sh", ".claude/state/handshakes/T1.json"):
+            with self.subTest(merged=path):
+                self.assertIn(path, merged)
+        for path in (".claude/dist/kit.zip", ".claude/dist/extra.zip", ".claude/state/session.json",
+                     ".claude/console/console.html", ".claude/system-map/map.json"):
+            with self.subTest(kept_out=path):
+                self.assertNotIn(path, merged)
+        self.assertEqual(self.git("show", "HEAD:.claude/dist/kit.zip"), "zip-v1")
+        self.assertEqual(self.git("ls-files", "-s", "--", ".claude/hooks/new-hook.sh").split()[0],
+                         "100755", "a new hook script merges executable")
+        self.assertFalse(self.wt.exists(), "the worktree is removed")
+        self.assertEqual(self.git("branch", "--list", "wt/t1"), "", "its branch is deleted")
+        self.assertIn("discarded the builder's change to derived .claude/dist/kit.zip", out)
+        self.assertIn("run_tests.py -q", out)
+        self.assertIn("statectl.py task T1 --status done", out)
+        self.assertEqual(self.task_events("T1"), [], "accept never marks the task done")
+        self.assertEqual(self.git("rev-parse", "--abbrev-ref", "HEAD"), "dev")
+
+    def test_message_names_the_commit(self):
+        self.fake_builder()
+        code, out = self.statectl("accept", "T1", "--message", "T1: widget renders")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.git("log", "-1", "--format=%s", "HEAD^2"), "T1: widget renders")
+        self.assertEqual(self.git("log", "-1", "--format=%s", "HEAD"), "merge T1: widget renders")
+
+    def test_an_invalid_envelope_commits_nothing(self):
+        for label, over in (("partial", {"status": "partial"}),
+                            ("red test", {"status": "partial", "tests": [
+                                {"command": "x", "exit_code": 1, "summary": "red"}]}),
+                            ("missing", None)):
+            with self.subTest(envelope=label):
+                self.fake_builder(**(over or {}))
+                if over is None:
+                    _lib.envelope_path("T1", self.wt).unlink()
+                wt_head = self.git("rev-parse", "HEAD", cwd=self.wt)
+                code, out = self.statectl("accept", "T1")
+                self.assertEqual(code, 1, out)
+                self.assertEqual(STATE_RE.findall(out), ["FAIL"])
+                self.assertIn("nothing was committed or merged", out)
+                self.assertEqual(self.git("rev-parse", "HEAD", cwd=self.wt), wt_head)
+                self.assertEqual(self.git("diff", "--cached", "--name-only", cwd=self.wt), "")
+                self.assertEqual(self.git("rev-parse", "HEAD"), self.base)
+                self.assertTrue(self.wt.is_dir())
+
+    def test_no_run_validates_without_rerunning(self):
+        self.fake_builder(tests=[{"command": py("raise SystemExit(3)"), "exit_code": 0,
+                                  "summary": "claimed green"}])
+        code, out = self.statectl("accept", "T1")
+        self.assertEqual(code, 1, "the rerun exposes the claim")
+        self.assertIn("exit 3, but the envelope records 0", out)
+        self.assertEqual(self.git("rev-parse", "HEAD"), self.base)
+        code, out = self.statectl("accept", "T1", "--no-run")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(len(self.git("rev-list", "--parents", "-n", "1", "HEAD").split()), 3)
+
+    def test_a_conflict_stops_with_the_merge_in_progress(self):
+        self.fake_builder()
+        (self.root / "src" / "app.py").write_text("x = 3\n", encoding="utf-8")
+        self.git("add", "src/app.py")
+        self.git("commit", "-q", "-m", "the lead changed the same line")
+        code, out = self.statectl("accept", "T1")
+        self.assertEqual(code, 1, out)
+        self.assertEqual(STATE_RE.findall(out), ["FAIL"])
+        self.assertIn("CONFLICT", out)
+        self.assertIn("  src/app.py", out)
+        self.assertIn("git merge --abort", out)
+        self.assertTrue(self.git("rev-parse", "-q", "--verify", "MERGE_HEAD"), "merge in progress")
+        self.assertTrue(self.wt.is_dir(), "the worktree is kept")
+        self.assertTrue(self.git("branch", "--list", "wt/t1"), "the branch is kept")
+        # The printed way to finish: resolve, commit, accept --no-run cleans up.
+        (self.root / "src" / "app.py").write_text("x = 4\n", encoding="utf-8")
+        self.git("add", "src/app.py")
+        self.git("commit", "-q", "--no-edit")
+        code, out = self.statectl("accept", "T1", "--no-run")
+        self.assertEqual(code, 0, out)
+        self.assertIn("already merged", out)
+        self.assertFalse(self.wt.exists())
+        self.assertEqual(self.git("branch", "--list", "wt/t1"), "")
+
+    def test_a_missing_worktree_says_re_dispatch(self):
+        self.git("worktree", "remove", "--force", str(self.wt))
+        code, out = self.statectl("accept", "T1")
+        self.assertEqual(code, 1, out)
+        self.assertIn("no worktree at .claude/worktrees/t1", out)
+        self.assertIn("re-dispatch", out)
 
 
 # =========================================================================== checkctl handoff
@@ -704,6 +1060,29 @@ class TestRegistrations(OrchCase):
         text = (CLAUDE_DIR / "reference" / "glossary.md").read_text(encoding="utf-8")
         for term in ("lead", "builder", "scout", "task card", "handoff"):
             self.assertRegex(text, rf"(?m)^- \*\*{term}\*\*:", term)
+
+    def test_dispatch_and_accept_are_documented(self):
+        protocol = re.sub(r"\s+", " ", self.PROTOCOL.read_text(encoding="utf-8"))
+        for phrase in ("`statectl.py dispatch <id>`", "`statectl.py accept <id>`",
+                       "--no-worktree", "the gate denies to sub-agents",
+                       "Never resume a builder whose worktree no longer exists: re-dispatch.",
+                       "Builders never stage or commit `.claude/dist/`",
+                       "git merge --no-ff wt/<name>"):
+            with self.subTest(protocol=phrase):
+                self.assertIn(phrase, protocol)
+        glossary = (CLAUDE_DIR / "reference" / "glossary.md").read_text(encoding="utf-8")
+        for term in ("dispatch", "accept"):
+            with self.subTest(glossary=term):
+                self.assertRegex(glossary, rf"(?m)^- \*\*{term}\*\*:")
+        for guide in (CLAUDE_DIR / "CLAUDE.md", CLAUDE_DIR / "skills" / "adopt" / "CLAUDE.template.md"):
+            with self.subTest(guide=guide.name):
+                self.assertIn("dispatch|accept", guide.read_text(encoding="utf-8"))
+        brief = re.sub(r"\s+", " ", (CLAUDE_DIR / "tasks" / "_builder-brief.md").read_text(encoding="utf-8"))
+        for phrase in ("`status` is exactly one of `done`, `partial`, `blocked`",
+                       "`python3 .claude/tools/checkctl.py handoff <TASK_ID>` must exit 0",
+                       "The zips (`.claude/dist/`)", "never rebuild, edit, stage or commit them"):
+            with self.subTest(brief=phrase):
+                self.assertIn(phrase, brief)
 
     def test_the_guides_point_at_the_protocol(self):
         guide = (CLAUDE_DIR / "CLAUDE.md").read_text(encoding="utf-8")
