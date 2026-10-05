@@ -1113,6 +1113,83 @@ def check_secrets_placement() -> Result:
                   f"{stats['scanned']} file(s) scanned ({scope}), no key-shaped strings{tail}", details)
 
 
+# --------------------------------------------------------------------------- deploy drift
+#
+# The deploy contract is "fixes only; new ideas go to `statectl proposal add`". A fix rarely adds
+# a file; a feature nearly always does. So the ritual lists the files added since the deploy
+# phase began, outside the paths phases.json's drift_ignore names (tests, docs, the system's own
+# bookkeeping). A WARN, never a block: the list informs a human, it cannot judge intent.
+
+DEFAULT_DRIFT_IGNORE = ("tests/", "test/", "docs/", "doc/", "test_*", "*_test.*", "*.test.*",
+                        "*.spec.*", "*.md", "*.rst", ".claude/state/", ".claude/tasks/",
+                        ".claude-iff/")
+
+
+def _drift_ignored(rel: str, patterns) -> bool:
+    """`dir/` patterns match that directory run anywhere in the path; others are fnmatch globs
+    over the file name and the whole path. Compared through normcase (L-9)."""
+    import fnmatch
+    parts = [os.path.normcase(p) for p in rel.split("/")]
+    for pat in patterns:
+        pat = str(pat)
+        if pat.endswith("/"):
+            seg = [os.path.normcase(p) for p in pat.strip("/").split("/")]
+            dirs = parts[:-1]
+            if any(dirs[i:i + len(seg)] == seg for i in range(len(dirs) - len(seg) + 1)):
+                return True
+        elif fnmatch.fnmatch(parts[-1], pat) or fnmatch.fnmatch(rel, pat):
+            return True
+    return False
+
+
+def deploy_added_files(root: Path, since_ts: str) -> list:
+    """Files added since `since_ts`: in commits since then, staged as new, or untracked and
+    written after it (an untracked file has no git history, so its mtime is the only witness).
+    Git through subprocess with argv, never a shell."""
+    since = _lib.parse_ts(since_ts)
+    if since is None:
+        return []
+    git_since = since.strftime("%Y-%m-%d %H:%M:%S +0000")
+    added = set()
+    log = _lib.git_output(["-c", "core.quotepath=off", "log", f"--since={git_since}",
+                           "--diff-filter=A", "--name-only", "--pretty=format:"], root=root)
+    staged = _lib.git_output(["-c", "core.quotepath=off", "diff", "--cached", "--name-only",
+                              "--diff-filter=A"], root=root)
+    added |= {line.strip() for line in (log + "\n" + staged).splitlines() if line.strip()}
+    others = _lib.git_output(["-c", "core.quotepath=off", "ls-files", "--others",
+                              "--exclude-standard"], root=root)
+    for line in others.splitlines():
+        rel = line.strip()
+        try:
+            if rel and (root / rel).stat().st_mtime >= since.timestamp():
+                added.add(rel)
+        except OSError:
+            continue
+    return sorted(added)
+
+
+def check_deploy_drift() -> Result:
+    state = _lib.lifecycle_state()
+    if state["mode"] not in _lib.ORGANISED_MODES:
+        return Result("deploy_drift", SKIP, f"{_lib.mode_label(state['mode'])}: no phase contract to drift from")
+    if state["phase"] != "deploy":
+        return Result("deploy_drift", SKIP, f"phase is {state['phase'] or 'unset'}, not deploy")
+    root = _lib.project_root()
+    if not (root / ".git").exists():
+        return Result("deploy_drift", SKIP, "not a git repository")
+    since = state["phase_since"] or ""
+    patterns = _lib.load_config("phases").get("drift_ignore")
+    if not isinstance(patterns, list):
+        patterns = list(DEFAULT_DRIFT_IGNORE)
+    drift = [rel for rel in deploy_added_files(root, since) if not _drift_ignored(rel, patterns)]
+    if drift:
+        return Result("deploy_drift", WARN,
+                      f"{len(drift)} file(s) added since deploy began ({since}) outside tests/docs: "
+                      f"deploy is fixes only; park new ideas with `statectl proposal add`",
+                      drift[:20])
+    return Result("deploy_drift", OK, f"no new files outside tests/docs since deploy began ({since})")
+
+
 CHECKS = {
     "journal_parses": check_journal_parses,
     "heartbeat_present": check_heartbeat,
@@ -1128,6 +1205,7 @@ CHECKS = {
     "theme_token_parity": check_theme_token_parity,
     "changelog_parity": check_changelog_parity,
     "secrets_placement": check_secrets_placement,
+    "deploy_drift": check_deploy_drift,
 }
 
 
@@ -1328,6 +1406,7 @@ def probe() -> list:
         ("config.registry", ".claude/config/registry.json"),
         ("config.model-prices", ".claude/config/model-prices.json"),
         ("config.brainstorm", ".claude/config/brainstorm.json"),
+        ("config.phases", ".claude/config/phases.json"),
         ("map.layers", ".claude/system-map/layers.json"),
         ("console.template", ".claude/console/console.template.html"),
         ("console.server", ".claude/console/console.py"),
@@ -1356,9 +1435,9 @@ def probe() -> list:
 MIN_PYTHON = (3, 8)
 EXPECTED_HOOKS = ("session-start.sh", "heartbeat.sh", "obs-capture.sh", "policy-gate.sh",
                   "post-write-validate.sh")
-DOCTOR_CONFIGS = ("memory", "policy", "observe", "console", "registry", "model-prices")
-WORK_MODES = ("freestyle", "guided", "fableous")
-LIFECYCLE_PHASES = ("plan", "build", "review", "deploy")
+DOCTOR_CONFIGS = ("memory", "policy", "observe", "console", "registry", "model-prices", "phases")
+WORK_MODES = _lib.MODES
+LIFECYCLE_PHASES = _lib.LIFECYCLE_PHASES
 # Path fragments of the common sync clients (lowercased, posix form). A heuristic: an OK row
 # says "no marker found", never "not synced".
 CLOUD_SYNC_MARKERS = ("dropbox", "onedrive", "icloud", "google drive", "googledrive",
@@ -1587,7 +1666,7 @@ def _doctor_mode():
     if not mode:
         return (Result("mode", SKIP, "no mode recorded: freestyle applies"),
                 "none needed; `statectl mode` sets one where this install has it")
-    if mode in WORK_MODES:
+    if _lib.normalize_mode(mode):  # a full name, or an input alias someone wrote by hand
         return Result("mode", OK, f"mode: {mode}"), ""
     return Result("mode", WARN, f"unknown mode {mode!r}"), f"set one of: {', '.join(WORK_MODES)}"
 
@@ -1656,6 +1735,245 @@ def render_doctor(rows: list) -> None:
     print(f"\n{summarize([r for r, _ in rows])}")
 
 
+# --------------------------------------------------------------------------- phase exits
+#
+# `checkctl phase-exit --from <phase>`: may the project leave this lifecycle phase? READ-ONLY:
+# no state file, no run record. `statectl phase` calls phase_exit() in the organised modes and
+# refuses on FAIL unless --override. phases.json names each phase's exit check (`exit`); the
+# names are bound to code here, like every other step name - a data file never carries a check.
+#
+# Task files are .claude/tasks/*.md minus `_`-prefixed scaffolds (the template), files with no
+# `_Created ... · Status: X_` line (briefs) and the archive. A task file is matched to its
+# journal task by the file stem (the /plan-task id) or by the id leading its title
+# (`# Task: T4 - ...`).
+
+DEFAULT_BUILD_TEST_TIMEOUT = 1800
+TEST_TAIL_LINES = 8
+# The same status line consolectl's task reader parses, so the console and the exit check agree.
+_TASK_STATUS_LINE_RE = _lib.TASK_STATUS_LINE_RE
+_TASK_TITLE_LINE_RE = re.compile(r"^#\s*Task:\s*(.+?)\s*$", re.MULTILINE)
+_TITLE_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)\s+[-–—:]\s")
+_DOD_RE = re.compile(r"^[ \t]*\*\*Definition of done:\*\*(.*?)(?:\n[ \t]*\n|\Z)", re.MULTILINE | re.DOTALL)
+_TEST_RE = re.compile(r"^[ \t]*\*\*Test:\*\*(.*?)(?:\n[ \t]*\n|\Z)", re.MULTILINE | re.DOTALL)
+_BACKTICK_RE = re.compile(r"`([^`\n]+)`")
+
+
+def parse_task_file(path: Path) -> dict | None:
+    """The exit checks' view of one task file, or None when the file is not a task (it has no
+    status line). `test_commands` is None when there is no **Test:** paragraph at all."""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    status_m = _TASK_STATUS_LINE_RE.search(text)
+    if not status_m:
+        return None
+    title_m = _TASK_TITLE_LINE_RE.search(text)
+    title = title_m.group(1).strip() if title_m else path.stem
+    ids = [path.stem]
+    id_m = _TITLE_ID_RE.match(title)
+    if id_m and id_m.group(1) != path.stem:
+        ids.append(id_m.group(1))
+    dod_m = _DOD_RE.search(text)
+    dod = " ".join(dod_m.group(1).split()) if dod_m else None
+    test_m = _TEST_RE.search(text)
+    return {
+        "path": path, "file": path.name, "title": title,
+        "status": status_m.group(1).strip().lower(), "ids": ids, "dod": dod,
+        "test_commands": _BACKTICK_RE.findall(test_m.group(1)) if test_m else None,
+    }
+
+
+def task_files(include_archive: bool = False) -> list:
+    tdir = _lib.claude_dir() / "tasks"
+    if not tdir.is_dir():
+        return []
+    files = [p for p in sorted(tdir.glob("*.md")) if not p.name.startswith("_")]
+    if include_archive and (tdir / "archive").is_dir():
+        files += sorted((tdir / "archive").rglob("*.md"))
+    return [t for t in (parse_task_file(p) for p in files) if t]
+
+
+def _journal_tasks() -> dict:
+    """casefolded task id -> the projector's task record (id, status, milestone, ...)."""
+    import statectl
+    return {t["id"].casefold(): t for t in statectl._build_session_projection()["tasks"]}
+
+
+def _match_journal_task(task_file: dict, journal: dict):
+    for candidate in task_file["ids"]:
+        hit = journal.get(candidate.casefold())
+        if hit is not None:
+            return hit
+    return None
+
+
+def current_milestone() -> str | None:
+    """The body of work in flight: the latest `milestone` event's id, else the milestone the
+    latest task event names."""
+    latest_event = latest_task = None
+    for ev in _lib.journal_read(tolerant=True):
+        if ev.get("action") == "milestone" and ev.get("id"):
+            latest_event = str(ev["id"])
+        elif ev.get("action") == "task" and ev.get("milestone"):
+            latest_task = str(ev["milestone"])
+    return latest_event or latest_task
+
+
+def _test_problem(task_file: dict) -> str | None:
+    tests = task_file["test_commands"]
+    if tests is None:
+        return "no **Test:** line"
+    if len(tests) != 1:
+        return f"**Test:** holds {len(tests)} backticked spans; it needs exactly one command"
+    if tests[0].strip().startswith("<"):
+        return "**Test:** is still the template placeholder"
+    return None
+
+
+def exit_plan(**_kw) -> list:
+    """plan -> next: at least one open task file; each with a real Definition of done, one
+    backticked Test command, and a journal task registered under a milestone."""
+    open_files = [t for t in task_files() if t["status"] != "done"]
+    if not open_files:
+        return [Result("task_files", FAIL, "no open task file in .claude/tasks/: plan at least "
+                                           "one (/plan-task) before leaving plan")]
+    journal = _journal_tasks()
+    results = []
+    for tf in open_files:
+        problems = []
+        if not tf["dod"]:
+            problems.append("no **Definition of done:**")
+        elif tf["dod"].startswith("<"):
+            problems.append("**Definition of done:** is still the template placeholder")
+        test_problem = _test_problem(tf)
+        if test_problem:
+            problems.append(test_problem)
+        jt = _match_journal_task(tf, journal)
+        suggest = tf["ids"][-1]
+        if jt is None:
+            problems.append(f"not registered: statectl task {suggest} --title \"...\" "
+                            f"--status todo --milestone <mid>")
+        elif not jt.get("milestone"):
+            problems.append(f"journal task {jt['id']} has no milestone: "
+                            f"statectl task {jt['id']} --milestone <mid>")
+        if problems:
+            results.append(Result(tf["file"], FAIL, "; ".join(problems)))
+        else:
+            results.append(Result(tf["file"], OK, f"task {jt['id']} under {jt['milestone']}, "
+                                                  f"test `{tf['test_commands'][0]}`"))
+    return results
+
+
+def run_task_test(command: str, timeout: int) -> tuple:
+    """(status, message, details) for one Test command: run from the repo root, argv from
+    shlex, never a shell. A missing interpreter is a FAIL that says so."""
+    import shlex
+    try:
+        argv = shlex.split(command)
+    except ValueError as exc:
+        return FAIL, f"Test command does not parse ({exc}): `{command}`", []
+    if not argv:
+        return FAIL, "Test command is empty", []
+    try:
+        res = subprocess.run(argv, cwd=str(_lib.project_root()), capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", timeout=timeout, check=False)
+    except FileNotFoundError:
+        return FAIL, (f"`{argv[0]}` was not found on PATH: the Test command's interpreter is "
+                      f"missing on this machine (`{command}`)"), []
+    except subprocess.TimeoutExpired:
+        return FAIL, f"`{command}` timed out after {timeout}s (phases.json build_test_timeout)", []
+    except OSError as exc:
+        return FAIL, f"`{command}` could not run: {exc}", []
+    tail = [ln for ln in ((res.stdout or "") + (res.stderr or "")).splitlines() if ln.strip()]
+    tail = tail[-TEST_TAIL_LINES:]
+    if res.returncode == 0:
+        return OK, f"`{command}` exit 0", tail
+    return FAIL, f"`{command}` exit {res.returncode}", tail
+
+
+def exit_build(milestone: str | None = None, **_kw) -> list:
+    """build -> next: every task of the current milestone is done and its Test exits 0 now."""
+    mid = milestone or current_milestone()
+    if not mid:
+        return [Result("milestone", FAIL, "no milestone recorded: statectl milestone <id> "
+                                          "--title ... and link tasks with --milestone")]
+    tasks = [t for t in _journal_tasks().values() if t.get("milestone") == mid]
+    if not tasks:
+        return [Result("milestone", FAIL, f"no task is registered under milestone {mid}")]
+    try:
+        timeout = int(_lib.load_config("phases").get("build_test_timeout", DEFAULT_BUILD_TEST_TIMEOUT))
+    except (TypeError, ValueError):
+        timeout = DEFAULT_BUILD_TEST_TIMEOUT
+    files = task_files(include_archive=True)
+    results = [Result("milestone", OK, f"{mid}: {len(tasks)} task(s)")]
+    ran: dict = {}  # tasks often share a Test (the whole suite): run each command once
+    for jt in sorted(tasks, key=lambda t: t["id"]):
+        tf = next((f for f in files if jt["id"].casefold() in [i.casefold() for i in f["ids"]]), None)
+        if jt.get("status") != "done":
+            results.append(Result(jt["id"], FAIL, f"status {jt.get('status')}, not done (Test not run)"))
+            continue
+        if tf is None:
+            results.append(Result(jt["id"], FAIL, "no task file names this task in .claude/tasks/ "
+                                                  "(or its archive): there is no Test to run"))
+            continue
+        problem = _test_problem(tf)
+        if problem:
+            results.append(Result(jt["id"], FAIL, f"{tf['file']}: {problem}"))
+            continue
+        command = tf["test_commands"][0]
+        if command not in ran:
+            ran[command] = run_task_test(command, timeout)
+        status, message, tail = ran[command]
+        results.append(Result(jt["id"], status, message, tail))
+    return results
+
+
+def exit_review(signoff: str | None = None, **_kw) -> list:
+    """review -> next: the human tested it and says so, in words."""
+    text = (signoff or "").strip()
+    if text:
+        return [Result("signoff", OK, f"signed off: {text}")]
+    return [Result("signoff", FAIL, "review ends on the human's sign-off: statectl phase <next> "
+                                    "--signoff \"<what was tested and what was found>\"")]
+
+
+def exit_deploy(**_kw) -> list:
+    """deploy -> next: `checkctl doctor` has no FAIL row."""
+    rows = doctor()
+    failed = [r for r, _fix in rows if r.status == FAIL]
+    if failed:
+        return [Result("doctor", FAIL, f"checkctl doctor has {len(failed)} FAIL row(s)",
+                       [f"{r.name}: {r.message}" for r in failed])]
+    warned = sum(1 for r, _fix in rows if r.status == WARN)
+    return [Result("doctor", OK, f"checkctl doctor: no FAIL ({warned} warn)")]
+
+
+PHASE_EXITS = {
+    "plan_ready": exit_plan,
+    "build_green": exit_build,
+    "review_signoff": exit_review,
+    "deploy_doctor": exit_deploy,
+}
+DEFAULT_PHASE_EXIT = {"plan": "plan_ready", "build": "build_green", "review": "review_signoff",
+                      "deploy": "deploy_doctor"}
+
+
+def phase_exit(phase: str, signoff: str | None = None, milestone: str | None = None) -> list:
+    """The exit check of one phase, as Results. Any FAIL means the phase may not be left (a
+    check that raises is a FAIL, never a silent pass)."""
+    value = _lib.normalize_phase(phase)
+    if value is None:
+        return [Result("phase_exit", FAIL, f"unknown phase {phase!r}: one of "
+                                           f"{', '.join(_lib.LIFECYCLE_PHASES)}")]
+    name = str(_lib.phase_spec(value).get("exit") or DEFAULT_PHASE_EXIT[value])
+    fn = PHASE_EXITS.get(name)
+    if fn is None:
+        return [Result(name, FAIL, f"phases.json names exit check '{name}' for {value}, which "
+                                   f"checkctl.PHASE_EXITS lacks")]
+    try:
+        return fn(signoff=signoff, milestone=milestone)
+    except Exception as exc:  # noqa: BLE001
+        return [Result(name, FAIL, f"exit check raised {type(exc).__name__}: {exc}")]
+
+
 # --------------------------------------------------------------------------- cli
 
 def main(argv=None) -> int:
@@ -1682,6 +2000,13 @@ def main(argv=None) -> int:
     doctor_cmd = sub.add_parser("doctor", help="read-only: can this machine run the system? one "
                                                "row per prerequisite, exit 1 on any FAIL")
     doctor_cmd.add_argument("--json", action="store_true")
+    exit_cmd = sub.add_parser("phase-exit", help="read-only: may the project leave this lifecycle "
+                                                 "phase? exit 1 on any FAIL")
+    exit_cmd.add_argument("--from", dest="from_phase", required=True, choices=_lib.LIFECYCLE_PHASES)
+    exit_cmd.add_argument("--signoff", help="the human's sign-off text (the review exit needs one)")
+    exit_cmd.add_argument("--milestone", help="build exit: check this milestone instead of the "
+                                              "current one")
+    exit_cmd.add_argument("--json", action="store_true")
     complete = sub.add_parser("complete", help="mark the ritual complete (called at the end of EVOLVE)")
     complete.add_argument("--note", default="")
 
@@ -1721,6 +2046,17 @@ def main(argv=None) -> int:
         else:
             render_doctor(rows)
         _lib.print_verdict("CHECK", not failed, warn=warned)
+        return 1 if failed else 0
+
+    if args.command == "phase-exit":
+        results = phase_exit(args.from_phase, signoff=args.signoff, milestone=args.milestone)
+        failed = any(r.status == FAIL for r in results)
+        if args.json:
+            print(json.dumps({"phase": args.from_phase, "pass": not failed,
+                              "results": [r.as_dict() for r in results]}, indent=2))
+        else:
+            render(results, f"phase-exit {args.from_phase}")
+        _lib.print_verdict("CHECK", not failed)
         return 1 if failed else 0
 
     if args.command == "complete":

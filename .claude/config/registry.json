@@ -16,7 +16,8 @@
       "observe",
       "console",
       "model-prices",
-      "brainstorm"
+      "brainstorm",
+      "phases"
     ],
     "exempt_keys": [
       "version",
@@ -527,6 +528,45 @@
       },
       "type": "string",
       "default": "inherit"
+    },
+    {
+      "key": "phases.phases",
+      "title": "Phase contracts",
+      "description": "Per lifecycle phase (plan, build, review, deploy): a label, a contract of at most five lines printed at session start in the guided-solo and fableous-orchestrated modes, and the name of the exit check (bound in checkctl.PHASE_EXITS) that statectl phase runs before leaving it.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "phases",
+        "path": "phases"
+      },
+      "type": "dict",
+      "default": "plan_ready / build_green / review_signoff / deploy_doctor"
+    },
+    {
+      "key": "phases.build_test_timeout",
+      "title": "Build exit test timeout",
+      "description": "Seconds each task's Test command may run in the build exit check (checkctl phase-exit --from build). A timeout is a FAIL for that task. Generous by default: a Test may be a whole suite.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "phases",
+        "path": "build_test_timeout"
+      },
+      "type": "int",
+      "default": 1800
+    },
+    {
+      "key": "phases.drift_ignore",
+      "title": "Deploy drift ignore list",
+      "description": "Paths the ritual's deploy_drift check does not list as new work while in the deploy phase: 'dir/' entries match that directory anywhere in a path, other entries are file-name or path globs. Defaults cover tests, docs and the system's own bookkeeping.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "phases",
+        "path": "drift_ignore"
+      },
+      "type": "list",
+      "default": "tests/, docs/, *.md, .claude/state/, .claude/tasks/, .claude-iff/ and friends"
     }
   ]
 }

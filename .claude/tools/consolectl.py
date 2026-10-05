@@ -42,7 +42,8 @@ def _read_heartbeat() -> tuple[dict, float | None]:
 
 
 def _read_session() -> tuple[str | None, str | None, str | None, list]:
-    # session.json is statectl.py's projection: {..., "session": {"id","phase","started"},
+    # session.json is statectl.py's projection: {..., "session": {"id","mode","phase",
+    # "phase_since","started"},
     # "resume_pointer", "open_loops": [{"id","text","ts"}], ...}. Read through THAT shape,
     # not a guessed flat one - see obsctl.py's ROLLUP_CONTRACT comment for why a console
     # reader that guesses at a producer's key names is exactly the bug class this system
@@ -117,6 +118,11 @@ def _journal_summary(ev: dict) -> str:
         return str(ev.get("what", ""))
     if action == "gate":
         return str(ev.get("question", ""))
+    if action == "mode":
+        return _lib.mode_label(ev.get("value"))
+    if action == "phase":
+        return (f"{ev.get('from') or 'unset'} -> {ev.get('value', '')}"
+                + (f" · override: {ev['override']}" if ev.get("override") else ""))
     for key in ("text", "title", "note", "what", "question"):
         if ev.get(key):
             return str(ev.get(key))
@@ -156,6 +162,28 @@ def _read_in_flight() -> list:
     return out
 
 
+def _read_lifecycle() -> dict:
+    """The mode/phase dials for the top-bar badge, through _lib's one reader - the same fold
+    the SessionStart hook prints, so the badge and the session start can never disagree.
+    Named `lifecycle`, not `mode`: the payload's top-level `mode` is live/static."""
+    try:
+        state = _lib.lifecycle_state()
+    except Exception:  # noqa: BLE001 - the console renders with or without a journal
+        state = {"mode": _lib.DEFAULT_MODE, "mode_set": False, "phase": None, "phase_since": None}
+    mode, phase = state["mode"], state["phase"]
+    organised = mode in _lib.ORGANISED_MODES
+    return {
+        "mode": mode,
+        "mode_label": _lib.mode_label(mode),
+        "mode_set": bool(state["mode_set"]),
+        "organised": organised,
+        "phase": phase,
+        "phase_label": _lib.phase_label(phase) if phase else None,
+        "phase_since": state["phase_since"],
+        "contract": _lib.phase_contract(phase) if (phase and organised) else [],
+    }
+
+
 def _read_now() -> dict:
     heartbeat, heartbeat_age = _read_heartbeat()
     resume_pointer, phase, session_id, open_loops = _read_session()
@@ -165,6 +193,7 @@ def _read_now() -> dict:
         "resume_pointer": resume_pointer,
         "phase": phase,
         "session_id": session_id,
+        "lifecycle": _read_lifecycle(),
         "open_loops": open_loops,
         "in_flight": _read_in_flight(),
         "needs_human": _read_needs_human(),
@@ -240,7 +269,7 @@ def _read_tokens() -> dict:
 # --------------------------------------------------------------------------- work
 
 _TASK_TITLE_RE = re.compile(r"^#\s*Task:\s*(.+?)\s*$", re.MULTILINE)
-_TASK_STATUS_RE = re.compile(r"^_Created.*?·\s*Status:\s*([A-Za-z0-9_-]+)_?\s*$", re.MULTILINE)
+_TASK_STATUS_RE = _lib.TASK_STATUS_LINE_RE  # shared with checkctl's phase exits
 _SECTION_RE = "##\\s*{name}(.*?)(?:\\n##\\s|\\Z)"
 _CHECKPOINT_RE = re.compile(_SECTION_RE.format(name="Checkpoint"), re.DOTALL)
 _NEEDS_HUMAN_RE = re.compile(_SECTION_RE.format(name="NEEDS-HUMAN"), re.DOTALL)
@@ -324,9 +353,27 @@ def _read_research() -> list:
     return out
 
 
+PROPOSALS_RESOLVED_SHOWN = 5
+
+
+def _read_proposals() -> dict:
+    """The proposal box (state/proposals.jsonl, folded by _lib.proposal_records - the reader
+    statectl uses too): every open proposal, oldest first, then the latest few resolved."""
+    try:
+        records = _lib.proposal_records()
+    except Exception:  # noqa: BLE001 - a broken store degrades to an empty box
+        records = []
+    keys = ("id", "text", "source", "kind", "status", "note")
+    open_items = [{k: r.get(k, "") for k in keys} for r in records if r.get("status") == "open"]
+    resolved = sorted((r for r in records if r.get("status") != "open"), key=lambda r: r.get("resolved", ""))
+    recent = [{k: r.get(k, "") for k in keys} for r in resolved[-PROPOSALS_RESOLVED_SHOWN:]]
+    return {"open": len(open_items), "resolved": len(resolved), "items": open_items + recent[::-1]}
+
+
 def _read_work() -> dict:
     return {
         "tasks": _read_tasks(),
+        "proposals": _read_proposals(),
         "log_tail": _read_log_tail(),
         "watch_outs": _read_watch_outs(),
         "research": _read_research(),
@@ -420,7 +467,8 @@ def payload(live: bool = False) -> dict:
         "map": map_data,
         "story": story_data,
         "analysis": analysis,
-        "freshness": {"live": ["now", "analysis"], "ritual": ["tokens", "work.log_tail", "map", "story"]},
+        "freshness": {"live": ["now", "analysis", "work.proposals"],
+                      "ritual": ["tokens", "work.log_tail", "map", "story"]},
         "warnings": warnings,
     }
 

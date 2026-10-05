@@ -3,7 +3,9 @@
 # context, which makes it the one place where "where were we" arrives without anyone asking.
 #
 # Three jobs, in order of importance:
-#   1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts).
+#   1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts),
+#      then one MODE/PHASE line; in the guided-solo and fableous-orchestrated modes also the
+#      current phase's contract (at most five lines, from config/phases.json).
 #   2. Nudge if the ritual has not run in a while. The nudge lives HERE rather than on
 #      SessionEnd because SessionStart's stdout->context path is the one we can prove works.
 #   3. Optionally start the console server, guarded by a pidfile so N sessions start one server.
@@ -51,6 +53,13 @@ elif not journal.exists():
         "  python3 .claude/tools/statectl.py start --session <name>\n"
         "and set a pointer before any long or risky operation."
     )
+
+# 1b. the dials: mode and phase, through _lib's one reader. Display only, so it fails open: a
+# broken phases.json (or an older _lib without the reader) loses these lines, never the session.
+try:
+    lines.append("\n".join(_lib.lifecycle_banner()))
+except Exception:
+    pass
 
 # 2. the ritual nudge
 try:

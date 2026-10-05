@@ -9,16 +9,21 @@
   "reads": [
     "store.journal",
     "store.needs_human",
-    "store.heartbeat"
+    "store.heartbeat",
+    "store.proposals",
+    "config.phases"
   ],
   "writes": [
     "store.journal",
     "store.session",
     "store.handoff",
     "store.needs_human",
-    "store.machine"
+    "store.machine",
+    "store.proposals"
   ],
-  "invokes": [],
+  "invokes": [
+    "tool.checkctl"
+  ],
   "flows": [],
   "glyphs": [],
   "auto": {

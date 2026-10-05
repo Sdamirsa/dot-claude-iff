@@ -70,6 +70,11 @@ class PayloadEmptyProjectTests(FixtureCase):
             "top": [],
         })
         self.assertEqual(now["journal_tail"], [])
+        self.assertEqual(now["lifecycle"], {
+            "mode": "freestyle", "mode_label": "Freestyle", "mode_set": False,
+            "organised": False, "phase": None, "phase_label": None, "phase_since": None,
+            "contract": [],
+        })
 
         tok = data["tokens"]
         self.assertIsNone(tok["as_of"])
@@ -81,6 +86,7 @@ class PayloadEmptyProjectTests(FixtureCase):
 
         work = data["work"]
         self.assertEqual(work["tasks"], [])
+        self.assertEqual(work["proposals"], {"open": 0, "resolved": 0, "items": []})
         self.assertEqual(work["log_tail"], [])
         self.assertEqual(work["watch_outs"], [])
         self.assertEqual(work["research"], [])
@@ -88,7 +94,8 @@ class PayloadEmptyProjectTests(FixtureCase):
         self.assertIsNone(data["map"])
         self.assertIsNone(data["story"])
 
-        self.assertEqual(data["freshness"], {"live": ["now", "analysis"], "ritual": ["tokens", "work.log_tail", "map", "story"]})
+        self.assertEqual(data["freshness"], {"live": ["now", "analysis", "work.proposals"],
+                                             "ritual": ["tokens", "work.log_tail", "map", "story"]})
 
         self.assertIn("no heartbeat yet", data["warnings"])
         # The shipped default is billing "subscription", under which an empty price table is
@@ -190,6 +197,78 @@ class InFlightEnvelopeTests(FixtureCase):
         task_ids = {item["task_id"] for item in data["now"]["in_flight"]}
         self.assertIn("HS1", task_ids)
         self.assertNotIn("HS2", task_ids)
+
+
+class LifecycleAndProposalsTests(FixtureCase):
+    """The mode/phase badge and the WORK tab's proposal box: payload keys read through the same
+    _lib readers statectl and the SessionStart hook use, and a template that renders them."""
+
+    def run_statectl(self, *argv):
+        import contextlib
+        import io
+        import statectl
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            return statectl.main(list(argv))
+
+    def test_badge_data_follows_the_journal(self):
+        self.run_statectl("mode", "guided")
+        self.run_statectl("phase", "build")
+        life = consolectl.payload()["now"]["lifecycle"]
+        self.assertEqual(life["mode"], "guided-solo")
+        self.assertEqual(life["mode_label"], "Guided Solo")
+        self.assertTrue(life["mode_set"])
+        self.assertTrue(life["organised"])
+        self.assertEqual(life["phase"], "build")
+        self.assertEqual(life["phase_label"], "Build")
+        self.assertTrue(life["phase_since"])
+        self.assertEqual(life["contract"], _lib.phase_contract("build"))
+        self.assertTrue(life["contract"])
+
+    def test_a_malformed_phases_config_degrades_instead_of_raising(self):
+        self.run_statectl("mode", "guided")
+        self.run_statectl("phase", "build")
+        self.write_config("phases", ["not", "an", "object"])
+        life = consolectl.payload()["now"]["lifecycle"]  # must not raise
+        self.assertEqual((life["phase"], life["phase_label"], life["contract"]), ("build", "Build", []))
+
+    def test_freestyle_badge_carries_no_contract(self):
+        self.run_statectl("phase", "deploy")
+        life = consolectl.payload()["now"]["lifecycle"]
+        self.assertEqual((life["mode"], life["phase"], life["contract"]), ("freestyle", "deploy", []))
+        self.assertEqual(consolectl.payload()["mode"], "static",
+                         "the top-level live/static mode is a different thing and stays put")
+
+    def test_proposals_list_open_first_then_recent_resolved(self):
+        self.run_statectl("proposal", "add", "plugin packaging", "--source", "issue#13")
+        self.run_statectl("proposal", "add", "per-write scan", "--source", "agent:verifier", "--kind", "fix")
+        self.run_statectl("proposal", "resolve", "PR-1", "--as", "planned", "--note", "in M2")
+        props = consolectl.payload()["work"]["proposals"]
+        self.assertEqual((props["open"], props["resolved"]), (1, 1))
+        self.assertEqual([p["id"] for p in props["items"]], ["PR-2", "PR-1"])
+        self.assertEqual(props["items"][0], {"id": "PR-2", "text": "per-write scan",
+                                             "source": "agent:verifier", "kind": "fix",
+                                             "status": "open", "note": ""})
+        self.assertEqual(props["items"][1]["status"], "planned")
+        self.assertEqual(props["items"][1]["note"], "in M2")
+
+    def test_journal_tail_summarises_the_dials(self):
+        self.run_statectl("mode", "fableous")
+        self.run_statectl("phase", "plan")
+        summaries = [ev["summary"] for ev in consolectl.payload()["now"]["journal_tail"]]
+        self.assertIn("Fableous Orchestrated", summaries)
+        self.assertIn("unset -> plan", summaries)
+
+    def test_template_renders_the_badge_and_the_list(self):
+        template = (CONSOLE_DIR / "console.template.html").read_text(encoding="utf-8")
+        self.assertIn('id="lifecycle-badge"', template)
+        self.assertIn('id="mode-badge"', template, "the live/static badge stays its own element")
+        for key in (".lifecycle", ".mode_label", ".phase_label", ".contract", ".organised",
+                    "work.proposals", "proposal resolve "):
+            self.assertIn(key, template, key)
+        _install_template(self)
+        self.run_statectl("proposal", "add", "an idea", "--source", "human")
+        result = consolectl.build()  # renders end to end with the new keys present
+        self.assertIn("lifecycle-badge", result["path"].read_text(encoding="utf-8"))
 
 
 class BuildWriteGatingTests(FixtureCase):

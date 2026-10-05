@@ -1,8 +1,14 @@
 # Task: <name>
 
+_Created YYYY-MM-DD · Status: todo_
+
 Copy this file to `.claude/tasks/<slug>.md`. One file per task. This file, not the
 conversation, is what survives a disconnect: a resumed session reads it before doing anything
-else.
+else. Register it in the journal under its milestone, with the file name (no `.md`) as the id:
+`python3 .claude/tools/statectl.py task <slug> --title "<name>" --status todo --milestone <mid>`.
+The status line above moves todo -> doing -> done (or blocked) as the work does.
+
+Milestone: <mid>
 
 ## Goal
 
@@ -11,6 +17,8 @@ else.
 **Definition of done:** <the verifiable condition that closes this task, e.g. "checkctl.py
 probe passes for the new component" or "the report file exists and the numbers in it trace to
 a source">
+
+**Test:** `<one command that proves the Definition of done, e.g. python3 -m pytest tests/test_x.py -q>`
 
 ## Context
 

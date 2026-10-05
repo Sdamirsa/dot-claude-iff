@@ -13,6 +13,7 @@
     "config.observe",
     "config.policy",
     "config.console",
+    "config.phases",
     "store.journal",
     "store.heartbeat",
     "store.memory_run",

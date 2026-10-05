@@ -1,0 +1,23 @@
+{
+  "id": "store.proposals",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Proposal box",
+  "path": ".claude/state/proposals.jsonl",
+  "description": "Ideas out of scope right now (statectl proposal add/list/resolve, ids PR-<n>): append-only, its own store like needs-human so a parked idea outlives any session. Open count lands in session.json; listed on the console WORK tab.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "append-only"
+  ],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

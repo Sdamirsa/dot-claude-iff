@@ -1,0 +1,20 @@
+{
+  "id": "config.phases",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Phases",
+  "path": ".claude/config/phases.json",
+  "description": "The lifecycle phases (plan -> build -> review -> deploy): what work each phase allows, and the check that must pass to leave it.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "ea06bdf0df18c24c7eb6a5fd5518aeb3d40100867b8594d010d0b53db459e64a",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

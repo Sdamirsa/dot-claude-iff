@@ -10,7 +10,8 @@
     "store.journal",
     "store.memory_run",
     "store.machine",
-    "config.console"
+    "config.console",
+    "config.phases"
   ],
   "writes": [],
   "invokes": [

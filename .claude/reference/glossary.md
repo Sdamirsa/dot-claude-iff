@@ -81,6 +81,9 @@ anyone may propose an addition.
 - **hard gear**: `/project-memory --hard`, a dedicated maturation session: full anatomist
   audit, a usage-evidence pruning sweep, plan/spec-style task cards, a decision list for the
   maintainer.
+- **phase (ritual)**: One of the four steps of `/project-memory`: check, polish, publish, evolve
+  (`checkctl.py run --phase ...`). For where the project is in its work, see
+  **phase (lifecycle)** under Lifecycle.
 - **polish**: The second phase of `/project-memory`. Writes: log entries, LESSONS curation,
   STATUS rewrite, tasks closed, gates surfaced, and every generator.
 - **pruning**: Evolution's removal half. Zero- or low-use components become candidates to
@@ -93,6 +96,31 @@ anyone may propose an addition.
 - **soft gear**: The default evolution mode, running inside every ritual's EVOLVE phase: digest
   to retro-analyst to main-agent filter to user gate to implementation to the anatomist
   reconciling cards.
+
+## Lifecycle
+
+- **exit check**: The check that must pass to leave a lifecycle phase, named per phase in
+  `config/phases.json` and run by `checkctl.py phase-exit --from <phase>`: plan needs open task
+  files with a Definition of done, one Test command and a journal entry under a milestone;
+  build needs every task of the milestone done with its Test green; review needs the human's
+  `--signoff`; deploy needs `checkctl.py doctor` without a FAIL. `--override "<why>"` passes a
+  failed one on the record.
+- **milestone**: One body of work, recorded with `statectl.py milestone <id>`; tasks join it
+  with `statectl.py task <id> --milestone <mid>`. The build exit check runs the tasks of the
+  current (latest) milestone.
+- **mode**: How organised the work is, set with `statectl.py mode`: `freestyle` (the default
+  when unset: record, gates and ritual only), `guided-solo` (the phase contract prints at
+  session start and leaving a phase runs its exit check), `fableous-orchestrated`
+  (guided-solo plus lead-and-team routing). Input aliases: guided, solo, fableous,
+  orchestrated; the stored value is always the full name.
+- **phase (lifecycle)**: What work is allowed right now, one of plan, build, review, deploy,
+  set with `statectl.py phase <next>`. Each has a contract of at most five lines and an exit
+  check in `config/phases.json`. For the steps of `/project-memory`, see **phase (ritual)**
+  under The ritual.
+- **proposal**: An idea that is out of scope right now, parked in the proposal box
+  (`state/proposals.jsonl`, ids `PR-<n>`) with `statectl.py proposal add` and closed with
+  `proposal resolve <id> --as planned|rejected --note`. In the deploy phase every new feature
+  idea goes here, not into code. Shown on the console WORK tab.
 
 ## Contracts
 
