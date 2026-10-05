@@ -623,7 +623,8 @@ class TestCommittedZips(unittest.TestCase):
     def test_fresh_install_stop_hook_creates_the_heartbeat(self):
         """heartbeat.json is untracked and the kit ships no state/: the first Stop on a fresh
         install must create both, or heartbeat_present warns forever."""
-        if not shutil.which("bash"):
+        bash = _lib.find_bash()
+        if not bash:
             self.skipTest("bash not available")
         with tempfile.TemporaryDirectory(prefix="claude-iff-fresh-") as tmp:
             proj, record = Path(tmp) / "proj", Path(tmp) / "proj_claude_iff"
@@ -634,7 +635,7 @@ class TestCommittedZips(unittest.TestCase):
             self.assertIn(".claude/state/heartbeat.json",
                           (proj / ".gitignore").read_text(encoding="utf-8").splitlines())
             env = dict(os.environ, CLAUDE_PROJECT_DIR=str(proj), CLAUDE_IFF_RECORD_ROOT=str(record))
-            res = subprocess.run(["bash", str(proj / ".claude" / "hooks" / "heartbeat.sh")],
+            res = subprocess.run([bash, str(proj / ".claude" / "hooks" / "heartbeat.sh")],
                                  input=json.dumps({"hook_event_name": "Stop"}), env=env,
                                  capture_output=True, text=True, timeout=30, check=False)
             self.assertEqual(res.returncode, 0, res.stderr)

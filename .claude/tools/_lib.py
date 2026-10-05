@@ -670,6 +670,39 @@ def project_name() -> str:
     return project_root().name
 
 
+def find_bash():
+    """The bash that can run this system's hooks, as a full path, or None.
+
+    On Windows a bare "bash" is not safe to launch: process creation searches System32 before
+    PATH, and System32\bash.exe is the WSL launcher, which fails when no distro is installed
+    (GitHub's Windows runners, many laptops). Claude Code runs hooks under Git Bash, so that is
+    the one to find: a PATH hit outside the Windows folders first, then Git's install folders.
+    """
+    import shutil
+    if os.name != "nt":
+        return shutil.which("bash")
+    windir = os.path.normcase(os.environ.get("SystemRoot", r"C:\Windows"))
+
+    def usable(path):
+        return bool(path) and os.path.isfile(path) and not os.path.normcase(
+            os.path.abspath(path)).startswith(windir) and "windowsapps" not in path.lower()
+
+    hit = shutil.which("bash")
+    if usable(hit):
+        return hit
+    for folder in os.environ.get("PATH", "").split(os.pathsep):
+        cand = os.path.join(folder.strip('"'), "bash.exe")
+        if usable(cand):
+            return cand
+    for base in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)"),
+                 os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs")):
+        for rel in (("Git", "bin", "bash.exe"), ("Git", "usr", "bin", "bash.exe")):
+            cand = os.path.join(base or "", *rel)
+            if usable(cand):
+                return cand
+    return None
+
+
 def system_version() -> str:
     return str(load_config("registry").get("system_version", "0.0.0"))
 

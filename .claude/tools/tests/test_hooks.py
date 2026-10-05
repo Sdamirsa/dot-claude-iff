@@ -29,6 +29,12 @@ from _fixture import CLAUDE_DIR, FixtureCase  # noqa: E402
 
 HOOKS = CLAUDE_DIR / "hooks"
 
+sys.path.insert(0, str(CLAUDE_DIR / "tools"))
+import _lib as _repo_lib  # noqa: E402
+
+# A full path, never the bare name: on Windows a bare "bash" can resolve to the WSL launcher.
+BASH = _repo_lib.find_bash() or "bash"
+
 
 class HookCase(FixtureCase):
     """Runs the repo's real hook scripts with the fixture project as CLAUDE_PROJECT_DIR."""
@@ -44,7 +50,7 @@ class HookCase(FixtureCase):
         env["CLAUDE_PROJECT_DIR"] = str(self.root)
         env["CLAUDE_IFF_RECORD_ROOT"] = str(self.record)
         return subprocess.run(
-            ["bash", str(HOOKS / name)],
+            [BASH, str(HOOKS / name)],
             input=json.dumps(payload),
             capture_output=True,
             text=True,
@@ -147,7 +153,7 @@ class TestCapture(HookCase):
         env["CLAUDE_PROJECT_DIR"] = str(self.root)
         env["CLAUDE_IFF_RECORD_ROOT"] = str(self.record)
         res = subprocess.run(
-            ["bash", str(HOOKS / "obs-capture.sh")],
+            [BASH, str(HOOKS / "obs-capture.sh")],
             input="not json at all {{{",
             capture_output=True, text=True, timeout=30, env=env, check=False,
         )
@@ -158,7 +164,7 @@ class TestCapture(HookCase):
         env["CLAUDE_PROJECT_DIR"] = str(self.root)
         env["CLAUDE_IFF_RECORD_ROOT"] = "/proc/definitely-not-writable/record"
         res = subprocess.run(
-            ["bash", str(HOOKS / "obs-capture.sh")],
+            [BASH, str(HOOKS / "obs-capture.sh")],
             input=json.dumps({"hook_event_name": "Stop", "session_id": "x"}),
             capture_output=True, text=True, timeout=30, env=env, check=False,
         )

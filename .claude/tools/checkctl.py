@@ -1493,10 +1493,11 @@ def _doctor_python3():
 
 
 def _doctor_bash():
-    import shutil
-    if shutil.which("bash"):
+    found = _lib.find_bash()
+    if found:
         return Result("bash", OK, "bash found (the hooks are bash scripts)"), ""
-    return (Result("bash", FAIL, "bash is not on PATH: no hook can run"),
+    return (Result("bash", FAIL, "no usable bash: no hook can run (on Windows the WSL launcher "
+                                 "in System32 does not count)"),
             "install bash (on Windows: Git for Windows, which ships Git Bash)")
 
 
