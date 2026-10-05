@@ -141,6 +141,19 @@
       "default": null
     },
     {
+      "key": "policy.secrets.allow_paths",
+      "title": "Secrets scan allowlist",
+      "description": "Repo-relative path prefixes or globs the secrets_placement check skips (vendored fixtures, a stack that commits its .env on purpose). For one line, prefer an inline iff:allow-secret comment.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "policy",
+        "path": "secrets.allow_paths"
+      },
+      "type": "list[string]",
+      "default": []
+    },
+    {
       "key": "observe.enabled",
       "title": "Capture enabled",
       "description": "Master switch for the capture lane. Off means no spool writes at all.",

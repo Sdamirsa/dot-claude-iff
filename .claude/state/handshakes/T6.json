@@ -1,0 +1,62 @@
+{
+  "task_id": "T6",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "ok",
+  "RESULT": "checkctl.py now has scan_secrets(root, files=None, *, allow_local=False, allow_paths=None), a pure-ish scanner returning {path, line, pattern, severity} findings that never carry the value, wrapped by the secrets_placement ritual check (registered in memory.json phases.check and bound in CHECKS) together with git check-ignore assertions for per-user secret files; and a read-only `checkctl doctor [--json]` with 14 rows (OK/WARN/FAIL/SKIP plus a one-line fix, exit 1 on FAIL) that tolerates absent mode/phase/ticket as SKIP. reference/secrets.md exists with its card and probe entry, a policy.secrets.allow_paths knob has its registry card, and the docs/understand.html .env claim plus the obsctl, console.py, console template and observe.json key hints now name the env block of .claude/settings.local.json first and the shell second.",
+  "files_changed": [
+    ".claude/tools/checkctl.py",
+    ".claude/tools/tests/test_secrets.py",
+    ".claude/config/memory.json",
+    ".claude/config/policy.json",
+    ".claude/config/registry.json",
+    ".claude/config/observe.json",
+    ".claude/reference/secrets.md",
+    ".claude/system-map/cards/reference.secrets.json",
+    ".claude/system-map/cards/tool.checkctl.json",
+    ".claude/tools/obsctl.py",
+    ".claude/console/console.py",
+    ".claude/console/console.template.html",
+    "docs/understand.html",
+    ".claude/state/handshakes/T6.json"
+  ],
+  "tests": [
+    {"command": "python3 .claude/tools/tests/run_tests.py test_secrets -q", "exit_code": 0, "summary": "44 passed · 0 failed · 0 errored · 0 skipped / TESTS_OK"},
+    {"command": "python3 .claude/tools/tests/run_tests.py -q", "exit_code": 0, "summary": "269 passed · 0 failed · 0 errored · 1 skipped / TESTS_OK"}
+  ],
+  "EVIDENCE": [
+    "python3 .claude/tools/checkctl.py doctor (in the worktree) -> 11 ok · 0 warn · 0 fail · 3 skipped (mode, phase, ritual_ticket SKIP), CHECK_OK, exit 0, about 1 s",
+    "check_secrets_placement() on the worktree -> OK, 158 file(s) scanned (tracked + unignored files), no key-shaped strings: the system's own sources, docs and new reference doc do not trip the scanner",
+    "check_secrets_placement() run read-only against the main checkout (CLAUDE_PROJECT_DIR) -> OK, 164 files scanned, no findings",
+    "checkctl.py probe (worktree) -> 39 ok · 0 fail, includes reference.secrets",
+    "check_config_registry() (worktree) -> OK 32 knobs registered, none dead",
+    "mapctl.py lint (worktree) -> 0 errors; warnings are stale auto.hash (refreshed by POLISH map_scan) and pre-existing unplaced cards",
+    "mutation run (scratchpad script monkeypatching checkctl): disabling the pragma, the tests-folder skip, the prunes, the ${VAR} expansion rule, the .mcp.json and settings.json scanners, the ignore rows, the per-user-file rule, the git scope, the placeholder filter, the generic rule and the allow_paths knob, or making findings carry file text, or adding a writing doctor row, each made the targeted tests fail"
+  ],
+  "DEVIATIONS": [
+    "Scan scope in a git repo is tracked PLUS untracked-not-ignored files (`git ls-files --cached --others --exclude-standard`), not tracked-only: an untracked, unignored file is exactly what the next `git add -A` in PUBLISH commits, and a tracked-only scope would also miss everything in a freshly exported folder (T7). Git mode applies only when the root is itself the work-tree top (rev-parse --show-toplevel samefile); otherwise a pruned walk.",
+    "Severity: vendor patterns and PEM headers FAIL; the generic `key-like name = 20+ char literal` rule WARNs (heuristic; must contain a letter and a digit and not look like a placeholder or a variable name). .mcp.json key-like literals WARN and FAIL on a vendor shape, per the lead; committed settings.json env FAILs on a vendor shape and WARNs (settings_env_literal) on a key-like literal.",
+    "Per-user secret files are `.env`, `.env*.local` and `settings.local.json` (any depth). `.env.production`/`.env.development` are deliberately NOT treated as per-user (Vite/CRA commit them) and are scanned like any file. Their values are never read: tracked -> FAIL local_secret_file_tracked; present but unignored -> FAIL via the check-ignore row; scan_secrets() with its strict default allow_local=False also FAILs their mere presence (meant for export folders), the ritual passes allow_local=True.",
+    "Ignore assertions cover root `.env`/`.env*.local`, `.claude/settings.local.json` and any per-user file git reports as untracked-unignored at any depth (closes the nested frontend/.env gap).",
+    "Added knob policy.secrets.allow_paths (prefixes or globs) with a registry card; it also exempts a deliberately committed .env from the ignore assertion. Put in policy.json rather than memory.json because it is an access/placement policy.",
+    "Doctor rows beyond the task list: python3-on-PATH (hooks shell out to it; catches the Windows Store stub), config files parse, record root inside the repo (FAIL), console host must be loopback (FAIL). Cloud-sync detection did not exist in code (only as text in the adopt skill), so doctor implements it: path markers plus the Windows Known Folder Move registry lookup via winreg (read-only); a hit is WARN, never FAIL.",
+    "Also edited observe.json's analyze _comment and the console template's 'How it works' sentence, which carried the same export-in-your-shell hint as the three named files; tool.checkctl card gained reads config.policy, config.console, store.session."
+  ],
+  "UNCERTAINTIES": [
+    "Not verified empirically that Claude Code's settings `env` block reaches hooks and the console server the SessionStart hook autostarts (secrets.md and the hints say so, based on Claude Code's documented behavior that env applies to the session).",
+    "Doctor's python3/bash/git rows depend on the machine; tests assert row names, exit-code consistency and the rows the fixture controls, not a clean exit on CI. CI Windows uses `python` and may lack `python3`, which doctor will correctly report as FAIL there; T4's deploy exit check should keep that in mind.",
+    "MIN_PYTHON = 3.8 was inferred from the stdlib features the tools use (Path.unlink(missing_ok)), not from a documented floor.",
+    "Linux/CI not run here; the posix-only branch (hook executable bit) is exercised only through copytree-preserved modes in test_hooks_row.",
+    "The derived console.html and docs/demo/console.html still show the old copy box until POLISH rebuilds them."
+  ],
+  "needs_main": [
+    "Review and merge; git add the four new files (test_secrets.py, reference/secrets.md, cards/reference.secrets.json, this envelope).",
+    "Run POLISH (map_scan refreshes stale auto.hash on edited cards; console_build and demo_build rebuild console.html and docs/demo/console.html from the corrected template; dist_build picks up secrets.md and the policy knob).",
+    "T10 owns CLAUDE.md / README / glossary mentions of `checkctl doctor` and secrets; this task did not touch them."
+  ],
+  "SUGGESTIONS": [
+    "Root .gitignore and distctl's kit GITIGNORE ignore `.env` and `*.env` but not `.env.local` / `.env.*.local`; consider adding `.env*.local` (the doctor/ritual would FAIL on an unignored .env.local today, which is correct but avoidable).",
+    "T7 export should call scan_secrets(export_dir) with the strict default (allow_local=False) and refuse on any FAIL-severity finding.",
+    "T4: doctor reads session.json session.mode / session.phase per the shared contract and accepts plan|build|review|deploy and freestyle|guided|fableous; this repo's current session.phase is the legacy free-form 'implementation', which doctor shows as SKIP."
+  ]
+}
