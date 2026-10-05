@@ -439,6 +439,15 @@ dialog#node-dialog::backdrop { background: rgba(0,0,0,0.4); }
 .map-edges line.is-faded-edge { opacity: .15; }
 .map-edges line.is-focus-edge { stroke-width: 2.4; }
 
+/* -- context list: guides and rules, derived entries rather than map nodes -- */
+.ctx-summary { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+.ctx-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 5px 0; border-top: 1px solid var(--border); font-size: 12.5px; }
+.ctx-row .ctx-path { flex: 1 1 16em; min-width: 0; }
+.ctx-row .ctx-kind { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--accent); }
+.ctx-row .ctx-scope { color: var(--text-dim); font-family: var(--mono); font-size: 11px; }
+.ctx-row .ctx-lines { color: var(--text-dim); font-variant-numeric: tabular-nums; font-size: 11px; }
+.ctx-row .ctx-findings { font-size: 11px; font-weight: 700; color: var(--sev1-bg); }
+
 /* ---------------------------------------------------------------- STORY tab */
 .clock-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
 .clock-btn {
@@ -977,6 +986,7 @@ function renderMap() {
   panel.appendChild(el("div", { class: "map-hint" }, [
     "click a component to trace its connections · click again for details · Esc to clear"
   ]));
+  panel.appendChild(renderContextCard());
 
   function redraw() {
     drawEdges(canvas, svg, edges, nodeEls);
@@ -1008,6 +1018,36 @@ function renderMap() {
       if (ev.key === "Escape" && panel._mapClearFocus) panel._mapClearFocus();
     });
   }
+}
+
+// Context: the guides (CLAUDE.md files) and rules (.claude/rules/) Claude Code loads, derived
+// by ctxmap.py into map.json at compile and carried as DATA.context. A list, not map nodes:
+// guides and rules never need a card, so they are listed beside the canvas, not drawn on it.
+// Every field is optional on read so an older payload (or none) still renders.
+function renderContextCard() {
+  const ctx = DATA.context || { entries: [] };
+  const entries = ctx.entries || [];
+  const card = el("div", { class: "card" }, [sectionHead("Context", "map")]);
+  if (!entries.length) {
+    card.appendChild(el("div", { class: "empty-state" }, ["no guides or rules mapped yet"]));
+    return card;
+  }
+  const f = ctx.findings || {};
+  card.appendChild(el("div", { class: "ctx-summary" }, [
+    "always-on " + (ctx.always_on_lines || 0) + (ctx.always_on_budget ? " of " + ctx.always_on_budget : "")
+    + " lines · " + (f.fail || 0) + " fail · " + (f.warn || 0) + " warn"
+  ]));
+  entries.forEach(function (e) {
+    card.appendChild(el("div", { class: "ctx-row" }, [
+      pathLink(e.path, e.path, "ctx-path mono"),
+      el("span", { class: "ctx-kind" }, [(e.kind || "") + (e.loads ? " · " + e.loads : "")]),
+      el("span", { class: "ctx-scope", title: e.via ? ("imported by " + e.via) : null }, [e.scope || ""]),
+      el("span", { class: "ctx-lines" }, [String(e.lines || 0) + " lines"]),
+      e.findings ? el("span", { class: "ctx-findings" }, [e.findings + (e.findings === 1 ? " finding" : " findings")]) : null
+    ]));
+  });
+  card.appendChild(copyBox("python3 .claude/tools/mapctl.py context <path>", "what loads for one file, in order (copy and run it yourself)"));
+  return card;
 }
 
 // Six edge styles by name, as specified. mapctl.py's build_map() currently derives edges

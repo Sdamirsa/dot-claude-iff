@@ -55,18 +55,22 @@ class Result:
 # --------------------------------------------------------------------------- generators
 
 # name -> (argv builder, input paths, output path). Inputs may be files or directories.
+# `context_inputs` adds the guides, rules and imports ctxmap discovers: a folder guide can live
+# in any folder, so those inputs cannot be declared here, only found.
 GENERATORS = {
     "map_scan": {
         "tool": "mapctl.py",
         "args": ["scan"],
         "inputs": [".claude/agents", ".claude/skills", ".claude/hooks", ".claude/tools",
                    ".claude/protocols", ".claude/config"],
+        "context_inputs": True,
         "output": ".claude/system-map/cards",
     },
     "map_compile": {
         "tool": "mapctl.py",
         "args": ["compile"],
         "inputs": [".claude/system-map/cards", ".claude/system-map/layers.json"],
+        "context_inputs": True,
         "output": ".claude/system-map/map.json",
     },
     "story_build": {
@@ -218,7 +222,14 @@ def generators_path() -> Path:
 
 def generator_inputs_hash(spec: dict) -> str:
     root = _lib.project_root()
-    return _lib.sha256_paths([root / p for p in spec["inputs"]])
+    paths = [root / p for p in spec["inputs"]]
+    if spec.get("context_inputs"):
+        try:
+            import ctxmap
+            paths += [root / p for p in ctxmap.context_input_paths()]
+        except Exception:  # noqa: BLE001 - the ledger informs; a discovery bug must not stop POLISH
+            pass
+    return _lib.sha256_paths(paths)
 
 
 def generator_output_hash(spec: dict) -> str:
@@ -326,6 +337,15 @@ def check_cards_lint() -> Result:
         return Result("cards_lint", FAIL, "mapctl lint printed no verdict token", out.splitlines()[-5:])
     detail = [line for line in out.splitlines() if line.strip() and not line.startswith("MAP_")]
     return Result("cards_lint", status, f"mapctl lint says {status}", detail[:20])
+
+
+def check_context_health() -> Result:
+    """Folder context: nested guides, path-scoped rules, imports, the always-on budget.
+    ctxmap.py is the engine (the same one `mapctl context` and the console use); this is only
+    the CHECK binding. A project with no nested guides and no rules is OK, not a warning."""
+    import ctxmap
+    status, message, details = ctxmap.health_summary()
+    return Result("context_health", status, message, details)
 
 
 def _walk_leaves(node, prefix=""):
@@ -1118,6 +1138,7 @@ CHECKS = {
     "heartbeat_present": check_heartbeat,
     "generator_freshness": check_generator_freshness,
     "cards_lint": check_cards_lint,
+    "context_health": check_context_health,
     "config_registry_lint": check_config_registry,
     "price_table": check_price_table,
     "record_size": check_record_size,
@@ -1305,6 +1326,7 @@ def probe() -> list:
         ("tool.consolectl", ".claude/tools/consolectl.py"),
         ("tool.checkctl", ".claude/tools/checkctl.py"),
         ("tool.distctl", ".claude/tools/distctl.py"),
+        ("tool.ctxmap", ".claude/tools/ctxmap.py"),
         ("hook.session-start", ".claude/hooks/session-start.sh"),
         ("hook.heartbeat", ".claude/hooks/heartbeat.sh"),
         ("hook.obs-capture", ".claude/hooks/obs-capture.sh"),

@@ -61,7 +61,7 @@ System commands:
 python3 .claude/tools/statectl.py  pointer|task|milestone|decision|loop|note|need|refresh|resume
 python3 .claude/tools/checkctl.py  run --phase check|polish|publish · probe · generators
 python3 .claude/tools/obsctl.py    ingest|seal|rollup|anchor|report|story|size|analyze
-python3 .claude/tools/mapctl.py    scan|lint|compile|show
+python3 .claude/tools/mapctl.py    scan|lint|compile|show|context
 python3 .claude/tools/consolectl.py build|payload|serve
 python3 .claude/tools/tests/run_tests.py
 ```

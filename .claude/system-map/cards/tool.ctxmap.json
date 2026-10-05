@@ -1,0 +1,23 @@
+{
+  "id": "tool.ctxmap",
+  "kind": "code",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Ctxmap",
+  "path": ".claude/tools/ctxmap.py",
+  "description": "ctxmap.py - folder context: which guides and rules Claude Code loads for a file, and whether that context is healthy.",
+  "reads": [
+    "store.lessons",
+    "store.project_log"
+  ],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "1c9a1135a2de2a1082b927b33134bd95af87d776a4a236e844cb08175fbe4a44",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

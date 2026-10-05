@@ -129,6 +129,32 @@
       "default": true
     },
     {
+      "key": "memory.context.size_target_lines",
+      "title": "Guide and rule size target",
+      "description": "context_health warns when one guide (CLAUDE.md, CLAUDE.local.md) or rule (.claude/rules/*.md) is longer than this many lines. 200 follows Claude Code's own guidance: a longer file costs context on every load and is followed less reliably.",
+      "layer": "MEMORY",
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "context.size_target_lines"
+      },
+      "type": "int",
+      "default": 200
+    },
+    {
+      "key": "memory.context.always_on_budget_lines",
+      "title": "Always-on context budget",
+      "description": "context_health warns when everything that loads at launch (the root guide, its @imports, rules without paths:) adds up past this many lines. Move what only one part of the tree needs into a folder guide or a scoped rule.",
+      "layer": "MEMORY",
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "context.always_on_budget_lines"
+      },
+      "type": "int",
+      "default": 400
+    },
+    {
       "key": "policy.record_root",
       "title": "Record root override",
       "description": "Absolute path for RECORD_ROOT. null uses the sibling default <parent>/<repo>_claude_iff.",

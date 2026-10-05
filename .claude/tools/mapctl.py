@@ -12,10 +12,15 @@ signal: ERROR findings fail CHECK (a wrong or missing card is worse than an hone
 findings only inform. `compile` folds every card into map.json, write-gated so an unchanged
 result never touches the file (and never shows up in a git diff). `show` prints a human summary.
 
+Guides (CLAUDE.md files) and rules (.claude/rules/) are not cards: ctxmap.py derives them into
+map.json's `context` section at compile, so a project can grow folder guides without writing a
+card per guide, and lint never asks for one. `context` asks what loads for a file.
+
     mapctl.py scan       # discover components, create/refresh stub cards
     mapctl.py lint       # two-tier validation; exit 1 on any ERROR
     mapctl.py compile    # write system-map/map.json (write-gated)
     mapctl.py show [--id ID]
+    mapctl.py context [<path>] [--json] | --suggest   # folder context (ctxmap.py)
 """
 
 import argparse
@@ -23,6 +28,8 @@ import ast
 import json
 import re
 from pathlib import Path
+
+import ctxmap
 
 # --------------------------------------------------------------------------- known, declared components
 #
@@ -121,6 +128,9 @@ SINGLETONS = [
                      "token replaced by consolectl's payload at build time."},
 ]
 
+# Guides and rules are deliberately absent: they are derived context entries (ctxmap.py), so
+# neither the missing-card ERROR nor the ghost check ever applies to them. A hand-written card
+# for one is allowed and linted like any other card, but never required.
 GLOB_ID_PREFIXES = ("agent.", "skill.", "hook.", "tool.", "protocol.", "config.")
 SINGLETON_IDS = {s["id"] for s in SINGLETONS}
 
@@ -575,6 +585,9 @@ def cmd_scan(_args) -> int:
               f"mapctl KNOWN_STORES - scan cannot account for it)")
     for m in malformed:
         print(f"  MALFORMED  {m}")
+    index = ctxmap.discover()
+    print(f"  CONTEXT    {len(index.guides())} guide(s), {len(index.rules)} rule(s): derived "
+          f"into map.json at compile, never cards")
 
     _lib.print_verdict("MAP", True, warn=bool(ghosts or malformed or undeclared))
     return 0
@@ -672,7 +685,7 @@ def _layer_order(layers_cfg) -> dict:
     return order
 
 
-def build_map(cards_by_id: dict, layers_cfg, errors: list, warnings: list) -> dict:
+def build_map(cards_by_id: dict, layers_cfg, errors: list, warnings: list, context=None) -> dict:
     order_by_layer = _layer_order(layers_cfg)
 
     def sort_key(card):
@@ -729,6 +742,7 @@ def build_map(cards_by_id: dict, layers_cfg, errors: list, warnings: list) -> di
             "unplaced": unplaced,
         },
         "lint": {"errors": errors, "warnings": warnings},
+        "context": context if context is not None else ctxmap.empty_section(),
     }
 
 
@@ -738,7 +752,7 @@ def cmd_compile(_args) -> int:
     errors, warnings = compute_lint(cards_by_id, malformed, dup, layers_cfg)
     errors = errors + missing_card_errors(cards_by_id)
 
-    map_obj = build_map(cards_by_id, layers_cfg, errors, warnings)
+    map_obj = build_map(cards_by_id, layers_cfg, errors, warnings, context=ctxmap.map_section())
 
     out_path = map_json_path()
     existing = _lib.read_json(out_path, None)
@@ -808,20 +822,41 @@ def cmd_show(args) -> int:
     return 1 if errors else 0
 
 
+# --------------------------------------------------------------------------- context
+
+def cmd_context(args) -> int:
+    """What Claude Code loads for a file, the context file list with its findings, or
+    evidence-based proposals. ctxmap.py is the engine; this only owns the verdict token,
+    which goes to stderr under --json so stdout stays pure JSON."""
+    if args.suggest and args.path:
+        print("mapctl context: give a path or --suggest, not both", file=sys.stderr)
+        _lib.print_verdict("MAP", False)
+        return 2
+    code, state = ctxmap.cli(args.path, suggest_mode=args.suggest, as_json=args.json)
+    print(f"MAP_{state}", file=sys.stderr if args.json else sys.stdout)
+    return code
+
+
 # --------------------------------------------------------------------------- cli
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="mapctl.py", description="The system map: scan / lint / compile / show.")
+    p = argparse.ArgumentParser(prog="mapctl.py", description="The system map: scan / lint / compile / show / context.")
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("scan", help="auto-discover components and create/refresh stub cards")
     sub.add_parser("lint", help="two-tier validation of the card set (ERROR fails, WARN informs)")
     sub.add_parser("compile", help="write .claude/system-map/map.json (write-gated)")
     sp = sub.add_parser("show", help="human-readable summary of the map or one card")
     sp.add_argument("--id", default=None)
+    cp = sub.add_parser("context", help="guides and rules that load for a path (none: list all)")
+    cp.add_argument("path", nargs="?", default=None, help="repo-relative (or absolute) path")
+    cp.add_argument("--suggest", action="store_true",
+                    help="propose folder guides / scoped rules from lessons and logged mistakes")
+    cp.add_argument("--json", action="store_true")
     return p
 
 
-COMMANDS = {"scan": cmd_scan, "lint": cmd_lint, "compile": cmd_compile, "show": cmd_show}
+COMMANDS = {"scan": cmd_scan, "lint": cmd_lint, "compile": cmd_compile, "show": cmd_show,
+            "context": cmd_context}
 
 
 def main(argv: list) -> int:

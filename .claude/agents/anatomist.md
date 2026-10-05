@@ -88,6 +88,11 @@ Check and report (do not silently fix):
   a guide grown past the line by an adoption-day fold of the target's pre-existing guide (the
   adopt skill mandates folding it verbatim) is flagged as "fold pending condensation", not as
   drift, until an evolution pass has had a chance to condense it.
+- Nested folder guides (`<folder>/CLAUDE.md`) and rules (`.claude/rules/`): run
+  `python3 .claude/tools/mapctl.py context` and report its findings (rule frontmatter that does
+  not parse, rule globs matching nothing, files over the size target, missing or too-deep
+  `@imports`, stale backticked paths, lines a nested guide repeats from an ancestor, the
+  always-on budget). They are mapped as derived context entries, never cards: do not write one.
 - A skill whose `description` does not state its trigger, so nothing will ever invoke it.
 - A component with no card, or a card whose file is gone (a ghost).
 - A store written by more than one writer without a stated single-writer rule.
