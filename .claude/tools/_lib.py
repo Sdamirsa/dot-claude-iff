@@ -12,7 +12,7 @@ Two write tiers (see atomic_write_text):
 
 CLI: this module exposes a few resolved paths so shell hooks can ask python for them
 instead of re-deriving them (and drifting from) the logic here:
-    python3 _lib.py --record-root | --project-root | --paths-json
+    python3 _lib.py --record-root | --project-root | --paths-json | --release-kind <tag>
 """
 
 from __future__ import annotations
@@ -674,6 +674,43 @@ def system_version() -> str:
     return str(load_config("registry").get("system_version", "0.0.0"))
 
 
+# The release grammar: X.Y.Z (stable) or X.Y.Z-(alpha|beta|rc).N (pre-release), no leading
+# zeros. A tag is "v" + version and a CHANGELOG heading is "## v<version> - YYYY-MM-DD". ONE
+# parser for the stamp, the tag filter, the changelog parity check and release.yml, so the
+# four can never disagree about what a version is.
+_VERSION_RE = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(alpha|beta|rc)\.(0|[1-9]\d*))?")
+
+
+def parse_version(text, tag: bool = False) -> dict | None:
+    """'0.3.0-alpha.1' -> {major, minor, patch, pre, pre_n, prerelease}; None when `text` is not
+    the grammar. tag=True demands (and strips) the leading 'v'."""
+    s = str(text or "")
+    if tag:
+        if not s.startswith("v"):
+            return None
+        s = s[1:]
+    m = _VERSION_RE.fullmatch(s)
+    if not m:
+        return None
+    major, minor, patch, pre, pre_n = m.groups()
+    return {"major": int(major), "minor": int(minor), "patch": int(patch), "pre": pre,
+            "pre_n": int(pre_n) if pre_n is not None else None, "prerelease": pre is not None}
+
+
+def is_prerelease(text, tag: bool = False) -> bool:
+    parsed = parse_version(text, tag=tag)
+    return bool(parsed and parsed["prerelease"])
+
+
+def changelog_section(text: str, tag: str) -> str | None:
+    """The body under `## <tag>` in CHANGELOG text, or None when no heading names exactly that
+    tag. Exact: the tag must end at whitespace or end of line, so v3.0 never matches
+    '## v3.0.1' and v0.3.0 never matches '## v0.3.0-alpha.1' (a bare \\b allowed both)."""
+    m = re.search(rf"^## {re.escape(tag)}(?:[ \t][^\n]*)?$\n?(.*?)(?=^## |\Z)",
+                  text, re.MULTILINE | re.DOTALL)
+    return m.group(1).strip() if m else None
+
+
 def print_verdict(tag: str, ok: bool, warn: bool = False) -> None:
     """Emit the verdict token convention: <TAG>_OK | <TAG>_WARN | <TAG>_FAIL.
 
@@ -689,6 +726,18 @@ def main(argv: list) -> int:
         print(record_root())
     elif "--project-root" in argv:
         print(project_root())
+    elif "--release-kind" in argv:
+        # For release.yml: prints prerelease|stable for a vX.Y.Z[-(alpha|beta|rc).N] tag, and
+        # exits 1 on anything else, so a malformed tag fails the release rather than
+        # publishing as stable and moving "latest".
+        idx = argv.index("--release-kind")
+        tag = argv[idx + 1] if idx + 1 < len(argv) else ""
+        parsed = parse_version(tag, tag=True)
+        if not parsed:
+            print(f"invalid release tag {tag!r}: expected vX.Y.Z or vX.Y.Z-(alpha|beta|rc).N",
+                  file=sys.stderr)
+            return 1
+        print("prerelease" if parsed["prerelease"] else "stable")
     elif "--paths-json" in argv:
         rp = {k: str(v) for k, v in record_paths().items()}
         print(json.dumps({

@@ -13,8 +13,11 @@ are rebuilt by every ritual, so what people download can never quietly lag what 
                                 ADOPT.md carrying the one instruction to paste to the agent,
                                 which then follows the adopt skill: merge, never overwrite.
 
-Zips are DETERMINISTIC: fixed timestamps, sorted entries, fixed permissions. Identical content
-produces identical bytes, so the ritual's write-gating keeps rebuilds out of git noise.
+Zips are DETERMINISTIC: fixed timestamps, sorted entries, fixed permissions, LF line endings
+inside. Identical content produces identical bytes on every OS, so the ritual's write-gating
+keeps rebuilds out of git noise and the committed zips can be checked against a rebuild
+(`distctl.py verify`, and test_dist on every CI run). The payload rule and the release flow
+are written down in .claude/reference/release-flow.md (home repo only).
 """
 
 from __future__ import annotations
@@ -22,7 +25,9 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import os
 import sys
+import tempfile
 import zipfile
 from pathlib import Path
 
@@ -33,9 +38,13 @@ import _lib
 DIST_DIR_NAME = "dist"
 FIXED_DATE = (2026, 1, 1, 0, 0, 0)  # determinism: content decides the bytes, not the clock
 
-# What a distribution NEVER carries: this project's own history and derived surfaces.
-EXCLUDE_DIRS = {"state", "dist", "__pycache__", ".pytest_cache"}
+# What a distribution NEVER carries: this project's own history and derived surfaces, and
+# worktrees (build-time scratch checkouts of the whole repo, gitignored, never descended into).
+EXCLUDE_DIRS = {"state", "dist", "worktrees", "__pycache__", ".pytest_cache"}
 EXCLUDE_FILES = {"console/console.html", "system-map/map.json", "settings.local.json"}
+# Home-repo-only documents: committed here, meaningless in an adopting project. Dropped on the
+# way into the zips (distribution-boundary mechanism 3); the adopt skill skips them on clones.
+HOME_ONLY_FILES = {"reference/release-flow.md"}
 # Nested trees that are private by convention (gitignored in the home repo). Excluded even
 # on the no-git fallback path, where the tracked-files manifest cannot protect them.
 EXCLUDE_SUBDIRS = ("reference/private",)
@@ -127,6 +136,12 @@ settings.local.json
 # Console runtime
 .claude/console/*.pid
 .claude/console/*.log
+
+# Liveness signal, rewritten every turn by the Stop hook (which creates it when missing)
+.claude/state/heartbeat.json
+
+# Agent worktrees (build-time scratch copies of the repo)
+.claude/worktrees/
 """
 
 
@@ -138,21 +153,72 @@ def distribution_enabled(root: Path) -> bool:
     return bool(dist.get("enabled", False))
 
 
-def _tracked_claude_files(root: Path) -> set | None:
-    """Repo-relative POSIX paths of git-tracked files under .claude/, or None when git (or a
-    repository, or any tracked file there) is unavailable. The walk below intersects with
-    this: the working tree supplies file CONTENT, git decides WHICH files ship, so nothing
-    gitignored or untracked - a private reference tree, a stray .env, an editor artifact -
-    can ride into the zips."""
-    out = _lib.git_output(["ls-files", "-z", "--", ".claude"], root=root)
+def _shippable_claude_files(root: Path) -> set | None:
+    """Repo-relative POSIX paths under .claude/ that git does NOT ignore (tracked, plus
+    untracked-but-not-ignored), or None when git or a repository is unavailable.
+
+    THE PAYLOAD RULE: the working tree decides which files ship and what they contain; git
+    only vetoes what it ignores. Two facts force this rule. The generator ledger hashes the
+    WORKING TREE to decide freshness, and the ritual commits with `git add -A` AFTER POLISH
+    builds the zips. The old rule (ship only what the index tracks) skipped a file created
+    in-session, the ledger stamped the tree fresh, PUBLISH then committed the file, and the
+    zips lacked it until some unrelated input changed - three shipped files went missing that
+    way. Under this rule a new file ships in the same ritual that commits it, and a gitignored
+    one (the private reference tree, a stray .env) still never does. Entries are normcased
+    (L-9): compare them with os.path.normcase on the other side too."""
+    out = _lib.git_output(["ls-files", "-z", "--cached", "--others", "--exclude-standard",
+                           "--", ".claude"], root=root)
     if not out:
         return None
-    return {name for name in out.split("\0") if name}
+    return {os.path.normcase(name) for name in out.split("\0") if name}
+
+
+def _walk(claude: Path) -> list:
+    """Every file under .claude/, pruning EXCLUDE_DIRS at the top level and __pycache__ at any
+    depth BEFORE descending: a worktree is a whole checkout and must never even be read."""
+    found = []
+    for dirpath, dirnames, filenames in os.walk(claude):
+        top = Path(dirpath) == claude
+        dirnames[:] = [d for d in dirnames
+                       if d != "__pycache__" and not (top and d in EXCLUDE_DIRS)]
+        found.extend(Path(dirpath) / name for name in filenames)
+    return sorted(found)
+
+
+def _excluded(rel: str) -> bool:
+    """The structural rules (no git involved) for a POSIX path relative to .claude/."""
+    parts = rel.split("/")
+    return (parts[0] in EXCLUDE_DIRS or "__pycache__" in parts or rel.endswith(".pyc")
+            or rel in EXCLUDE_FILES or rel in HOME_ONLY_FILES or rel in RESET_FILES
+            or any(rel == sub or rel.startswith(sub + "/") for sub in EXCLUDE_SUBDIRS)
+            or (parts[0] in TEMPLATE_ONLY_DIRS and parts[-1] != "_template.md"))
+
+
+def payload_source(repo_rel: str) -> bool:
+    """Whether a repo-relative POSIX path is read into the zips (structural rules only, before
+    git's ignore veto). Lets a caller tell a payload edit from any other edit."""
+    if repo_rel == ".claude-iff/README.md":
+        return True
+    if not repo_rel.startswith(".claude/"):
+        return False
+    return not _excluded(repo_rel[len(".claude/"):])
+
+
+def _lf(data: bytes) -> bytes:
+    """Text ships with LF line endings whatever the checkout used. A Windows checkout
+    (core.autocrlf) hands distctl CRLF bytes where Linux hands it LF, so the same commit used
+    to build two different zips, and a .sh built on Windows broke bash everywhere else.
+    Anything holding a NUL byte (git's own binary heuristic) passes through untouched."""
+    if b"\0" in data:
+        return data
+    return data.replace(b"\r\n", b"\n")
 
 
 def _adopter_memory_config(data: bytes) -> bytes:
     """The shipped memory.json lands with the home-only generators OFF: the knob is what
-    keeps an adopting project from packaging its own memory on its very first ritual."""
+    keeps an adopting project from packaging its own memory on its very first ritual. Its
+    project_steps lists land EMPTY: they are this repo's own commands (its test suite as a
+    CHECK step), and in someone else's project they would run our suite in their ritual."""
     try:
         cfg = json.loads(data.decode("utf-8"))
     except (ValueError, UnicodeDecodeError):
@@ -162,6 +228,11 @@ def _adopter_memory_config(data: bytes) -> bytes:
         dist = {}
         cfg["distribution"] = dist
     dist["enabled"] = False
+    steps = cfg.get("project_steps")
+    if isinstance(steps, dict):
+        for kind, value in steps.items():
+            if isinstance(value, list):
+                steps[kind] = []
     return (json.dumps(cfg, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 
@@ -187,29 +258,18 @@ def _adopter_console_config(data: bytes) -> bytes:
 
 
 def _payload_entries(root: Path) -> tuple[list, list]:
-    """(entries, skipped_untracked): (archive_path, bytes) pairs for the system payload in
-    deterministic order, plus the files the tracked-manifest rule kept out (reported, never
-    silent - an untracked file that should ship needs a `git add`, not a mystery)."""
+    """(entries, skipped_ignored): (archive_path, bytes) pairs for the system payload in
+    deterministic order, plus the files git's ignore rules kept out (reported, never silent -
+    see _shippable_claude_files for the rule)."""
     claude = root / ".claude"
-    tracked = _tracked_claude_files(root)
-    entries, skipped_untracked = [], []
-    for path in sorted(claude.rglob("*")):
-        if not path.is_file():
-            continue
+    shippable = _shippable_claude_files(root)
+    entries, skipped_ignored = [], []
+    for path in _walk(claude):
         rel = path.relative_to(claude).as_posix()
-        parts = rel.split("/")
-        if parts[0] in EXCLUDE_DIRS or any(p == "__pycache__" for p in parts):
+        if _excluded(rel):
             continue
-        if rel in EXCLUDE_FILES or path.suffix == ".pyc":
-            continue
-        if any(rel == sub or rel.startswith(sub + "/") for sub in EXCLUDE_SUBDIRS):
-            continue
-        if parts[0] in TEMPLATE_ONLY_DIRS and path.name != "_template.md":
-            continue
-        if rel in RESET_FILES:
-            continue
-        if tracked is not None and f".claude/{rel}" not in tracked:
-            skipped_untracked.append(f".claude/{rel}")
+        if shippable is not None and os.path.normcase(f".claude/{rel}") not in shippable:
+            skipped_ignored.append(f".claude/{rel}")
             continue
         data = path.read_bytes()
         if rel == "config/memory.json":
@@ -229,17 +289,25 @@ def _payload_entries(root: Path) -> tuple[list, list]:
     iff_readme = root / ".claude-iff" / "README.md"
     if iff_readme.exists():
         entries.append((".claude-iff/README.md", iff_readme.read_bytes()))
-    return entries, skipped_untracked
+    return entries, skipped_ignored
 
 
 def _write_zip(out_path: Path, entries: list) -> bool:
-    """Deterministic zip; write-gated so an unchanged build never dirties the tree."""
+    """Deterministic zip; write-gated so an unchanged build never dirties the tree.
+
+    Every header field that could vary by machine is pinned. create_system defaults to the
+    BUILDING OS (0 on Windows, 3 elsewhere), which changed the bytes and made unzip ignore the
+    mode bits; 3 (unix) keeps .sh executable. Entries are STORED: deflate output depends on
+    the zlib build (Windows CPython ships zlib-ng), so compressing would tie the bytes to the
+    interpreter. (A ZipInfo entry was always stored; the old ZIP_DEFLATED argument was inert.)"""
     buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as zf:
         for arc_path, data in sorted(entries):
             info = zipfile.ZipInfo(arc_path, date_time=FIXED_DATE)
+            info.compress_type = zipfile.ZIP_STORED
+            info.create_system = 3
             info.external_attr = (0o755 if arc_path.endswith(".sh") else 0o644) << 16
-            zf.writestr(info, data)
+            zf.writestr(info, _lf(data))
     new = buffer.getvalue()
     if out_path.exists() and out_path.read_bytes() == new:
         return False
@@ -248,7 +316,11 @@ def _write_zip(out_path: Path, entries: list) -> bool:
     return True
 
 
-def build(root: Path | None = None) -> dict:
+ZIP_NAMES = ("dot-claude-iff-fresh.zip", "dot-claude-iff-adopt-kit.zip")
+
+
+def build(root: Path | None = None, out_dir: Path | None = None, quiet: bool = False) -> dict:
+    """Build both zips into `out_dir` (default: <root>/.claude/dist)."""
     root = root or _lib.project_root()
     if not distribution_enabled(root):
         raise _lib.LibError(
@@ -257,10 +329,11 @@ def build(root: Path | None = None) -> dict:
             "home-repo-only; in an adopting project the zips would carry that project's "
             "private memory. Set the knob true only in the dot-claude-iff source repo."
         )
-    dist = root / ".claude" / DIST_DIR_NAME
-    payload, skipped_untracked = _payload_entries(root)
-    for name in skipped_untracked:
-        print(f"skipped (not git-tracked): {name}")
+    dist = Path(out_dir) if out_dir is not None else root / ".claude" / DIST_DIR_NAME
+    payload, skipped_ignored = _payload_entries(root)
+    if not quiet:
+        for name in skipped_ignored:
+            print(f"skipped (gitignored): {name}")
 
     fresh = payload + [("START-HERE.md", START_HERE.encode()), (".gitignore", GITIGNORE.encode())]
     kit = [(f"dot-claude-iff-kit/{p}", d) for p, d in payload]
@@ -268,7 +341,7 @@ def build(root: Path | None = None) -> dict:
             ("dot-claude-iff-kit/.gitignore", GITIGNORE.encode())]
 
     results = {}
-    for name, entries in (("dot-claude-iff-fresh.zip", fresh), ("dot-claude-iff-adopt-kit.zip", kit)):
+    for name, entries in zip(ZIP_NAMES, (fresh, kit)):
         out = dist / name
         wrote = _write_zip(out, entries)
         results[name] = {"path": out, "entries": len(entries), "wrote": wrote,
@@ -276,11 +349,43 @@ def build(root: Path | None = None) -> dict:
     return results
 
 
+def stale_zips(root: Path | None = None) -> list:
+    """Names of the committed zips in <root>/.claude/dist that are missing or differ, byte for
+    byte, from a rebuild of the current tree into a scratch directory. [] means fresh. Reads
+    only; the committed copies are never touched."""
+    root = root or _lib.project_root()
+    with tempfile.TemporaryDirectory(prefix="distctl-verify-") as tmp:
+        build(root, out_dir=Path(tmp), quiet=True)
+        stale = []
+        for name in ZIP_NAMES:
+            committed = root / ".claude" / DIST_DIR_NAME / name
+            if not committed.exists() or committed.read_bytes() != (Path(tmp) / name).read_bytes():
+                stale.append(name)
+    return stale
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Build the distribution zips (a registered generator).")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("build", help="build both zips into .claude/dist/")
+    sub.add_parser("verify", help="rebuild into a scratch dir and compare with .claude/dist/ "
+                                  "byte for byte (writes nothing)")
     args = parser.parse_args(argv)
+
+    if args.command == "verify":
+        try:
+            stale = stale_zips()
+        except _lib.LibError as exc:
+            print(exc)
+            _lib.print_verdict("DIST", False)
+            return 2
+        for name in stale:
+            print(f"stale: .claude/{DIST_DIR_NAME}/{name} differs from a rebuild "
+                  f"(run `distctl.py build` and commit the zips)")
+        if not stale:
+            print("fresh: the committed zips equal a rebuild of this tree")
+        _lib.print_verdict("DIST", not stale)
+        return 1 if stale else 0
 
     if args.command == "build":
         try:

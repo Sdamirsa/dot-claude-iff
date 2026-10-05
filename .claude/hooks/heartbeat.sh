@@ -8,6 +8,9 @@
 #
 # Overwrite, not append: the journal stays small and meaningful, and the console gets a
 # freshness number for free.
+#
+# The file is gitignored (it changes every turn) and the kits ship no state/ at all, so this
+# hook is what makes it exist: on a fresh install it creates state/ the first time a turn ends.
 
 set -u
 cat >/dev/null 2>&1 || true   # drain stdin; the payload is not needed
@@ -23,10 +26,11 @@ try:
     sys.path.insert(0, str(root / ".claude" / "tools"))
     import _lib
 
-    state = _lib.state_dir()
-    if not state.exists():
+    if not _lib.claude_dir().is_dir():
         raise SystemExit(0)
-    _lib.atomic_write_json(state / "heartbeat.json", {"ts": _lib.utc_now(), "note": "turn ended"})
+    # atomic_write_json creates state/ when it is missing (a fresh install ships none).
+    _lib.atomic_write_json(_lib.state_dir() / "heartbeat.json",
+                           {"ts": _lib.utc_now(), "note": "turn ended"})
 except Exception:
     pass
 PY

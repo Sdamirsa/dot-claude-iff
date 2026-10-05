@@ -1,0 +1,33 @@
+# CI: the whole suite on every push to dev or main and on every pull request, on both OS.
+#
+# release.yml runs the same matrix as its gate, but only when a tag is pushed; before this file
+# a red suite on dev was found at release time. Same commands as release.yml's test job, on
+# purpose: the interpreter name differs by runner (`python3` on ubuntu, `python` on windows).
+# The suite includes test_dist's rebuild-equality test, so a commit whose payload changed
+# without a zip rebuild goes red here, not in someone's adoption.
+
+name: ci
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            py: python3
+          - os: windows-latest
+            py: python
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: ${{ matrix.py }} .claude/tools/tests/run_tests.py -q
