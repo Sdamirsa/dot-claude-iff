@@ -65,3 +65,9 @@
 {"ts": "2026-10-05T12:41:58Z", "action": "task", "id": "T10", "title": "030a T10", "status": "todo"}
 {"ts": "2026-10-05T12:41:58Z", "action": "task", "id": "T11", "title": "030a T11", "status": "todo"}
 {"ts": "2026-10-05T12:41:59Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: wave 1 (T1 T2 T6 T8 T9) Opus builders in worktrees; task files .claude/tasks/030a-*.md; main session merges each diff into dev and verifies the Test"}
+{"ts": "2026-10-05T12:43:52Z", "action": "task", "id": "T1", "status": "doing", "note": "opus builder dispatched in worktree"}
+{"ts": "2026-10-05T12:43:53Z", "action": "task", "id": "T2", "status": "doing", "note": "opus builder dispatched in worktree"}
+{"ts": "2026-10-05T12:43:53Z", "action": "task", "id": "T6", "status": "doing", "note": "opus builder dispatched in worktree"}
+{"ts": "2026-10-05T12:43:53Z", "action": "task", "id": "T8", "status": "doing", "note": "opus builder dispatched in worktree"}
+{"ts": "2026-10-05T12:43:53Z", "action": "task", "id": "T9", "status": "doing", "note": "opus builder dispatched in worktree"}
+{"ts": "2026-10-05T12:43:53Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD wave 1 in flight (T1 T2 T6 T8 T9, 5 Opus builders in .claude/worktrees/agent-*). On each return: review diff, commit in worktree, merge to dev, run suite, rebuild zips. Then wave 2 (T4 T7), wave 3 (T3 T5), T10, T11 (human gate before tag/issue replies)"}

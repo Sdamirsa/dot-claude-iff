@@ -13,12 +13,20 @@ task's **Definition of done** true and its **Test** command green, nothing more.
 
 ## Where you are
 
-- You are in an isolated git worktree of the `dev` branch. Your current directory is the
-  worktree root. Use relative paths. Do NOT `cd` to absolute paths (a guard trips on them).
-- You may edit any file in this worktree, including hooks, config, agents and protocols:
-  nothing here reaches `dev` until the lead reviews and merges it.
-- You cannot run git writes. Single, simple, read-only git commands are allowed (`git diff`,
-  `git status`, `git ls-files`, `git log`), one per Bash call, never chained or piped.
+- Your shell starts in the MAIN checkout. You do not work there. The lead created a git
+  worktree of the `dev` branch for you at `.claude/worktrees/<wt>/` (the name is in your
+  prompt). EVERY file you read, create or edit lives under that folder: the repo's
+  `.claude/tools/x.py` is, for you, `.claude/worktrees/<wt>/.claude/tools/x.py`. Editing
+  anything outside your worktree is a failure of the task, even if a tool allows it.
+- Shell commands: start each Bash call with a relative `cd .claude/worktrees/<wt> && ...`
+  (relative, never the absolute path: a guard trips on absolute paths here). The working
+  directory does not persist between calls. Tools run from inside the worktree treat the
+  worktree as the project root.
+- You may edit any file in your worktree, including hooks, config, agents and protocols:
+  nothing there reaches `dev` until the lead reviews and merges it.
+- Do not use git at all: sub-agents are denied most git commands and the denial wastes a
+  turn. To see what you changed, keep your own list as you go. Code under test may call git
+  through subprocess; that is fine.
 - Platform is Windows with Git Bash; `python3` works. Code must also run on Linux (CI).
 
 ## Rules

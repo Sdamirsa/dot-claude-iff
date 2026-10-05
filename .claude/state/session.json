@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-10-05T12:41:59Z",
-  "last_event_ts": "2026-10-05T12:41:59Z",
+  "generated_at": "2026-10-05T12:43:53Z",
+  "last_event_ts": "2026-10-05T12:43:53Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "M-0.3.0-alpha BUILD: wave 1 (T1 T2 T6 T8 T9) Opus builders in worktrees; task files .claude/tasks/030a-*.md; main session merges each diff into dev and verifies the Test",
+  "resume_pointer": "M-0.3.0-alpha BUILD wave 1 in flight (T1 T2 T6 T8 T9, 5 Opus builders in .claude/worktrees/agent-*). On each return: review diff, commit in worktree, merge to dev, run suite, rebuild zips. Then wave 2 (T4 T7), wave 3 (T3 T5), T10, T11 (human gate before tag/issue replies)",
   "open_loops": [],
   "open_intents": [],
   "tasks": [
     {
       "id": "T1",
       "title": "030a T1",
-      "status": "todo",
+      "status": "doing",
       "deps": [],
-      "ts": "2026-10-05T12:41:56Z"
+      "ts": "2026-10-05T12:43:52Z"
     },
     {
       "id": "T10",
@@ -34,9 +34,9 @@
     {
       "id": "T2",
       "title": "030a T2",
-      "status": "todo",
+      "status": "doing",
       "deps": [],
-      "ts": "2026-10-05T12:41:56Z"
+      "ts": "2026-10-05T12:43:53Z"
     },
     {
       "id": "T3",
@@ -62,9 +62,9 @@
     {
       "id": "T6",
       "title": "030a T6",
-      "status": "todo",
+      "status": "doing",
       "deps": [],
-      "ts": "2026-10-05T12:41:57Z"
+      "ts": "2026-10-05T12:43:53Z"
     },
     {
       "id": "T7",
@@ -76,20 +76,20 @@
     {
       "id": "T8",
       "title": "030a T8",
-      "status": "todo",
+      "status": "doing",
       "deps": [],
-      "ts": "2026-10-05T12:41:58Z"
+      "ts": "2026-10-05T12:43:53Z"
     },
     {
       "id": "T9",
       "title": "030a T9",
-      "status": "todo",
+      "status": "doing",
       "deps": [],
-      "ts": "2026-10-05T12:41:58Z"
+      "ts": "2026-10-05T12:43:53Z"
     }
   ],
   "counts": {
-    "events": 67,
+    "events": 73,
     "tasks_total": 11,
     "tasks_done": 0,
     "tasks_open": 11,
