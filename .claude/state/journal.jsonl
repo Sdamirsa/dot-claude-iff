@@ -103,3 +103,8 @@
 {"ts": "2026-10-05T14:38:21Z", "action": "task", "id": "T3", "status": "done", "note": "merged; suite 556 passed"}
 {"ts": "2026-10-05T14:46:20Z", "action": "task", "id": "T5", "status": "done", "note": "merged; suite 635 passed"}
 {"ts": "2026-10-05T14:46:46Z", "action": "task", "id": "T13", "title": "030a T13 dispatch + zip flow", "status": "todo", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T14:46:47Z", "action": "note", "text": "dispatched builder for T12 in .claude/worktrees/t12", "tags": ["dispatch"]}
+{"ts": "2026-10-05T14:46:47Z", "action": "note", "text": "dispatched builder for T13 in .claude/worktrees/t13", "tags": ["dispatch"]}
+{"ts": "2026-10-05T14:47:52Z", "action": "task", "id": "T12", "status": "doing"}
+{"ts": "2026-10-05T14:47:52Z", "action": "task", "id": "T13", "status": "doing"}
+{"ts": "2026-10-05T14:47:53Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: 9/13 merged (dev pushed, suite 635 green). In flight: T12 (worktree t12), T13 (t13), stubs via statectl dispatch. Then T10 cleanup (gate false positives, ticket escape hatch, kit self-test, docs), then T11 release (human gate before tag and issue replies). New hooks and agents load only in a NEW session"}

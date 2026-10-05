@@ -3,3 +3,5 @@
 {"ts": "2026-10-05T14:41:10Z", "op": "add", "id": "PR-3", "text": "Stop zip merge conflicts: builders' branches always conflict on the committed zips; consider a merge driver or building zips only at release commits", "source": "agent:lead", "kind": "evolve"}
 {"ts": "2026-10-05T14:41:10Z", "op": "add", "id": "PR-4", "text": "Maturation pass before v0.3.1: the gate is now a large static shell reader and the suite more than doubled; prune and simplify using alpha usage evidence before adding anything", "source": "agent:lead", "kind": "evolve"}
 {"ts": "2026-10-05T14:41:10Z", "op": "add", "id": "PR-5", "text": "Hard layer under the gate: evaluate Claude Code sandbox / permission deny rules for the protected tree, since the gate's evasion resistance is not independently verified", "source": "agent:lead", "kind": "feature"}
+{"ts": "2026-10-05T14:47:52Z", "op": "resolve", "id": "PR-2", "resolution": "planned", "note": "T13"}
+{"ts": "2026-10-05T14:47:52Z", "op": "resolve", "id": "PR-3", "resolution": "planned", "note": "T13"}
