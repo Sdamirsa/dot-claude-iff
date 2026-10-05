@@ -27,6 +27,9 @@ settings.local.json
 # Liveness signal, rewritten every turn by the Stop hook (which creates it when missing)
 .claude/state/heartbeat.json
 
+# Orchestration runtime (agent start times, the delegation counter), rewritten by hooks
+.claude/state/orchestration.json
+
 # Agent worktrees (build-time scratch copies of the repo)
 .claude/worktrees/
 

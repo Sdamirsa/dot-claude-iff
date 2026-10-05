@@ -25,7 +25,7 @@ if str(TOOLS_DIR) not in sys.path:
 import _lib  # noqa: E402  (path must be set first)
 
 SHIPPED_CONFIGS = ("memory", "policy", "observe", "console", "registry", "model-prices",
-                   "brainstorm", "publish", "phases")
+                   "brainstorm", "publish", "phases", "orchestration")
 
 
 class FixtureCase(unittest.TestCase):

@@ -65,7 +65,9 @@ HOME_ONLY_FILES = {"reference/release-flow.md"}
 # Nested trees that are private by convention (gitignored in the home repo). Excluded even
 # on the no-git fallback path, where the tracked-files manifest cannot protect them.
 EXCLUDE_SUBDIRS = ("reference/private",)
-# Directories where only the scaffold travels; the content is this project's, not the system's.
+# Directories where only the scaffolds travel; the content is this project's, not the system's.
+# A scaffold is a `_`-prefixed file at the directory's top (tasks/_template.md,
+# tasks/_builder-brief.md), the same rule every task reader uses to tell it from a task.
 TEMPLATE_ONLY_DIRS = {"tasks", "research"}
 # Files replaced with fresh-start content rather than copied.
 RESET_FILES = {"CLAUDE.md", "STATUS.md", "Project-log.jsonl", "LESSONS.jsonl"}
@@ -179,6 +181,9 @@ _VISIBILITY_BODY = {
 
 # Liveness signal, rewritten every turn by the Stop hook (which creates it when missing)
 .claude/state/heartbeat.json
+
+# Orchestration runtime (agent start times, the delegation counter), rewritten by hooks
+.claude/state/orchestration.json
 
 # Agent worktrees (build-time scratch copies of the repo)
 .claude/worktrees/
@@ -303,7 +308,8 @@ def _excluded(rel: str) -> bool:
     return (parts[0] in EXCLUDE_DIRS or "__pycache__" in parts or rel.endswith(".pyc")
             or rel in EXCLUDE_FILES or rel in HOME_ONLY_FILES or rel in RESET_FILES
             or any(rel == sub or rel.startswith(sub + "/") for sub in EXCLUDE_SUBDIRS)
-            or (parts[0] in TEMPLATE_ONLY_DIRS and parts[-1] != "_template.md"))
+            or (parts[0] in TEMPLATE_ONLY_DIRS
+                and not (len(parts) == 2 and parts[1].startswith("_"))))
 
 
 def payload_source(repo_rel: str) -> bool:

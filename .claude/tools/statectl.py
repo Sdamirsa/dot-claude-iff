@@ -24,7 +24,9 @@ ideas that are out of scope right now; its open count lands in session.json.
 
 Mode and phase are journal actions (`mode`, `phase`), folded by `_lib.fold_lifecycle` - the
 one reader the projector, the SessionStart hook, checkctl and the console share. Leaving a
-phase in an organised mode runs `checkctl phase-exit --from <current>` first.
+phase in an organised mode runs `checkctl phase-exit --from <current>` first. In
+fableous-orchestrated, `task <id> --status done` runs `checkctl handoff <id>` first and refuses
+on FAIL unless `--no-envelope "<why>"` (logged); `dispatch` writes the stub a dispatch needs.
 """
 
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import _lib
@@ -460,13 +462,65 @@ def cmd_pointer(args) -> int:
     return 0
 
 
+def _handoff_problems(task_id: str) -> list:
+    """Why `task_id` may not be marked done in fableous-orchestrated: the FAIL rows of
+    `checkctl handoff <task_id>` (no rerun), so the guard and the lead's review agree on what a
+    valid handoff is. Fails closed: a check that cannot run is a problem, not a pass."""
+    try:
+        import checkctl
+        results = checkctl.handoff_check(task_id)
+        fail = checkctl.FAIL
+    except Exception as exc:  # noqa: BLE001
+        return [f"the handoff check could not run: {type(exc).__name__}: {exc}"]
+    return [f"{r.name}: {r.message}" + (f" ({'; '.join(str(d) for d in r.details[:3])})"
+                                        if r.details else "")
+            for r in results if r.status == fail]
+
+
 def cmd_task(args) -> int:
     deps = [d.strip() for d in args.deps.split(",") if d.strip()] if args.deps is not None else None
     # An explicit empty --milestone "" unlinks the task (same partial-update rule as --deps).
     milestone = args.milestone.strip() if args.milestone is not None else None
+    # fableous-orchestrated: done means a builder handed back a valid envelope whose tests
+    # passed, or the lead says on the record why there is none (it did a small task itself).
+    no_envelope = (args.no_envelope or "").strip() or None
+    guarded = args.status == "done" and _lib.current_mode() == _lib.ORCHESTRATED_MODE
+    if guarded and not no_envelope:
+        problems = _handoff_problems(args.id)
+        if problems:
+            print(f"refused: in {_lib.mode_label(_lib.ORCHESTRATED_MODE)} mode, {args.id} is done "
+                  f"only with a valid handoff envelope whose tests passed "
+                  f"(.claude/state/handshakes/{args.id}.json):")
+            for problem in problems:
+                print(f"  - {problem}")
+            print(f"Fix the envelope (`checkctl handoff {args.id}` shows it), or, for a task the "
+                  f"lead did itself: statectl task {args.id} --status done --no-envelope \"<why>\"")
+            _lib.print_verdict("STATE", False)
+            return 1
+        print(f"handoff envelope for {args.id} is valid and its tests passed")
+    elif guarded:
+        print(f"recorded without a handoff envelope: {no_envelope}")
+    elif no_envelope:
+        print("--no-envelope is not recorded: the handoff guard applies only to --status done "
+              "in fableous-orchestrated mode")
+        no_envelope = None
     _lib.journal_append("task", id=args.id, title=args.title, status=args.status, deps=deps,
-                        milestone=milestone, note=args.note)
+                        milestone=milestone, note=args.note, no_envelope=no_envelope)
     refresh_all()
+    _lib.print_verdict("STATE", True, warn=no_envelope is not None)
+    return 0
+
+
+def cmd_dispatch(args) -> int:
+    """Write the dispatch stub (state/handshakes/<id>.stub.json) the lead writes before it
+    dispatches an agent: it shows the agent in flight on the console and dates the dispatch
+    for the builder stop check. Journaled as a note so a resumed session sees the dispatch."""
+    path = _lib.write_stub(args.id, args.agent, args.worktree)
+    where = f" in {Path(args.worktree).as_posix()}" if args.worktree else ""
+    _lib.journal_append("note", text=f"dispatched {args.agent} for {args.id}{where}",
+                        tags=["dispatch"])
+    refresh_all()
+    print(_lib.rel(path))
     _lib.print_verdict("STATE", True)
     return 0
 
@@ -894,7 +948,17 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--deps", help="comma-separated task ids")
     sp.add_argument("--milestone", help="the milestone this task belongs to (\"\" unlinks it)")
     sp.add_argument("--note")
+    sp.add_argument("--no-envelope", dest="no_envelope",
+                    help="fableous-orchestrated: why this task is done without a builder's "
+                         "handoff envelope (logged); without it, --status done needs a valid one")
     sp.set_defaults(func=cmd_task)
+
+    sp = sub.add_parser("dispatch", help="write the dispatch stub before dispatching an agent "
+                                         "(state/handshakes/<id>.stub.json)")
+    sp.add_argument("id", help="the task id; the agent's envelope will be <id>.json")
+    sp.add_argument("--agent", default="builder", help="the agent type dispatched (default builder)")
+    sp.add_argument("--worktree", help="the worktree the agent works in, e.g. .claude/worktrees/t5")
+    sp.set_defaults(func=cmd_dispatch)
 
     sp = sub.add_parser("mode", help="how organised the work is: "
                                      + " | ".join(_lib.MODES) + " (aliases: "

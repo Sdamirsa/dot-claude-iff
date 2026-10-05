@@ -899,6 +899,139 @@ class TestPostWriteValidate(HookCase):
     def test_ignores_non_structured_files(self):
         self.assertEqual(self.run_on(".claude/notes.md", "# hi").returncode, 0)
 
+    BUILDER = {"agent_id": "builder-T1", "task_id": "T1", "status": "done", "agent": "builder",
+               "model": "opus", "files_changed": ["src/a.py"], "needs_main": [],
+               "tests": [{"command": "python3 -m x", "exit_code": 0, "summary": "ok"}]}
+
+    def test_a_builder_envelope_meets_the_one_shared_contract(self):
+        """The hook and checkctl handoff call the same validator: a builder envelope missing
+        its tests is blocked on write, a complete one passes."""
+        self.assertEqual(self.run_on(".claude/state/handshakes/T1.json",
+                                     json.dumps(self.BUILDER)).returncode, 0)
+        incomplete = {k: v for k, v in self.BUILDER.items() if k != "tests"}
+        res = self.run_on(".claude/state/handshakes/T1.json", json.dumps(incomplete))
+        self.assertEqual(res.returncode, 2)
+        self.assertIn("tests must be a list", res.stderr)
+        red = dict(self.BUILDER, tests=[{"command": "x", "exit_code": 1, "summary": "1 failed"}])
+        res = self.run_on(".claude/state/handshakes/T1.json", json.dumps(red))
+        self.assertEqual(res.returncode, 2, "done with a failing test is not done")
+
+    def test_the_legacy_brief_shape_alone_is_blocked(self):
+        legacy = {k: v for k, v in self.BUILDER.items() if k not in ("agent_id", "status")}
+        legacy["STATUS"] = "ok"
+        res = self.run_on(".claude/state/handshakes/T1.json", json.dumps(legacy))
+        self.assertEqual(res.returncode, 2)
+        self.assertIn("agent_id", res.stderr)
+
+    def test_a_broken_validator_fails_closed_on_envelopes_only(self):
+        (self.root / ".claude" / "tools" / "_lib.py").write_text("raise ImportError('broken')\n")
+        res = self.run_on(".claude/state/handshakes/T1.json", json.dumps(self.BUILDER))
+        self.assertEqual(res.returncode, 2)
+        self.assertIn("validator could not run", res.stderr)
+        self.assertEqual(self.run_on(".claude/config/x.json", '{"a": 1}').returncode, 0,
+                         "plain JSON needs no validator and no advisory")
+
+
+class TestHandoffGuard(HookCase):
+    """handoff-guard.sh on SubagentStart/SubagentStop, end to end: a builder with no envelope is
+    sent back once, the loop guard and every other agent type pass, and garbage fails open."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        import _lib
+        self.lib = _lib
+        _lib.journal_append("mode", value="fableous-orchestrated")
+        _lib.atomic_write_json(_lib.stub_path("T1"), {"task_id": "T1", "agent": "builder",
+                                                      "dispatched_at": "2020-01-01T00:00:00Z"})
+
+    def guard(self, event: str, **fields) -> subprocess.CompletedProcess:
+        return self.run_hook("handoff-guard.sh", dict({"hook_event_name": event,
+                                                        "agent_id": "a1",
+                                                        "agent_type": "builder"}, **fields))
+
+    def test_a_builder_without_an_envelope_is_blocked_once(self):
+        start = self.guard("SubagentStart")
+        self.assertEqual((start.returncode, start.stdout.strip()), (0, ""))
+        self.assertIn("a1", self.lib.orchestration_state()["agents"])
+        stop = self.guard("SubagentStop", stop_hook_active=False)
+        self.assertEqual(stop.returncode, 0)
+        out = json.loads(stop.stdout)
+        self.assertEqual(out["decision"], "block")
+        self.assertIn("T1", out["reason"])
+        again = self.guard("SubagentStop", stop_hook_active=True)
+        self.assertEqual((again.returncode, again.stdout.strip()), (0, ""),
+                         "stop_hook_active: the hook must never loop")
+
+    def test_a_delivered_envelope_lets_the_builder_stop(self):
+        self.guard("SubagentStart")
+        self.lib.atomic_write_json(self.lib.envelope_path("T1"), dict(
+            TestPostWriteValidate.BUILDER, files_changed=[]))
+        self.assertEqual(self.guard("SubagentStop").stdout.strip(), "")
+
+    def test_other_agent_types_and_modes_are_untouched(self):
+        for kind in ("verifier", "scout", "general-purpose"):
+            with self.subTest(agent_type=kind):
+                self.guard("SubagentStart", agent_type=kind)
+                self.assertEqual(self.guard("SubagentStop", agent_type=kind).stdout.strip(), "")
+        self.guard("SubagentStart")
+        self.lib.journal_append("mode", value="guided-solo")
+        self.assertEqual(self.guard("SubagentStop").stdout.strip(), "")
+
+    def test_fails_open_on_garbage(self):
+        env = dict(os.environ, CLAUDE_PROJECT_DIR=str(self.root),
+                   CLAUDE_IFF_RECORD_ROOT=str(self.record))
+        for raw in ("not json {{{", "[]", "", '{"hook_event_name": "SubagentStop", "agent_type": 7}'):
+            with self.subTest(raw=raw):
+                res = subprocess.run([BASH, str(HOOKS / "handoff-guard.sh")], input=raw,
+                                     capture_output=True, text=True, timeout=30, env=env,
+                                     check=False)
+                self.assertEqual((res.returncode, res.stdout.strip()), (0, ""))
+
+
+class TestDelegationNudgeHook(HookCase):
+    """The nudge rides post-write-validate.sh's exit-0 path as additionalContext: it never
+    blocks, never unblocks, and a broken counter costs only the note."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        import _lib
+        _lib.journal_append("mode", value="fableous-orchestrated")
+        cfg = {"nudge_after": 1, "handoff_test_timeout": 60}
+        (self.root / ".claude" / "config" / "orchestration.json").write_text(json.dumps(cfg))
+        self.state = self.root / ".claude" / "state" / "orchestration.json"
+
+    def write(self, relative: str, content: str, **extra) -> subprocess.CompletedProcess:
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+        payload = dict({"tool_name": "Write", "tool_input": {"file_path": str(path)},
+                        "cwd": str(self.root)}, **extra)
+        return self.run_hook("post-write-validate.sh", payload)
+
+    def test_the_nudge_is_additional_context_on_a_passing_write(self):
+        res = self.write("src/a.py", "x = 1\n")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        out = json.loads(res.stdout)["hookSpecificOutput"]
+        self.assertEqual(out["hookEventName"], "PostToolUse")
+        self.assertIn("DELEGATION NUDGE", out["additionalContext"])
+
+    def test_a_blocked_write_stays_blocked_when_a_nudge_is_due(self):
+        res = self.write(".claude/config/x.json", '{"a": ')
+        self.assertEqual(res.returncode, 2)
+        self.assertIn("VALIDATE_FAIL", res.stderr)
+
+    def test_a_broken_counter_never_breaks_the_hook(self):
+        self.state.mkdir(parents=True)  # a directory where the state file belongs: unwritable
+        res = self.write("src/a.py", "x = 1\n")
+        self.assertEqual((res.returncode, res.stdout.strip()), (0, ""))
+        self.assertEqual(self.write(".claude/config/y.json", "{ nope").returncode, 2)
+
+    def test_sub_agents_and_other_modes_get_no_nudge(self):
+        self.assertEqual(self.write("src/a.py", "x\n", agent_type="builder").stdout.strip(), "")
+        import _lib
+        _lib.journal_append("mode", value="freestyle")
+        self.assertEqual(self.write("src/b.py", "x\n").stdout.strip(), "")
+
 
 class TestSessionStart(HookCase):
     def setUp(self) -> None:

@@ -150,7 +150,7 @@ class PayloadPopulatedTests(FixtureCase):
 
         (state / "handshakes").mkdir(parents=True, exist_ok=True)
         _lib.atomic_write_json(state / "handshakes" / "HS1.stub.json", {
-            "agent": "console-builder", "task_id": "HS1", "since": _lib.utc_now(),
+            "agent": "console-builder", "task_id": "HS1", "dispatched_at": _lib.utc_now(),
         })
 
     def test_now_section_reflects_written_state(self):
@@ -186,6 +186,7 @@ class PayloadPopulatedTests(FixtureCase):
         self.assertEqual(len(now["in_flight"]), 1)
         self.assertEqual(now["in_flight"][0]["agent"], "console-builder")
         self.assertEqual(now["in_flight"][0]["task_id"], "HS1")
+        self.assertTrue(now["in_flight"][0]["dispatched_at"])
 
 
 class InFlightEnvelopeTests(FixtureCase):
@@ -194,8 +195,8 @@ class InFlightEnvelopeTests(FixtureCase):
     def test_stub_with_envelope_is_excluded(self):
         hs_dir = self.root / ".claude" / "state" / "handshakes"
         hs_dir.mkdir(parents=True, exist_ok=True)
-        _lib.atomic_write_json(hs_dir / "HS1.stub.json", {"agent": "a1", "task_id": "HS1", "since": _lib.utc_now()})
-        _lib.atomic_write_json(hs_dir / "HS2.stub.json", {"agent": "a2", "task_id": "HS2", "since": _lib.utc_now()})
+        _lib.atomic_write_json(hs_dir / "HS1.stub.json", {"agent": "a1", "task_id": "HS1", "dispatched_at": _lib.utc_now()})
+        _lib.atomic_write_json(hs_dir / "HS2.stub.json", {"agent": "a2", "task_id": "HS2", "dispatched_at": _lib.utc_now()})
         _lib.atomic_write_json(hs_dir / "HS2.json", {"agent_id": "a2", "task_id": "HS2", "status": "done", "artifacts": [], "notes": ""})
 
         data = consolectl.payload()

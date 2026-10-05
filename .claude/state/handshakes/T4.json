@@ -13,16 +13,16 @@
     ".claude/tools/consolectl.py",
     ".claude/tools/mapctl.py",
     ".claude/tools/tests/_fixture.py",
-    ".claude/tools/tests/test_phases.py (new)",
+    ".claude/tools/tests/test_phases.py",
     ".claude/tools/tests/test_statectl.py",
     ".claude/tools/tests/test_console.py",
     ".claude/hooks/session-start.sh",
     ".claude/console/console.template.html",
-    ".claude/config/phases.json (new)",
+    ".claude/config/phases.json",
     ".claude/config/memory.json",
     ".claude/config/registry.json",
-    ".claude/system-map/cards/config.phases.json (new)",
-    ".claude/system-map/cards/store.proposals.json (new)",
+    ".claude/system-map/cards/config.phases.json",
+    ".claude/system-map/cards/store.proposals.json",
     ".claude/system-map/cards/tool.statectl.json",
     ".claude/system-map/cards/tool.checkctl.json",
     ".claude/system-map/cards/tool.consolectl.json",
@@ -33,9 +33,9 @@
     ".claude/reference/glossary.md",
     ".claude/CLAUDE.md",
     ".claude/README.md",
-    ".claude/state/handshakes/T4.json (new)",
-    ".claude/state/session.json (accidental refresh, see needs_main)",
-    ".claude/state/HANDOFF.md (accidental refresh, see needs_main)"
+    ".claude/state/handshakes/T4.json",
+    ".claude/state/session.json",
+    ".claude/state/HANDOFF.md"
   ],
   "tests": [
     {

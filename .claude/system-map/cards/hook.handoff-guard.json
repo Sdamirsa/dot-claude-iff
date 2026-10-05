@@ -1,0 +1,28 @@
+{
+  "id": "hook.handoff-guard",
+  "kind": "code",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Handoff Guard",
+  "path": ".claude/hooks/handoff-guard.sh",
+  "description": "handoff-guard.sh - SubagentStart / SubagentStop, fableous-orchestrated mode only. SubagentStart: records when the agent began (state/orchestration.json) and resets the lead's delegation-nudge counter, because a dispatch is exactly what the nudge asks for. SubagentStop: a `builder` that is stopping without a valid handoff envelope written since it started, for an open builder stub, is sent back ONCE to write it ({\"decision\": \"block\", \"reason\": ...}, the documented Stop/SubagentStop blocking output). When the harness says stop_hook_active (this stop was already sent back once), the builder stops: the hook can never loop. Every other agent type stops untouched. BEST EFFORT, on purpose. The payload fields read here (hook_event_name, agent_type, agent_id, agent_transcript_path, stop_hook_active) are what the harness sends today and may change; a missing field reads as \"cannot tell\" and the agent stops normally. The HARD guarantee is not this hook: it is `statectl task <id> --status done`, which in fableous-orchestrated refuses without a valid envelope whose tests passed. LAW 2, telemetry half: FAILS OPEN. A malformed payload, a missing python3 or any internal error means no output and exit 0. In freestyle and guided-solo it does nothing at all. The payload goes through a temp file, not an environment variable: a SubagentStop payload can carry the agent's whole last message, and an env string is capped (see policy-gate.sh).",
+  "reads": [
+    "store.handshakes",
+    "store.journal",
+    "store.orchestration"
+  ],
+  "writes": [
+    "store.orchestration"
+  ],
+  "invokes": [
+    "tool._lib"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "5a4eb68cdbec7f5fca800c5f8e32cb5e844afb61c2512c2a29fbd93cad11ad0d",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

@@ -11,11 +11,16 @@
     "config.observe",
     "config.registry",
     "store.journal",
-    "store.machine"
+    "store.machine",
+    "store.handshakes",
+    "store.orchestration",
+    "config.orchestration"
   ],
   "writes": [
     "store.journal",
-    "store.record"
+    "store.record",
+    "store.handshakes",
+    "store.orchestration"
   ],
   "invokes": [],
   "flows": [],

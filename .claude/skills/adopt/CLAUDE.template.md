@@ -59,9 +59,10 @@ System commands:
 
 ```
 python3 .claude/tools/statectl.py  pointer|task|milestone|decision|loop|note|need|refresh|resume
-                                   mode|phase|proposal
+                                   mode|phase|proposal|dispatch
 python3 .claude/tools/checkctl.py  run --phase check|polish|publish · probe · generators
                                    phase-exit --from plan|build|review|deploy · doctor
+                                   handoff <task_id> [--run] [--root <worktree>]
 python3 .claude/tools/obsctl.py    ingest|seal|rollup|anchor|report|story|size|analyze
 python3 .claude/tools/mapctl.py    scan|lint|compile|show|context
 python3 .claude/tools/consolectl.py build|payload|serve
@@ -72,7 +73,8 @@ Skills: `/project-memory` (check · polish · publish · evolve; `--hard` for a 
 session) · `/plan-task` · `/adopt` · `/adhd` (user-invoked brainstorm, about ten agent calls:
 suggest it in one line for an open, divergent question; the user decides).
 Agents: `anatomist` (anatomy, cards, placement, pruning) · `retro-analyst` (propose-only
-evolution) · `verifier` (adversarial claim checking).
+evolution) · `verifier` (adversarial claim checking) · `builder` (one task card in a worktree)
+· `scout` (read-only research); the last two per `protocols/orchestration.md`.
 
 ## Invariants
 

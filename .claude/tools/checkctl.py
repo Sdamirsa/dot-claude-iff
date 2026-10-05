@@ -394,10 +394,16 @@ def check_config_registry() -> Result:
             if not agent.exists():
                 errors.append(f"{key}: agent file {_lib.rel(agent)} does not exist")
                 continue
+            # The VALUE is compared, not just the field's presence: a card saying sonnet over a
+            # frontmatter saying opus documents a pin nobody runs, which is worse than no card.
+            from mapctl import parse_frontmatter
             field = str(target.get("path", ""))
-            head = agent.read_text(encoding="utf-8")[:1200]
-            if f"{field}:" not in head:
+            meta = parse_frontmatter(agent.read_text(encoding="utf-8", errors="replace"))
+            if field not in meta:
                 warnings.append(f"{key}: {_lib.rel(agent)} frontmatter has no '{field}' field")
+            elif "default" in entry and str(meta[field]).strip() != str(entry["default"]).strip():
+                errors.append(f"{key}: registry pins {entry['default']!r} but {_lib.rel(agent)} "
+                              f"frontmatter says {field}: {meta[field]!r}; change one to match")
         else:
             warnings.append(f"{key}: unknown target kind {kind!r}")
 
@@ -413,7 +419,8 @@ def check_config_registry() -> Result:
                 warnings.append(f"{name}.{dotted}: tunable has no registry card")
 
     if errors:
-        return Result("config_registry_lint", FAIL, f"{len(errors)} dead card(s)", errors + warnings[:10])
+        return Result("config_registry_lint", FAIL, f"{len(errors)} dead or mismatched card(s)",
+                      errors + warnings[:10])
     if warnings:
         return Result("config_registry_lint", WARN, f"{len(warnings)} unregistered tunable(s)", warnings[:20])
     return Result("config_registry_lint", OK, f"{len(entries)} knobs registered, none dead")
@@ -572,6 +579,8 @@ def _deliberately_ignored(rel: str) -> bool:
     if rel.startswith((".claude/reference/private/", ".claude/worktrees/")):
         return True
     if rel == ".claude/state/heartbeat.json":  # rewritten every turn; the Stop hook recreates it
+        return True
+    if rel == ".claude/state/orchestration.json":  # per-machine runtime counters, rewritten by hooks
         return True
     if rel.endswith((".pyc", ".tmp", ".pid", ".log")):
         return True
@@ -1447,9 +1456,12 @@ def probe() -> list:
         ("hook.obs-capture", ".claude/hooks/obs-capture.sh"),
         ("hook.policy-gate", ".claude/hooks/policy-gate.sh"),
         ("hook.post-write-validate", ".claude/hooks/post-write-validate.sh"),
+        ("hook.handoff-guard", ".claude/hooks/handoff-guard.sh"),
         ("agent.anatomist", ".claude/agents/anatomist.md"),
         ("agent.retro-analyst", ".claude/agents/retro-analyst.md"),
         ("agent.verifier", ".claude/agents/verifier.md"),
+        ("agent.builder", ".claude/agents/builder.md"),
+        ("agent.scout", ".claude/agents/scout.md"),
         ("skill.project-memory", ".claude/skills/project-memory/SKILL.md"),
         ("skill.plan-task", ".claude/skills/plan-task/SKILL.md"),
         ("skill.adopt", ".claude/skills/adopt/SKILL.md"),
@@ -1458,6 +1470,7 @@ def probe() -> list:
         ("protocol.human-gates", ".claude/protocols/human-gates.md"),
         ("protocol.honesty", ".claude/protocols/honesty.md"),
         ("protocol.evolution", ".claude/protocols/evolution.md"),
+        ("protocol.orchestration", ".claude/protocols/orchestration.md"),
         ("config.memory", ".claude/config/memory.json"),
         ("config.policy", ".claude/config/policy.json"),
         ("config.observe", ".claude/config/observe.json"),
@@ -1467,6 +1480,7 @@ def probe() -> list:
         ("config.brainstorm", ".claude/config/brainstorm.json"),
         ("config.publish", ".claude/config/publish.json"),
         ("config.phases", ".claude/config/phases.json"),
+        ("config.orchestration", ".claude/config/orchestration.json"),
         ("map.layers", ".claude/system-map/layers.json"),
         ("console.template", ".claude/console/console.template.html"),
         ("console.server", ".claude/console/console.py"),
@@ -1495,8 +1509,9 @@ def probe() -> list:
 
 MIN_PYTHON = (3, 8)
 EXPECTED_HOOKS = ("session-start.sh", "heartbeat.sh", "obs-capture.sh", "policy-gate.sh",
-                  "post-write-validate.sh")
-DOCTOR_CONFIGS = ("memory", "policy", "observe", "console", "registry", "model-prices", "phases")
+                  "post-write-validate.sh", "handoff-guard.sh")
+DOCTOR_CONFIGS = ("memory", "policy", "observe", "console", "registry", "model-prices", "phases",
+                  "orchestration")
 WORK_MODES = _lib.MODES
 LIFECYCLE_PHASES = _lib.LIFECYCLE_PHASES
 # Path fragments of the common sync clients (lowercased, posix form). A heuristic: an OK row
@@ -1924,31 +1939,39 @@ def exit_plan(**_kw) -> list:
     return results
 
 
-def run_task_test(command: str, timeout: int) -> tuple:
-    """(status, message, details) for one Test command: run from the repo root, argv from
-    shlex, never a shell. A missing interpreter is a FAIL that says so."""
+def run_command(command: str, timeout: int, cwd: Path | None = None,
+                knob: str = "phases.json build_test_timeout") -> tuple:
+    """(exit code or None, message, output tail) for one Test command: argv from shlex, never a
+    shell, run from `cwd` (default the repo root) with CLAUDE_PROJECT_DIR naming it too, so a
+    worktree's own tools resolve the worktree. None means it could not run, and says why."""
     import shlex
     try:
         argv = shlex.split(command)
     except ValueError as exc:
-        return FAIL, f"Test command does not parse ({exc}): `{command}`", []
+        return None, f"Test command does not parse ({exc}): `{command}`", []
     if not argv:
-        return FAIL, "Test command is empty", []
+        return None, "Test command is empty", []
+    where = Path(cwd) if cwd else _lib.project_root()
     try:
-        res = subprocess.run(argv, cwd=str(_lib.project_root()), capture_output=True, text=True,
-                             encoding="utf-8", errors="replace", timeout=timeout, check=False)
+        res = subprocess.run(argv, cwd=str(where), capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", timeout=timeout, check=False,
+                             env=dict(os.environ, CLAUDE_PROJECT_DIR=str(where)))
     except FileNotFoundError:
-        return FAIL, (f"`{argv[0]}` was not found on PATH: the Test command's interpreter is "
+        return None, (f"`{argv[0]}` was not found on PATH: the Test command's interpreter is "
                       f"missing on this machine (`{command}`)"), []
     except subprocess.TimeoutExpired:
-        return FAIL, f"`{command}` timed out after {timeout}s (phases.json build_test_timeout)", []
+        return None, f"`{command}` timed out after {timeout}s ({knob})", []
     except OSError as exc:
-        return FAIL, f"`{command}` could not run: {exc}", []
+        return None, f"`{command}` could not run: {exc}", []
     tail = [ln for ln in ((res.stdout or "") + (res.stderr or "")).splitlines() if ln.strip()]
-    tail = tail[-TEST_TAIL_LINES:]
-    if res.returncode == 0:
-        return OK, f"`{command}` exit 0", tail
-    return FAIL, f"`{command}` exit {res.returncode}", tail
+    return res.returncode, f"`{command}` exit {res.returncode}", tail[-TEST_TAIL_LINES:]
+
+
+def run_task_test(command: str, timeout: int) -> tuple:
+    """(status, message, details) for one Test command, run from the repo root. A missing
+    interpreter is a FAIL that says so."""
+    code, message, tail = run_command(command, timeout)
+    return (OK if code == 0 else FAIL), message, tail
 
 
 def exit_build(milestone: str | None = None, **_kw) -> list:
@@ -2036,6 +2059,98 @@ def phase_exit(phase: str, signoff: str | None = None, milestone: str | None = N
         return [Result(name, FAIL, f"exit check raised {type(exc).__name__}: {exc}")]
 
 
+# --------------------------------------------------------------------------- handoff
+#
+# `checkctl handoff <task_id> [--run] [--root <worktree>]`: may the lead accept this builder's
+# handoff? READ-ONLY apart from its output. The schema is _lib.validate_envelope, the one
+# validator the post-write hook and statectl's done guard share; on top of it this checks what
+# only a review can: the files the builder names exist under the root, the envelope says done,
+# and with --run that each recorded test still exits as recorded when rerun from the root.
+# --root points everything (envelope, files, test cwd) at a builder's worktree, so the lead can
+# check a handoff BEFORE merging it.
+
+def _relative_inside(entry: str, base: Path):
+    """None when `entry` is a repo-relative path that stays under `base`, else why not."""
+    posix = entry.replace("\\", "/")
+    if not posix.strip() or posix.startswith("/") or re.match(r"^[A-Za-z]:", posix) \
+            or ".." in posix.split("/"):
+        return "not a repo-relative path"
+    if not _path_under(base / posix, base):
+        return "resolves outside the root"
+    return None
+
+
+def handoff_check(task_id: str, root=None, run: bool = False, timeout: int | None = None) -> list:
+    """The handoff review of one task, as Results; any FAIL means the lead must not accept it."""
+    base = Path(root).resolve() if root else _lib.project_root()
+    if not base.is_dir():
+        return [Result("root", FAIL, f"{root} is not a directory")]
+    path = _lib.envelope_path(task_id, base)
+    shown = _lib.rel(path, base)
+    if not path.is_file():
+        return [Result("envelope", FAIL, f"no envelope at {shown} under {_lib.tilde(base)}: the "
+                                         f"builder writes it before stopping "
+                                         f"(.claude/protocols/handshake.md)")]
+    try:
+        obj = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [Result("envelope", FAIL, f"{shown} does not parse: {exc}")]
+    errors = _lib.validate_envelope(obj, builder=True)
+    if isinstance(obj, dict) and isinstance(obj.get("task_id"), str) and obj["task_id"] != task_id:
+        errors.append(f"task_id is {obj['task_id']!r} but the file is named for {task_id!r}")
+    results = [Result("schema", FAIL, f"{shown} breaks the builder envelope contract", errors)
+               if errors else Result("schema", OK, f"{shown} matches the builder envelope contract")]
+    if not isinstance(obj, dict):
+        return results
+
+    status = obj.get("status")
+    if status == _lib.ENVELOPE_DONE:
+        results.append(Result("status", OK, "done"))
+    else:
+        results.append(Result("status", FAIL, f"status is {status!r}, not done: the builder did not "
+                                               f"finish (read its DEVIATIONS and needs_main)"))
+
+    files = obj.get("files_changed") if isinstance(obj.get("files_changed"), list) else []
+    bad = []
+    for entry in files:
+        if not isinstance(entry, str):
+            continue
+        why = _relative_inside(entry, base)
+        if why is None and not (base / entry.replace("\\", "/")).exists():
+            why = "does not exist"
+        if why:
+            bad.append(f"{entry}: {why}")
+    results.append(Result("files_changed", FAIL, f"{len(bad)} of {len(files)} path(s) fail", bad)
+                   if bad else Result("files_changed", OK, f"{len(files)} path(s) exist under the root"))
+
+    tests = [t for t in (obj.get("tests") or []) if isinstance(t, dict)] \
+        if isinstance(obj.get("tests"), list) else []
+    passed = [t for t in tests if t.get("exit_code") == 0]
+    if not tests or len(passed) != len(tests):
+        results.append(Result("tests", FAIL, f"{len(passed)} of {len(tests)} recorded test(s) "
+                                             f"exited 0; a handoff needs at least one and all green"))
+    else:
+        results.append(Result("tests", OK, f"{len(tests)} recorded test(s), all exit 0"
+                                           + ("" if run else " (not rerun: add --run)")))
+    if run:
+        if timeout is None:
+            timeout = _lib.orchestration_knob("handoff_test_timeout")
+        for i, test in enumerate(tests):
+            command, recorded = test.get("command"), test.get("exit_code")
+            if not isinstance(command, str) or not command.strip():
+                continue
+            code, message, tail = run_command(command, timeout, cwd=base,
+                                              knob="orchestration.json handoff_test_timeout")
+            if code is None:
+                results.append(Result(f"rerun[{i}]", FAIL, message, tail))
+            elif code == recorded:
+                results.append(Result(f"rerun[{i}]", OK, f"{message}, as recorded", tail[-1:]))
+            else:
+                results.append(Result(f"rerun[{i}]", FAIL, f"{message}, but the envelope records "
+                                                           f"{recorded!r}", tail))
+    return results
+
+
 # --------------------------------------------------------------------------- cli
 
 def main(argv=None) -> int:
@@ -2069,6 +2184,14 @@ def main(argv=None) -> int:
     exit_cmd.add_argument("--milestone", help="build exit: check this milestone instead of the "
                                               "current one")
     exit_cmd.add_argument("--json", action="store_true")
+    handoff_cmd = sub.add_parser("handoff", help="read-only: may the lead accept this builder's "
+                                                 "handoff envelope? exit 1 on any FAIL")
+    handoff_cmd.add_argument("task_id")
+    handoff_cmd.add_argument("--run", action="store_true",
+                             help="rerun each recorded test from the root and compare exit codes")
+    handoff_cmd.add_argument("--root", help="check inside this worktree instead of the project "
+                                            "root (envelope, files and test cwd)")
+    handoff_cmd.add_argument("--json", action="store_true")
     complete = sub.add_parser("complete", help="mark the ritual complete (called at the end of EVOLVE)")
     complete.add_argument("--note", default="")
 
@@ -2118,6 +2241,17 @@ def main(argv=None) -> int:
                               "results": [r.as_dict() for r in results]}, indent=2))
         else:
             render(results, f"phase-exit {args.from_phase}")
+        _lib.print_verdict("CHECK", not failed)
+        return 1 if failed else 0
+
+    if args.command == "handoff":
+        results = handoff_check(args.task_id, root=args.root, run=args.run)
+        failed = any(r.status == FAIL for r in results)
+        if args.json:
+            print(json.dumps({"task_id": args.task_id, "accept": not failed,
+                              "results": [r.as_dict() for r in results]}, indent=2))
+        else:
+            render(results, f"handoff {args.task_id}")
         _lib.print_verdict("CHECK", not failed)
         return 1 if failed else 0
 

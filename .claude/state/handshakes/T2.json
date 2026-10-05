@@ -1,5 +1,7 @@
 {
   "task_id": "T2",
+  "agent_id": "builder-T2",
+  "status": "done",
   "agent": "builder",
   "model": "opus",
   "STATUS": "ok",

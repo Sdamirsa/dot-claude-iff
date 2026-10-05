@@ -122,23 +122,44 @@ anyone may propose an addition.
   `proposal resolve <id> --as planned|rejected --note`. In the deploy phase every new feature
   idea goes here, not into code. Shown on the console WORK tab.
 
+## Orchestration
+
+The `fableous-orchestrated` mode's vocabulary (`.claude/protocols/orchestration.md`).
+
+- **builder**: The agent (`.claude/agents/builder.md`, opus) that implements one task card
+  in a git worktree the lead created, never commits, and hands back a builder envelope.
+- **handoff**: A builder returning its work: the envelope it writes, checked by
+  `checkctl.py handoff <task_id> [--run] [--root <worktree>]`, then the lead's diff review,
+  merge and suite run. In this mode `statectl.py task <id> --status done` refuses without a
+  valid envelope whose tests passed, unless `--no-envelope "<why>"`.
+- **lead**: The main session in the `fableous-orchestrated` mode: plans, designs, writes task
+  cards, dispatches, reviews, merges, reports to the human, and owns the outcome. Labelled
+  `lead` by `obsctl.py report --by agent`.
+- **scout**: The read-only research agent (`.claude/agents/scout.md`, sonnet): surveys,
+  lookups and quick checks for the lead, with paths and line numbers; it edits nothing.
+- **task card**: The task file a builder implements, `.claude/tasks/<id>.md`: Goal,
+  Definition of done, one Test command, Context, Plan. Not a separate format; `_`-prefixed
+  files in `tasks/` (`_template.md`, `_builder-brief.md`) are scaffolds, never cards.
+
 ## Contracts
 
 - **band**: One of SEV0 to SEV3, the severity/urgency tier on a needs-human queue item. SEV0
   halts everything and surfaces out of band; SEV1 gates governance; SEV2 gates content or
   verification; SEV3 is discretionary.
 - **envelope**: The JSON object a subagent writes to `.claude/state/handshakes/<task_id>.json`
-  on completion: `{agent_id, task_id, status, artifacts[], notes}`. The delivered half of a
-  handshake.
+  on completion: `{agent_id, task_id, status, artifacts[], notes}`, plus `agent, model,
+  files_changed[], tests[], needs_main[]` from a builder. The delivered half of a handshake;
+  one contract, checked by `_lib.validate_envelope` (`.claude/protocols/handshake.md`).
 - **gate**: A decision point classified BLOCKING, CHECKPOINT, or FYI.
 - **needs-human**: The async queue (`state/needs-human.jsonl`, opened, amended, and resolved
   via `statectl.py need`) that a background or subagent BLOCKING decision is written to instead
   of stalling the work.
 - **Structured Return**: The seven-section prose contract a subagent's reply always follows
   (STATUS, RESULT, EVIDENCE, DEVIATIONS, UNCERTAINTIES, QUESTIONS, SUGGESTIONS), carried inside
-  an envelope's `notes` field.
-- **stub**: `.claude/state/handshakes/<task_id>.stub.json`, `{task_id, agent, dispatched_at}`,
-  written before dispatch so an in-flight agent is visible before its envelope arrives.
+  an envelope's `notes` field or as its top-level keys.
+- **stub**: `.claude/state/handshakes/<task_id>.stub.json`, `{task_id, agent, dispatched_at,
+  worktree?}`, written before dispatch (`statectl.py dispatch`) so an in-flight agent is visible
+  before its envelope arrives.
 - **Task Brief**: The eight-field spawn-prompt contract: Objective, Context, Inputs,
   Constraints, Output contract, Done criteria, Non-goals, Escalation.
 
