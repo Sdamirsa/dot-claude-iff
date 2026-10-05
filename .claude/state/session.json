@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T15:49:04Z",
-  "last_event_ts": "2026-10-05T15:49:04Z",
+  "generated_at": "2026-10-05T17:06:42Z",
+  "last_event_ts": "2026-10-05T17:06:41Z",
   "session": {
     "id": "phase2-build",
     "mode": "fableous-orchestrated",
@@ -8,7 +8,7 @@
     "phase_since": "2026-10-05T13:57:35Z",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "M-0.3.0-alpha BUILD: 10/13 merged (suite 659 green, dev pushed). In flight: T12 (worktree t12). Then T10 cleanup via statectl dispatch/accept, then T11 release (human gate before tag and issue replies)",
+  "resume_pointer": "M-0.3.0-alpha BUILD: 11/13 merged (suite 717 green, dev pushed). In flight: T10 cleanup+hardening (real builder agent, worktree t10, dispatched via statectl dispatch). Then accept T10, then T11 release prep: version 0.3.0-alpha.1, CHANGELOG, alpha test checklist, distctl build+verify, verifier; STOP for user yes before tag and issue replies",
   "open_loops": [],
   "open_intents": [],
   "tasks": [
@@ -23,18 +23,18 @@
     {
       "id": "T10",
       "title": "030a T10",
-      "status": "todo",
+      "status": "done",
       "deps": [],
       "milestone": "M-0.3.0-alpha",
-      "ts": "2026-10-05T13:57:34Z"
+      "ts": "2026-10-05T17:06:40Z"
     },
     {
       "id": "T11",
       "title": "030a T11",
-      "status": "todo",
+      "status": "doing",
       "deps": [],
       "milestone": "M-0.3.0-alpha",
-      "ts": "2026-10-05T13:57:34Z"
+      "ts": "2026-10-05T17:06:41Z"
     },
     {
       "id": "T12",
@@ -118,18 +118,18 @@
     }
   ],
   "counts": {
-    "events": 114,
+    "events": 120,
     "tasks_total": 13,
-    "tasks_done": 11,
-    "tasks_open": 2,
+    "tasks_done": 12,
+    "tasks_open": 1,
     "open_loops": 0,
     "milestones": 6,
     "decisions": 3,
     "tooling": 5,
-    "proposals_open": 3
+    "proposals_open": 7
   },
   "heartbeat": {
-    "ts": "2026-10-05T15:49:02Z",
+    "ts": "2026-10-05T17:06:39Z",
     "note": "working"
   },
   "recent_milestones": [

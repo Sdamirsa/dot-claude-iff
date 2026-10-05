@@ -5,3 +5,7 @@
 {"ts": "2026-10-05T14:41:10Z", "op": "add", "id": "PR-5", "text": "Hard layer under the gate: evaluate Claude Code sandbox / permission deny rules for the protected tree, since the gate's evasion resistance is not independently verified", "source": "agent:lead", "kind": "feature"}
 {"ts": "2026-10-05T14:47:52Z", "op": "resolve", "id": "PR-2", "resolution": "planned", "note": "T13"}
 {"ts": "2026-10-05T14:47:52Z", "op": "resolve", "id": "PR-3", "resolution": "planned", "note": "T13"}
+{"ts": "2026-10-05T17:06:41Z", "op": "add", "id": "PR-6", "text": "Ship Fableous as a Claude Code plugin (marketplace in this repo) once the mode has settled", "source": "agent:lead", "kind": "feature"}
+{"ts": "2026-10-05T17:06:41Z", "op": "add", "id": "PR-7", "text": "Secret scan on every file write (post-write hook), if the ritual-time check keeps finding real cases", "source": "issue#7", "kind": "feature"}
+{"ts": "2026-10-05T17:06:41Z", "op": "add", "id": "PR-8", "text": "Analysis engine: explicit consent line and redaction before record text goes to a remote endpoint", "source": "agent:lead", "kind": "fix"}
+{"ts": "2026-10-05T17:06:42Z", "op": "add", "id": "PR-9", "text": "Generator freshness should compare output hashes too, so a hand-edited derived file is detected", "source": "agent:lead", "kind": "fix"}
