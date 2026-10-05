@@ -29,8 +29,8 @@ from pathlib import Path
 # --------------------------------------------------------------------------- vocabulary
 
 # The journal's action vocabulary. ONE list, shared by every writer and by the projector
-# in statectl.py - the crawler's writers and projector drifted apart and `config` events
-# became invisible. A writer using an action not in this set is a bug, not a new feature.
+# in statectl.py - the crawler's writers and projector drifted apart and events became
+# invisible. A writer using an action not in this set is a bug, not a new feature.
 JOURNAL_ACTIONS = (
     "session_start",  # a working session opened            {session, phase, note}
     "pointer",        # the next concrete action            {text}
@@ -40,7 +40,6 @@ JOURNAL_ACTIONS = (
     "loop",           # an open/closed thread               {id, text, status}
     "note",           # free narration                      {text}
     "intent",         # write-ahead bracket for composite ops {state, intent_id, op, files}
-    "config",         # a config value changed              {changes, via}
     "gate",           # a human gate was asked/answered     {question, answer, kind}
     "tooling",        # the .claude system itself changed   {change_type, what, evidence}
     "mode",           # how organised the work is           {value}

@@ -104,9 +104,10 @@ KNOWN_STORES = [
      "glyphs": []},
     {"id": "store.ritual_ticket", "path": ".claude/state/ritual-ticket.json", "title": "Ritual ticket",
      "description": "Proof the USER typed /project-memory or /adopt: {skill, ts, session_id, event}. "
-                     "Written only by the prompt hook (the gate denies it to every agent), checked "
-                     "by checkctl run and complete, consumed by complete. A tripwire, not "
-                     "cryptography; gitignored.",
+                     "Written by the prompt hook, or by `checkctl ticket --grant` that the human "
+                     "runs in their own terminal (the gate denies the file and that subcommand to "
+                     "every agent); checked by checkctl run and complete, consumed by complete. A "
+                     "tripwire, not cryptography; gitignored.",
      "glyphs": []},
     {"id": "store.handshakes", "path": ".claude/state/handshakes", "title": "Handshake envelopes",
      "description": "Agent-to-agent Structured Return envelopes (stub at dispatch, envelope at delivery).",
@@ -327,8 +328,15 @@ def resolve_path(path_str):
 
 def compute_hash(path: Path) -> str:
     """Content hash of a real, discovered source file. Never called for a declared
-    (store/human) card - see the KNOWN_STORES comment for why."""
-    return _lib.sha256_file(path) or ""
+    (store/human) card - see the KNOWN_STORES comment for why. Line endings are normalised
+    first: a Windows checkout (autocrlf) holds CRLF where git and every other OS hold LF, and
+    a raw-byte hash made every card read stale on the other OS."""
+    try:
+        data = Path(path).read_bytes()
+    except OSError:
+        return ""
+    import hashlib
+    return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
 
 
 def _component(id_: str, kind: str, title: str, description: str, source: Path) -> dict:

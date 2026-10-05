@@ -31,6 +31,15 @@ Bash and PowerShell by reading the command):
      the module this file imports. Agent worktrees (.claude/worktrees/<name>/) are copies, not
      the tree: their paths do not match, which is what lets a builder work in one.
 
+Three commands are refused on the shell lanes, whatever they write:
+  - running hooks/ritual-ticket.sh, to EVERY identity: only Claude Code launches it, as the
+    prompt hook; run by hand with a made-up payload it would mint the ticket (as the program,
+    a shell's or `source`'s script, a file on a shell's stdin, `cat x | bash`, in any spelling);
+  - `checkctl ticket`, to EVERY identity: the human's escape hatch, typed in their own terminal
+    when the prompt hook never fires;
+  - `statectl dispatch` and `accept`, to sub-agents: the lead's, and their git calls happen
+    inside Python where the git word match cannot see them.
+
 The shell lanes
 ---------------
 A command is judged by the paths it would WRITE, never by the words it merely contains. The
@@ -40,8 +49,10 @@ command is followed through its wrappers (sudo, env, xargs, timeout...), and thr
 writes: a redirect target; a path operand of a known writer (rm, cp, mv, tee, sed -i, dd,
 Set-Content, Out-File, Copy-Item... see the tables below); and code handed to an interpreter
 (bash -c, eval, pwsh -Command, a heredoc fed to a shell or to python), which is read again as
-shell, or, when it is not shell, judged opaquely: it names a guarded path AND contains a write
-call. Paths resolve the way the OS would: cwd followed through cd and subshells, `..`, `~`,
+shell, or, when it is not shell, judged opaquely: its CODE names a guarded path AND contains a
+write call. A string in that code which holds whitespace is prose, read again as a shell line
+(os.system('rm x') still writes; an envelope's notes naming the gate do not), unless the whole
+string is a guarded path; and code tokens never glob (`.*?` is a regex, not a path). Paths resolve the way the OS would: cwd followed through cd and subshells, `..`, `~`,
 symlinks, variables assigned earlier in the same command, braces, globs, and on Windows case,
 both slash forms and MSYS drive spellings; containment is compared segment by segment.
 Destroying or filling a directory that CONTAINS a guarded path (rm -r, mv, rsync, cp -r of a
@@ -61,8 +72,8 @@ Residual, stated rather than hidden: reading a shell statically is not sound aga
 determined adversary. A script file written first and then run (or a program that runs its
 stdin without being a shell or an interpreter), a base64 payload decoded at run time, a program
 missing from the writer tables that writes the path it is handed, a path assembled at run time
-inside interpreter code, and an archive or patch applied in the main session's own root all
-pass. The Write lane, the git denylist and review of the diff are the other layers.
+inside interpreter code, an archive or patch applied in the main session's own root, and a copy
+of the prompt hook run under another name all pass. The Write lane, the git denylist and review of the diff are the other layers.
 """
 
 from __future__ import annotations
@@ -97,6 +108,20 @@ FALLBACK_PROTECTED = (
 # Written by no identity in any lane, the main session included (ring 2). Built in rather than
 # configured, so a broken or edited policy.json cannot drop it.
 EVERY_IDENTITY_DENY = (".claude/state/ritual-ticket.json",)
+
+# Run by no identity on a shell lane. The prompt hook is launched by Claude Code alone, when the
+# user types the ritual command; run by hand with a made-up payload it would mint the ticket.
+EVERY_IDENTITY_NO_EXEC = (".claude/hooks/ritual-ticket.sh",)
+
+# Tool subcommands refused on the shell lanes: script basename -> {subcommand: who}. "every":
+# no identity, the main session included (`checkctl ticket` is the human's escape hatch, run in
+# their own terminal when the prompt hook never fires). "sub-agents": the lead's alone
+# (`statectl dispatch` and `accept` cut worktrees and merge through git calls made inside
+# Python, past the git word match).
+FORBIDDEN_SUBCOMMANDS = {
+    "checkctl": {"ticket": "every"},
+    "statectl": {"dispatch": "sub-agents", "accept": "sub-agents"},
+}
 
 # A single, simple, read-only git invocation. Anchored and flag-tolerant, but it refuses
 # anything with a shell operator in it, so `git log && git push` can never match.
@@ -210,6 +235,10 @@ WRITE_HINT = re.compile(
 )
 PATHISH = re.compile(r"[^\s'\"`(),;|&<>=\[\]{}+]+")
 JOINED = re.compile(r"""['"]\s*(?:,|\+|\)?\s*/)\s*['"]""")
+# Opaque code that starts another program: with a never-run script or a forbidden subcommand
+# named in the same code, it is that run.
+RUN_HINT = re.compile(r"(?i)subprocess|system|popen|spawn|exec|\brun\b|\bcall\b|start|invoke|"
+                      r"shell")
 # .NET calls that write, which PowerShell reaches without any cmdlet.
 DOTNET = re.compile(
     r"(?i)(?:\]::|\)\s*\.|\$[\w:]+\.)\s*(?:delete|moveto|copyto|create\w*|appendtext|openwrite|"
@@ -382,11 +411,11 @@ class Cmd:
     """One simple command: its words, redirect targets, heredoc count, herestrings and the
     substitutions its words contain."""
 
-    __slots__ = ("words", "targets", "heredocs", "herestrings", "subs")
+    __slots__ = ("words", "targets", "heredocs", "herestrings", "subs", "inputs")
 
     def __init__(self, words=None) -> None:
         self.words = list(words or [])
-        self.targets, self.herestrings, self.subs = [], [], []
+        self.targets, self.herestrings, self.subs, self.inputs = [], [], [], []
         self.heredocs = 0
 
     def __bool__(self) -> bool:
@@ -396,7 +425,7 @@ class Cmd:
 def parse(toks: list, subs: list) -> list:
     """Simple commands in order, with "(" / ")" markers for subshells."""
     queue = list(subs)
-    out, cmd, expect = [], Cmd(), None
+    out, cmd, expect, last = [], Cmd(), None, None
     for kind, val in toks:
         if kind == "w":
             n = val.count(SUB)
@@ -408,9 +437,11 @@ def parse(toks: list, subs: list) -> list:
                 cmd.herestrings.append(val)
             elif expect is None:
                 cmd.words.append(val)
+            elif last == "<":
+                cmd.inputs.append(val)  # stdin from a file: a shell reads it as its script
             expect = None
             continue
-        expect = REDIRECT.get(val)
+        expect, last = REDIRECT.get(val), val
         if val == "<<":
             cmd.heredocs += 1
         if expect is None:
@@ -584,6 +615,67 @@ def _basename(text: str) -> str:
     return re.split(r"[/\\]", text.rstrip("/\\"))[-1] if text.rstrip("/\\") else ""
 
 
+def script_call(argv: list, name: str):
+    """Index in argv of the script this command runs, or None: the program itself (`./x.py`), or
+    an interpreter's script or `-m` module (`python3 -X utf8 x.py`, `py -3 -m x`). Words in any
+    other position are arguments (a note's text, a grep pattern), never a run."""
+    if FORBIDDEN_SUBCOMMANDS.get(re.sub(r"\.py$", "", _basename(argv[0]).lower())):
+        return 0
+    if name != "python":
+        return None
+    k = 1
+    while k < len(argv):
+        a = argv[k]
+        if a == "-m" or a in ("-X", "-W", "-Q"):
+            if a == "-m":
+                return k + 1 if k + 1 < len(argv) else None
+            k += 2
+        elif re.fullmatch(r"-[A-Za-z]*c", a):
+            return None  # inline code: read opaquely, not as a script
+        elif a.startswith("-"):
+            k += 1
+        else:
+            return k
+    return None
+
+
+def split_literals(text: str):
+    """(code, prose) for interpreter code. A quoted string that holds whitespace is prose (an
+    envelope's notes, a message, a shell line handed to os.system) and leaves the code as an
+    empty pair of quotes; a string with none (a path, a mode, a flag) stays in the code as
+    written. A quote that does not close on its line is an ordinary character (an apostrophe
+    in a comment), so everything after it stays code: that can only over-match."""
+    code, prose, i, n = [], [], 0, len(text)
+    while i < n:
+        c = text[i]
+        if c not in "'\"":
+            code.append(c)
+            i += 1
+            continue
+        q = c * 3 if text.startswith(c * 3, i) else c
+        j = i + len(q)
+        while j < n and not text.startswith(q, j):
+            if text[j] == "\\":
+                j += 2
+                continue
+            if len(q) == 1 and text[j] == "\n":
+                j = n
+                break
+            j += 1
+        if j >= n:
+            code.append(c)
+            i += 1
+            continue
+        body = text[i + len(q):j]
+        if re.search(r"\s", body):
+            prose.append(body)
+            code.append(q + q)
+        else:
+            code.append(text[i:j + len(q)])
+        i = j + len(q)
+    return "".join(code), prose
+
+
 class Zone:
     __slots__ = ("kind", "parts", "label")
 
@@ -595,23 +687,42 @@ class Zone:
 class Rings:
     """The guarded paths for one identity, and the grants that carve into the protected tree."""
 
-    def __init__(self, root: Path, zones: list, grants: list) -> None:
+    def __init__(self, root: Path, zones: list, grants: list, no_exec=()) -> None:
         self.root, self.zones, self.grants = str(root), zones, grants
+        self.no_exec = list(no_exec)
 
-    def hit(self, forms: list, tree: bool = False, kinds=None):
+    def hit(self, forms: list, tree: bool = False, kinds=None, globs: bool = True):
         """(zone, form) for the first guarded path a write to any of forms would touch. tree:
-        the write reaches everything below it, so an ancestor of a guarded path counts too."""
+        the write reaches everything below it, so an ancestor of a guarded path counts too.
+        globs: a `*?[` segment matches as a shell would expand it; off for interpreter code,
+        where `.*?` is a regular expression and `*` a product, never a path."""
         folded = [(f, _fold(f)) for f in forms]
         for z in self.zones:
             if kinds and z.kind not in kinds:
                 continue
             for form, parts in folded:
-                if not (_within(parts, z.parts) or (tree and _within(z.parts, parts))):
+                if not (_within(parts, z.parts, globs)
+                        or (tree and _within(z.parts, parts, globs))):
                     continue
                 if z.kind == "protected" and any(_within(parts, g, globs=False)
                                                  for g in self.grants):
                     continue
                 return z, form
+        return None
+
+    def may_run(self, word: str) -> bool:
+        """Cheap pre-filter for runs(): the word ends in a never-run script's name, or is a
+        glob that could expand to one. Resolving every word of every command would be slow."""
+        base = _basename(word).lower()
+        return bool(GLOB_CHARS.intersection(word)) or any(
+            base == _basename(z.label).lower() for z in self.no_exec)
+
+    def runs(self, forms: list):
+        """The never-run script any of forms names, or None (exact path, globs expanded)."""
+        folded = [_fold(f) for f in forms]
+        for z in self.no_exec:
+            if any(parts == z.parts for parts in folded):
+                return z
         return None
 
 
@@ -623,7 +734,8 @@ def build_rings(root: Path, record_root: Path, protected, write_paths, is_main: 
     if not is_main:
         zones += [Zone("protected", root / p, p) for p in protected]
         grants = [_fold(os.path.realpath(str(root / g))) for g in write_paths or ()]
-    return Rings(root, zones, grants)
+    no_exec = [Zone("exec", root / rel, rel) for rel in EVERY_IDENTITY_NO_EXEC]
+    return Rings(root, zones, grants, no_exec)
 
 
 # ---- reading a command ---------------------------------------------------------------------
@@ -650,11 +762,14 @@ class ShellReader:
 
     MAX_DEPTH = 6
 
-    def __init__(self, rings: Rings, native: str) -> None:
-        self.rings, self.native = rings, native
+    def __init__(self, rings: Rings, native: str, is_main: bool = False) -> None:
+        self.rings, self.native, self.is_main = rings, native, is_main
         self.hits = []        # (zone, path form, how)
         self.unresolved = []  # writes whose path the gate could not resolve
         self.named = None     # the first guarded zone the command names anywhere
+        self.forbidden = []   # (kind, what): a never-run script run, a forbidden subcommand
+        self.script_named = None  # a never-run script named anywhere (for `cat x | bash`)
+        self.stdin_shell = False  # a shell reads its script from stdin somewhere here
         self._forms = {}
 
     def forms(self, text, cwd, deep=True) -> list:
@@ -697,18 +812,36 @@ class ShellReader:
         if hit:
             self.named = hit[0]
 
-    def opaque(self, text, cwd) -> None:
-        """Code the gate does not parse as shell: a guarded path named next to a write call."""
+    def opaque(self, text, cwd, depth=0) -> None:
+        """Code the gate does not parse as shell: a guarded path named next to a write call.
+        Only the code counts, never its prose: a string holding whitespace is read again as a
+        shell line (os.system('rm -rf x') is a write; an envelope's notes naming the gate are
+        not), unless the whole string is itself a guarded path (one with a space in it)."""
         base = cwd or self.rings.root
-        writes = WRITE_HINT.search(text) is not None
+        code, prose = (text, []) if depth > self.MAX_DEPTH else split_literals(text)
+        for body in prose:
+            whole = body.strip()
+            if "\n" not in whole and self.rings.hit(self.forms(whole, base, False), globs=False):
+                code += f" '{whole}'"  # a spaced path is a path, not prose
+            else:
+                self.prose(body, cwd, depth)
+        writes = WRITE_HINT.search(code) is not None
         # As written first, then with string joins (os.path.join('.claude', 'tools'),
         # '.claude/' + 'tools', Path('.claude') / 'tools') glued back into one path.
-        tokens = dict.fromkeys(PATHISH.findall(text) + PATHISH.findall(JOINED.sub("/", text)))
+        listed = PATHISH.findall(code)
+        tokens = dict.fromkeys(listed + PATHISH.findall(JOINED.sub("/", code)))
+        if RUN_HINT.search(code):
+            self.subcommand(listed)
+            for tok in tokens:
+                if (not UNRESOLVED.search(tok) and self.rings.may_run(tok)
+                        and self.rings.runs(self.forms(tok, base))):
+                    self.forbidden.append(("exec", tok))
         for tok in tokens:
             if UNRESOLVED.search(tok):
                 continue
             for cand in {tok, tok.lstrip("/\\")} - {""}:
-                hit = self.rings.hit(self.forms(cand, base, False))
+                # globs off: in code `.*?` is a regular expression and `*` a product.
+                hit = self.rings.hit(self.forms(cand, base, False), globs=False)
                 if not hit:
                     continue
                 if self.named is None:
@@ -716,6 +849,58 @@ class ShellReader:
                 if writes:
                     self.hits.append((hit[0], hit[1], "opaque"))
                     return
+
+    def prose(self, body, cwd, depth) -> None:
+        """A string from interpreter code, read as the shell line it may be. Quotes it cannot
+        balance (an apostrophe in a sentence) are dropped first; text that still does not lex
+        is judged opaquely as before."""
+        if lex(body, "sh") is None:
+            body = re.sub(r"([<>])\(", r"\1 (", re.sub(r"[`'\"$]", " ", body))
+        self.level(body, cwd, depth + 1)
+
+    def subcommand(self, words, anywhere=True) -> None:
+        """A forbidden tool subcommand among words: the script (any spelling, `-m` module or
+        path) followed by its first positional argument. anywhere=False: words[0] is the script
+        a command runs (script_call); interpreter code is scanned anywhere."""
+        for k, word in enumerate(words if anywhere else words[:1]):
+            stem = _basename(word).lower()
+            stem = stem[:-3] if stem.endswith(".py") else stem
+            table = FORBIDDEN_SUBCOMMANDS.get(stem)
+            if not table:
+                continue
+            sub = next((w for w in words[k + 1:] if not w.startswith("-")), "").lower()
+            who = table.get(sub)
+            if who == "every" or (who == "sub-agents" and not self.is_main):
+                self.forbidden.append(("subcommand", f"{stem} {sub}"))
+                return
+
+    def executes(self, words, inputs, name, st, fed_here=False) -> None:
+        """A never-run script executed: as the program, as a shell's or `source`'s script
+        operand, or as a file fed to a shell's stdin. A shell with no script at all reads one
+        from stdin, which `cat x | bash` fills."""
+        here = st.cwd or self.rings.root
+
+        def runs(word):
+            return (word and not UNRESOLVED.search(word) and self.rings.may_run(word)
+                    and self.rings.runs(self.forms(word, here)))
+
+        for w in words + inputs:
+            if self.script_named is None and runs(w):
+                self.script_named = w
+        if words and re.search(r"[/\\]|\.sh$", words[0], re.I) and runs(words[0]):
+            self.forbidden.append(("exec", words[0]))
+            return
+        if name not in SHELLS and name not in SOURCES:
+            return
+        ops = [a for a in words[1:] if not a.startswith("-") or a == "-"] + inputs
+        for op in ops:
+            if runs(op):
+                self.forbidden.append(("exec", op))
+                return
+        coded = any(re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*|--command|-command|/c|/k", a, re.I)
+                    for a in words[1:])
+        if not coded and not fed_here and (not ops or any(UNRESOLVED.search(op) for op in ops)):
+            self.stdin_shell = True
 
     def verdict(self):
         if self.hits:
@@ -731,19 +916,19 @@ class ShellReader:
         the cwd it ends in (None when unknown), for eval and source."""
         native = native or self.native
         if depth > self.MAX_DEPTH:
-            self.opaque(text, cwd)
+            self.opaque(text, cwd, depth)
             return None
         stripped, bodies = split_heredocs(text)
         if native == "ps":
             for line in stripped.split("\n"):
                 if DOTNET.search(line):
-                    self.opaque(line, cwd)
+                    self.opaque(line, cwd, depth)
         runs, end = [], None
         for dialect in (native, "ps" if native == "sh" else "sh"):
             lexed = lex(stripped, dialect)
             if lexed is None:
                 if dialect == native:
-                    self.opaque(stripped, cwd)
+                    self.opaque(stripped, cwd, depth)
                 continue
             lvl, st = Level(), State(cwd, dict(vars_ or {}))
             self.walk(lexed, st, depth, lvl, dialect)
@@ -765,7 +950,7 @@ class ShellReader:
             where = runs[0].owners[k] if counted else None
             self.level(body, where, depth + 1, native=native)
             if not counted or "other" in code:
-                self.opaque(body, where)
+                self.opaque(body, where, depth + 1)
 
     def walk(self, lexed, st, depth, lvl, dialect) -> None:
         toks, subs = lexed
@@ -802,7 +987,7 @@ class ShellReader:
         for inner in cmd.subs:
             lexed = lex(inner, dialect) if depth < self.MAX_DEPTH else None
             if lexed is None:
-                self.opaque(inner, st.cwd)
+                self.opaque(inner, st.cwd, depth)
             else:  # a subshell: it shares this text's heredocs but not its cwd
                 self.walk(lexed, State(st.cwd, dict(st.vars)), depth + 1, lvl, dialect)
         if "{" in cmd.words[1:] or "}" in cmd.words[1:]:
@@ -843,6 +1028,12 @@ class ShellReader:
             return
         name = prog_name(chain[0])
         args = [self.subst(a, st) for a in chain[1:]]
+        argv = [self.subst(chain[0], st)] + args
+        script = script_call(argv, name)
+        if script is not None:
+            self.subcommand(argv[script:], anywhere=False)
+        self.executes(argv, [self.subst(i, st) for i in cmd.inputs], name, st,
+                      bool(cmd.heredocs or cmd.herestrings))
         role = self.dispatch(name, args, st, depth, fed, cmd.herestrings, dialect)
         if role or fed:
             lvl.code.add(role or "shell")
@@ -863,7 +1054,7 @@ class ShellReader:
             st.cwd = None  # a sourced file may cd anywhere
             return "shell"
         elif name in INTERPRETERS or name in AWKS:
-            return self.interpreter(name, args, st, herestrings)
+            return self.interpreter(name, args, st, herestrings, depth)
         elif name == "sed":
             self.sed(args, cwd)
         elif name == "find":
@@ -936,7 +1127,7 @@ class ShellReader:
         for code in codes + list(herestrings):
             self.level(code, st.cwd, depth + 1, st.vars, dialect)
 
-    def interpreter(self, name, args, st, herestrings):
+    def interpreter(self, name, args, st, herestrings, depth=0):
         codes, rest, inplace = [], [], False
         if name in AWKS:
             k, given = 0, False
@@ -970,7 +1161,7 @@ class ShellReader:
             inplace = name in ("perl", "ruby") and any(
                 re.fullmatch(r"-[A-Za-z]*i\S*", a) for a in args)
         for code in codes + list(herestrings):
-            self.opaque(code, st.cwd)
+            self.opaque(code, st.cwd, depth)
         if inplace:
             for p in rest:
                 self.write(p, st.cwd)
@@ -1218,6 +1409,27 @@ def explain(zone: Zone, form: str, root: Path, identity: str, how: str, degraded
     return reason
 
 
+GRANT_HINT = ("If the prompt hook never fires (an older Claude Code, hooks not trusted yet), the "
+              "USER runs `python3 .claude/tools/checkctl.py ticket --grant` in their own "
+              "terminal.")
+
+
+def explain_forbidden(item, identity: str) -> str:
+    kind, what = item
+    if kind == "exec":
+        return (f"running the prompt hook by hand ({what}) is refused to every identity, the main "
+                f"session included: only Claude Code launches it, when the user types "
+                f"/project-memory or /adopt, and a hand-made payload would mint the ritual ticket. "
+                f"Ask the user to type the command. {GRANT_HINT}")
+    if what.startswith("checkctl"):
+        return ("`checkctl ticket` is the human's escape hatch: the user runs it in their own "
+                "terminal, never through a tool call (every identity is refused, the main session "
+                "included). Ask the user to type /project-memory. " + GRANT_HINT)
+    return (f"`{what}` is the lead's command (the main session's): it cuts worktrees and merges "
+            f"branches through git calls the git word match cannot see. Sub-agent '{identity}' "
+            f"may not run it; report back to the lead instead.")
+
+
 # What the activity pulse needs once the decision is out: the project root and the tool NAME
 # (never its input). Filled by main(), read only by activity_pulse().
 _ACTIVITY: dict = {}
@@ -1348,7 +1560,12 @@ def main(argv: list) -> int:
         # mygit) and missed this one. Executing `./git` slips the net as a consequence; the
         # docstring already says this arm is advisory against a determined adversary, and the
         # rings below are what actually guard the data.
-        if not re.search(rf"(?<![\w./-]){re.escape(denied)}(?![\w./-])", lowered):
+        #
+        # A backslash is a separator too when it follows a path character (Documents\GIT\repo,
+        # C:\git): Windows paths are spelled that way. A leading `\git` (bash's alias bypass) and
+        # `git\` before a line break (a continuation) still run the command and still match.
+        if not re.search(rf"(?<![\w./-])(?<![\w.:-]\\){re.escape(denied)}"
+                         rf"(?![\w./-]|\\(?!\r?\n))", lowered):
             continue
         if denied == "git" and READONLY_GIT.match(command.strip()):
             sub = next((t for t in command.split()[1:] if not t.startswith("-")), "")
@@ -1363,13 +1580,17 @@ def main(argv: list) -> int:
             f"it can fire on a harmless mention: if that happened, ask the main session to run it."
         )
 
-    reader = ShellReader(rings, "ps" if tool == "PowerShell" else "sh")
+    reader = ShellReader(rings, "ps" if tool == "PowerShell" else "sh", is_main)
     try:
         reader.level(command, cwd, 0)
     except Exception:
         # A reader bug must not open the rings: fall back to the opaque reading of the whole
         # command (a guarded path named next to a write call). If that fails too, exit 3.
-        reader.opaque(command, cwd)
+        reader.opaque(command, cwd, ShellReader.MAX_DEPTH + 1)
+    if reader.script_named and reader.stdin_shell:
+        reader.forbidden.append(("exec", reader.script_named))
+    if reader.forbidden:
+        emit_deny(explain_forbidden(reader.forbidden[0], identity))
     verdict = reader.verdict()
     if verdict:
         zone, where, how = verdict

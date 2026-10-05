@@ -25,6 +25,46 @@ is what makes control truthful, the gates are what make interaction safe.
 Everything lives in `.claude/`. A thing lives elsewhere **if and only if** it must, which is
 what the name means.
 
+## What is new in 0.3
+
+Each item with the one command to try it.
+
+- **Modes**: how organised the work is - freestyle (the default: record, gates and ritual
+  only), guided-solo (a phase contract at session start), fableous-orchestrated (a lead
+  dispatching builders). `python3 .claude/tools/statectl.py mode guided-solo`
+- **Phases**: plan → build → review → deploy; leaving a phase runs its exit check.
+  `python3 .claude/tools/checkctl.py phase-exit --from plan`, then
+  `python3 .claude/tools/statectl.py phase build`
+- **The ritual is yours alone**: only your own prompt opens `/project-memory`, and it ends with
+  ROUTE (next phase, next mode, maturation pass). If the prompt hook never fires on your
+  install, run `python3 .claude/tools/checkctl.py ticket --grant` in your own terminal.
+- **Proposals**: ideas parked instead of built. `python3 .claude/tools/statectl.py proposal add
+  "idea" --source human`
+- **Fableous orchestration**: the lead cuts a worktree per builder and merges what passes.
+  `python3 .claude/tools/statectl.py dispatch <task>`, `statectl.py accept <task>`, and each
+  builder's envelope checked by `python3 .claude/tools/checkctl.py handoff <task> --run`.
+- **Progress view**: one model for the console panel and the terminal.
+  `python3 .claude/tools/statectl.py progress`
+- **Secrets check and doctor**: can this machine run the system, and are keys where they
+  belong (`reference/secrets.md`)? `python3 .claude/tools/checkctl.py doctor`
+- **Visibility and export**: keep the system tracked or ignored in git, and copy it into a
+  public checkout without this project's history. `python3 .claude/tools/distctl.py gitignore`,
+  `python3 .claude/tools/distctl.py export --to <checkout> --dry-run`
+  (`reference/public-private.md`). In the source repo, `distctl.py verify` says whether the
+  committed zips equal a rebuild.
+- **Folder context**: which guides and rules load where, and which are stale or noisy.
+  `python3 .claude/tools/mapctl.py context`
+- **`/adhd`**: a divergent brainstorm you invoke yourself; the agent may suggest it in one line,
+  never run it. Type `/adhd <question>`.
+
+**The policy gate is a tripwire for honest mistakes, not a sandbox.** It reads every Write,
+Edit, Bash and PowerShell call and refuses writes into the record, the ritual ticket and (for
+sub-agents) the protected tree. Reading shell statically cannot stop a determined adversary:
+a script written first and then run, a payload decoded at run time, a program missing from the
+gate's writer tables, a path assembled at run time inside interpreter code, an archive or patch
+applied in the main session's own root, and a renamed copy of the prompt hook all pass. Review
+of the diff, the git denylist and your own approval are the other layers.
+
 ## Install it into a project
 
 Open Claude Code in the target project and say *adopt the claude-iff system*, or run `/adopt`
@@ -34,8 +74,8 @@ with spine layers only, dispatches the anatomist to fill in relations, builds th
 **probes that hooks actually fire** (project hooks require your trust first, so "silently off"
 is a real state worth checking).
 
-Requirements: `bash` and `python3`. That is the whole floor for the hooks and the six core
-tools, forever. Project-registered steps and optional features may use `uv`.
+Requirements: `bash` and `python3`. That is the whole floor for the hooks and every tool in
+`.claude/tools/`, forever. Project-registered steps and optional features may use `uv`.
 
 ## The daily shape
 
@@ -171,7 +211,7 @@ served stale data. So there is exactly one ritual, every generator is registered
 .claude-iff/        committed record surface: anchor + redacted daily rollups (write-denied)
 <parent>/<repo>_claude_iff/
                     RECORD_ROOT: raw capture, sealed raw (kept forever), segments,
-                    transcripts, analysis products, vault snapshots
+                    transcripts, analysis products
 ```
 
 The record is a sibling folder rather than a hidden state directory so it stays visible and
@@ -182,10 +222,12 @@ inspectable next to the project it belongs to. Override it with `record_root` in
 
 ```
 python3 .claude/tools/statectl.py   pointer|task|milestone|decision|loop|note|need|refresh|resume
-                                    mode|phase|proposal|dispatch|accept
+                                    mode|phase|proposal|dispatch|accept|progress
 python3 .claude/tools/checkctl.py   run --phase check|polish|publish · probe · generators
                                     phase-exit --from plan|build|review|deploy · doctor
                                     handoff <task_id> [--run] [--root <worktree>]
+                                    ticket --grant   # you, in your own terminal; never an agent
+python3 .claude/tools/distctl.py    export --to <checkout> [--dry-run] · gitignore · verify
 python3 .claude/tools/obsctl.py     ingest|seal|rollup|anchor|report|story|size|analyze
 python3 .claude/tools/mapctl.py     scan|lint|compile|show|context
 python3 .claude/tools/consolectl.py build|payload|serve

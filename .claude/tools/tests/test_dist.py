@@ -170,6 +170,7 @@ class TestPayload(DistCase):
         ref = self.root / ".claude" / "reference"
         ref.mkdir(parents=True, exist_ok=True)
         (ref / "release-flow.md").write_text("# dev/main flow of THE SOURCE\n", encoding="utf-8")
+        (ref / "brand-identity.md").write_text("# THE SOURCE's look and voice\n", encoding="utf-8")
         (ref / "glossary.md").write_text("ships\n", encoding="utf-8")
         distctl.build(self.root)
         for zip_name, prefix in (("dot-claude-iff-fresh.zip", ""),
@@ -177,7 +178,22 @@ class TestPayload(DistCase):
             with self.subTest(zip=zip_name):
                 names = self.names(zip_name)
                 self.assertNotIn(f"{prefix}.claude/reference/release-flow.md", names)
+                self.assertNotIn(f"{prefix}.claude/reference/brand-identity.md", names)
                 self.assertIn(f"{prefix}.claude/reference/glossary.md", names)
+
+    def test_brand_identity_is_home_only_in_a_build_of_this_tree(self):
+        """The home repo's own brand doc exists here and never reaches either zip."""
+        self.assertIn("reference/brand-identity.md", distctl.HOME_ONLY_FILES)
+        if not (REPO_ROOT / ".claude" / "reference" / "brand-identity.md").exists():
+            self.skipTest("no brand-identity.md here: an adopting project has none")
+        if not _home_repo():
+            self.skipTest("distribution is off here: this tree builds no zips")
+        out = Path(self._tmp.name) / "home-build"
+        distctl.build(REPO_ROOT, out_dir=out, quiet=True)
+        for zip_name in distctl.ZIP_NAMES:
+            with self.subTest(zip=zip_name), zipfile.ZipFile(out / zip_name) as z:
+                self.assertFalse(any(n.endswith("reference/brand-identity.md")
+                                     for n in z.namelist()))
 
     def test_text_ships_lf_and_bytes_do_not_depend_on_checkout_eol(self):
         """A Windows checkout (core.autocrlf) reads CRLF where Linux reads LF. The same commit
@@ -227,7 +243,7 @@ class TestPayload(DistCase):
         cfg = _lib.read_json(self.root / ".claude" / "config" / "memory.json", {}) or {}
         cfg["project_steps"] = {"_comment": "kept", "check": [
             {"name": "test_suite", "kind": "check", "argv": ["python3", "x.py"]}],
-            "polish": [{"name": "p", "argv": ["true"]}], "generator": []}
+            "polish": [{"name": "p", "argv": ["true"]}]}
         self.write_config("memory", cfg)
         distctl.build(self.root)
         for zip_name, entry in (("dot-claude-iff-fresh.zip", ".claude/config/memory.json"),
@@ -619,6 +635,63 @@ class TestZipEqualityBranch(FixtureCase):
             with self.subTest(branch=branch):
                 _git(self.root, "checkout", "-q", "-B", branch)
                 self.assertIs(_lib.zip_equality_required(env={})[0], expected)
+
+
+def _tail(text: str, lines: int = 60) -> str:
+    return "\n".join((text or "").splitlines()[-lines:])
+
+
+@unittest.skipUnless(_home_repo(), "home-repo-only: builds the fresh kit from this source tree "
+                                   "(inside the kit itself this test would only recurse)")
+class TestKitSelfTest(unittest.TestCase):
+    """What adopters receive must pass its own checks. Build the fresh zip from the current
+    tree, extract it the way `unzip` does (mode bits kept), make it a git repo with a repo-local
+    identity and one commit, then run the KIT's own `checkctl doctor` and the KIT's own suite
+    inside it, as subprocesses with a clean environment. Anything that only passes in the home
+    repo (home-only files, the distribution knob, committed zips, this repo's tasks or git
+    history) is a defect in the kit, found here rather than by an adopter."""
+
+    SUITE_TIMEOUT = 1800
+
+    def test_the_fresh_kit_passes_its_own_doctor_and_suite(self):
+        if not GIT:
+            self.skipTest("git not available")
+        with tempfile.TemporaryDirectory(prefix="claude-iff-kit-") as tmp:
+            base = Path(tmp)
+            distctl.build(REPO_ROOT, out_dir=base / "dist", quiet=True)
+            proj = base / "adopter"
+            with zipfile.ZipFile(base / "dist" / "dot-claude-iff-fresh.zip") as z:
+                for info in z.infolist():
+                    z.extract(info, proj)
+                    mode = (info.external_attr >> 16) & 0o777
+                    if mode and os.name == "posix":
+                        os.chmod(proj / info.filename, mode)
+            env = {k: v for k, v in os.environ.items()
+                   if not k.upper().startswith(("CLAUDE", "GITHUB_", "GIT_"))}
+            env.update(CLAUDE_PROJECT_DIR=str(proj), PYTHONUTF8="1",
+                       CLAUDE_IFF_RECORD_ROOT=str(base / "adopter_claude_iff"))
+            for args in (["init", "-q"], ["config", "user.name", "kit"],
+                         ["config", "user.email", "kit@example.invalid"],
+                         ["config", "commit.gpgsign", "false"],
+                         ["config", "core.autocrlf", "false"], ["add", "-A"],
+                         ["commit", "-q", "-m", "adopt dot-claude-iff"]):
+                res = subprocess.run(["git", *args], cwd=str(proj), env=env, capture_output=True,
+                                     text=True, timeout=120, check=False)
+                self.assertEqual(res.returncode, 0, f"git {' '.join(args)}: {res.stderr}")
+
+            doctor = subprocess.run([sys.executable, ".claude/tools/checkctl.py", "doctor"],
+                                    cwd=str(proj), env=env, capture_output=True, text=True,
+                                    timeout=300, check=False)
+            self.assertEqual(doctor.returncode, 0,
+                             f"the kit's own doctor FAILs:\n{_tail(doctor.stdout + doctor.stderr)}")
+            suite = subprocess.run([sys.executable, ".claude/tools/tests/run_tests.py", "-q"],
+                                   cwd=str(proj), env=env, capture_output=True, text=True,
+                                   timeout=self.SUITE_TIMEOUT, check=False)
+            failures = [line for line in (suite.stderr or "").splitlines()
+                        if line.startswith(("FAIL:", "ERROR:"))]
+            self.assertEqual(suite.returncode, 0,
+                             "the kit's own suite fails inside a fresh adopter repo:\n"
+                             + "\n".join(failures[:40]) + "\n" + _tail(suite.stdout, 5))
 
 
 @unittest.skipUnless(_home_repo(), "home-repo-only: the committed zips live in dot-claude-iff")

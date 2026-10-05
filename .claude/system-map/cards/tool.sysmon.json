@@ -1,7 +1,7 @@
 {
   "id": "tool.sysmon",
   "kind": "code",
-  "layer": null,
+  "layer": "CONSOLE",
   "package": null,
   "title": "Sysmon",
   "path": ".claude/tools/sysmon.py",

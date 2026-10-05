@@ -88,12 +88,15 @@ anyone may propose an addition.
   STATUS rewrite, tasks closed, gates surfaced, and every generator.
 - **pruning**: Evolution's removal half. Zero- or low-use components become candidates to
   demote (subagent to skill to rule to CLAUDE.md line) or archive, always user-gated.
-- **publish**: The third phase of `/project-memory`. Ingest, seal, rollup, anchor, optional
-  vault snapshot, commit always, push per policy.
+- **publish**: The third phase of `/project-memory`. Ingest, seal, rollup, anchor, commit
+  always, push per policy.
 - **ritual ticket**: `state/ritual-ticket.json`, `{skill, ts, session_id, event}`, minted by the
   prompt hook when the user's own prompt starts with `/project-memory` or `/adopt`. `checkctl
   run` and `complete` refuse without a fresh one (`memory.json` `ritual.ticket_ttl_minutes`);
   `complete` consumes it. Denied to every agent by the gate. A tripwire, not cryptography.
+  Escape hatch when the prompt hook never fires: the user runs `checkctl ticket --grant` in
+  their own terminal (`event: "human-terminal"`); the gate refuses that subcommand, and running
+  `hooks/ritual-ticket.sh` by hand, to every identity.
 - **route**: The step after the ritual's report: one AskUserQuestion setting up the next
   session (phase: stay or advance through the exit check; mode: keep or switch; maturation
   pass: now or not).
@@ -165,6 +168,30 @@ The `fableous-orchestrated` mode's vocabulary (`.claude/protocols/orchestration.
 - **task card**: The task file a builder implements, `.claude/tasks/<id>.md`: Goal,
   Definition of done, one Test command, Context, Plan. Not a separate format; `_`-prefixed
   files in `tasks/` (`_template.md`, `_builder-brief.md`) are scaffolds, never cards.
+
+## Health, visibility and the gate
+
+- **doctor**: `checkctl.py doctor`, read-only: can this machine run the system? One row per
+  prerequisite (python3, bash, git, configs, hook wiring, hook scripts' LF endings, `#!` line
+  and exec bit, record root, cloud sync, console URL, heartbeat, secrets placement, mode,
+  phase, the ritual ticket), each non-OK row with a one-line fix. Exit 1 on any FAIL.
+- **export**: `distctl.py export --to <checkout>`, a clean copy of the project into a public
+  checkout: never the record, the memory spine or secrets; never commits or pushes. With
+  **visibility** (`memory.json`, `tracked` or `ignored`, written as the managed `.gitignore`
+  block by `distctl.py gitignore --apply`) it is the private-repo, public-release pattern of
+  `reference/public-private.md`.
+- **folder context**: Which guides (`CLAUDE.md`, `CLAUDE.local.md`) and rules load where, and
+  when (at launch or on read), shown by `mapctl.py context` and checked by `context_health`.
+- **kit self-test**: `test_dist.TestKitSelfTest`, home repo only: the fresh zip built from the
+  current tree, extracted into a temp git repo, must pass its own `checkctl doctor` and its own
+  suite. What only passes in the home repo is a defect in what adopters receive.
+- **policy gate**: `hooks/policy_gate.py`, the PreToolUse hook on every write and shell call:
+  the record and the ritual ticket to no identity, the protected tree to the main session;
+  running the prompt hook and `checkctl ticket` to no identity; `statectl dispatch` and
+  `accept` to the lead. A tripwire for honest mistakes, not a sandbox: its docstring lists
+  what a determined adversary gets past it.
+- **secrets placement**: The check (ritual CHECK and `doctor`) that no key-shaped string sits
+  in a tracked or unignored file; where keys belong is `reference/secrets.md`.
 
 ## Contracts
 

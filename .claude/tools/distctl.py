@@ -63,7 +63,8 @@ EXCLUDE_DIRS = {"state", "dist", "worktrees", "__pycache__", ".pytest_cache"}
 EXCLUDE_FILES = {"console/console.html", "system-map/map.json", "settings.local.json"}
 # Home-repo-only documents: committed here, meaningless in an adopting project. Dropped on the
 # way into the zips (distribution-boundary mechanism 3); the adopt skill skips them on clones.
-HOME_ONLY_FILES = {"reference/release-flow.md"}
+# brand-identity.md is this repo's own look and voice; an adopter brings its own.
+HOME_ONLY_FILES = {"reference/release-flow.md", "reference/brand-identity.md"}
 # Nested trees that are private by convention (gitignored in the home repo). Excluded even
 # on the no-git fallback path, where the tracked-files manifest cannot protect them.
 EXCLUDE_SUBDIRS = ("reference/private",)

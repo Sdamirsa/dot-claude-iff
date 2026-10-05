@@ -1305,6 +1305,257 @@ class TestConsolePortCollision(HookCase):
             blocker.close()
 
 
+IDENTITIES = (None, "worker", "builder", "anatomist", "verifier")
+
+
+class TestGateFalsePositives(GateCase):
+    """Three false positives, each reproduced before the fix (L-6: one test per class): the
+    verifier's envelope heredoc that names the gate in its notes, a backslash Windows path through
+    a folder named GIT, and a regular-expression token in interpreter code read as a glob onto the
+    record. Every neighbouring deny stays a deny."""
+
+    ENVELOPE = ("python3 - <<'EOF'\n"
+                "import json\nfrom pathlib import Path\n"
+                "d = {\"agent_id\": \"verifier\", \"status\": \"partial\",\n"
+                "     \"notes\": \"REFUTED: .claude/hooks/policy_gate.py denies a write to "
+                "{target}; remove the check from .claude/tools/_lib.py\"}\n"
+                "Path(\"{dest}\").write_text(json.dumps(d))\n"
+                "EOF")
+
+    def test_an_envelope_heredoc_that_names_a_protected_path_is_allowed(self):
+        dest = ".claude/state/handshakes/verify-T1.json"
+        for who in ("verifier", "builder", "worker"):
+            with self.subTest(who=who, lane="Bash"):
+                cmd = self.ENVELOPE.replace("{dest}", dest).replace("{target}", ".claude/config/x")
+                self.assertIsNone(self.sh(cmd, who))
+            with self.subTest(who=who, lane="PowerShell"):
+                cmd = ("python -c \"import json, pathlib; pathlib.Path('" + dest + "')"
+                       ".write_text(json.dumps({'notes': 'the gate .claude/hooks/policy_gate.py "
+                       "denies a write to .claude/tools/x.py'}))\"")
+                self.assertIsNone(self.sh(cmd, who, "PowerShell"))
+
+    def test_interpreter_writes_into_the_tree_stay_denied(self):
+        for lane, command in (
+            ("Bash", self.ENVELOPE.replace("{dest}", ".claude/hooks/x.json")
+             .replace("{target}", "y")),
+            ("Bash", "python3 - <<'EOF'\np = '.claude/tools/x.py'\nopen(p, 'w').write('x')\nEOF"),
+            ("Bash", "python3 -c \"import os; os.system('rm -rf .claude/tools')\""),
+            ("Bash", "python3 -c \"import subprocess; subprocess.run('cp a .claude/hooks/x', "
+                     "shell=True)\""),
+            ("Bash", "python3 -c \"import os; os.system('echo don\\'t > .claude/tools/x')\""),
+            ("Bash", "python3 - <<'EOF'\nimport shutil\nshutil.rmtree('.claude/config')\nEOF"),
+            ("PowerShell", "python -c \"open('.claude/tools/x.py','w').write('a b')\""),
+            ("PowerShell", "[IO.File]::WriteAllText('.claude/tools/x.py', 'hello world')"),
+        ):
+            with self.subTest(lane=lane, command=command):
+                self.assertEqual(self.sh(command, "verifier", lane), "deny")
+
+    def test_a_spaced_absolute_path_in_interpreter_code_stays_denied(self):
+        """A string holding whitespace reads as prose, unless the whole string IS a path."""
+        (self.root / "with space").mkdir()
+        target = (self.root / ".claude" / "tools" / "x.py").as_posix()
+        spaced = f"{self.root.as_posix()}/with space/../.claude/tools/x.py"
+        for path in (target, spaced):
+            with self.subTest(path=path):
+                self.assertEqual(self.sh(f"python3 -c \"open('{path}','w')\"", "worker"), "deny")
+                self.assertEqual(self.sh(f"python -c \"open('{path}','w')\"", "worker",
+                                         "PowerShell"), "deny")
+
+    def test_a_backslash_path_through_a_folder_named_git_is_not_an_invocation(self):
+        for lane, command in (
+            ("Bash", r"ls C:\Users\x\Documents\GIT\dot-claude-iff\README.md"),
+            ("Bash", r"python3 C:\Users\x\git\repo\.claude\tools\checkctl.py probe"),
+            ("PowerShell", r"Get-ChildItem C:\Users\x\Documents\GIT\dot-claude-iff"),
+            ("PowerShell", r"Get-Content D:\GIT\repo\README.md"),
+        ):
+            with self.subTest(lane=lane, command=command):
+                self.assertIsNone(self.sh(command, "verifier", lane))
+
+    def test_git_spelled_with_a_backslash_still_runs_git(self):
+        for lane, command in (("Bash", r"\git push"), ("Bash", r"ls; \git commit -am x"),
+                              ("Bash", "git\\\npush"), ("Bash", r'"\git" push'),
+                              ("PowerShell", r"& \git push"), ("PowerShell", "git push")):
+            with self.subTest(lane=lane, command=command):
+                self.assertEqual(self.sh(command, "verifier", lane), "deny")
+
+    def test_a_regex_token_in_interpreter_code_is_not_a_path(self):
+        for lane, command in (
+            ("Bash", "python3 - <<'EOF'\nimport re\npat = re.compile(r'(\\d+).*?x')\n"
+                     "open('out.txt', 'w').write(pat.sub('', 'a'))\nEOF"),
+            ("Bash", "python3 -c \"import re; s = re.sub(r'.*?', '', 'a'); "
+                     "open('out.txt','w').write(s)\""),
+            ("Bash", "python3 -c \"x = 2 * 3; open('out.txt','w').write(str(x))\""),
+            ("Bash", "python3 -c \"import glob; [open(p,'w') for p in glob.glob('build/*')]\""),
+            ("PowerShell", "python -c \"import re; open('out.txt','w').write(re.sub('.*?', '', 'a'))\""),
+        ):
+            with self.subTest(lane=lane, command=command):
+                self.assertIsNone(self.sh(command, lane=lane))
+        # The literal record path in the same shape is still the record.
+        for lane, command in (
+            ("Bash", "python3 -c \"import re; open('.claude-iff/obs/x.json','w')\""),
+            ("PowerShell", "python -c \"open('.claude-iff/obs/x.json','w')\""),
+        ):
+            with self.subTest(lane=lane, command=command):
+                self.assertEqual(self.sh(command, lane=lane), "deny")
+
+
+class TestRitualEscapes(GateCase):
+    """Two ways round the ritual ticket that a tool call could take: running the prompt hook by
+    hand with a made-up payload (only Claude Code launches it), and the human escape hatch
+    `checkctl ticket --grant` (the human runs it in their own terminal). Both denied to EVERY
+    identity on both shell lanes, in every spelling."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        hooks = self.root / ".claude" / "hooks"
+        hooks.mkdir(parents=True, exist_ok=True)
+        (hooks / "ritual-ticket.sh").write_text("#!/usr/bin/env bash\nexit 0\n")
+
+    HOOK_RUNS = {
+        "Bash": ["bash .claude/hooks/ritual-ticket.sh",
+                 "echo '{\"prompt\": \"/project-memory\"}' | bash .claude/hooks/ritual-ticket.sh",
+                 "sh ./.claude/hooks/ritual-ticket.sh < payload.json",
+                 ".claude/hooks/ritual-ticket.sh",
+                 "./.claude/hooks/ritual-ticket.sh <<< '{}'",
+                 "cd .claude/hooks && ./ritual-ticket.sh",
+                 "bash .claude/tools/../hooks/ritual-ticket.sh",
+                 "bash -x .claude//hooks/ritual-ticket.sh",
+                 "bash < .claude/hooks/ritual-ticket.sh",
+                 "cat .claude/hooks/ritual-ticket.sh | bash",
+                 "source .claude/hooks/ritual-ticket.sh",
+                 "env FOO=1 bash .claude/hooks/ritual-ticket.sh",
+                 "bash -c 'bash .claude/hooks/ritual-ticket.sh'",
+                 "bash .claude/hooks/ritual-t*.sh",
+                 "bash '.claude\\hooks\\ritual-ticket.sh'",
+                 "{root}/.claude/hooks/ritual-ticket.sh",
+                 "python3 -c \"import subprocess; subprocess.run(['bash', "
+                 "'.claude/hooks/ritual-ticket.sh'])\""],
+        "PowerShell": ["bash .claude/hooks/ritual-ticket.sh",
+                       "& .claude\\hooks\\ritual-ticket.sh",
+                       "'{}' | bash .claude\\hooks\\ritual-ticket.sh",
+                       "Start-Process bash -ArgumentList .claude/hooks/ritual-ticket.sh",
+                       "Invoke-Expression 'bash .claude/hooks/ritual-ticket.sh'"],
+    }
+    GRANTS = {
+        "Bash": ["python3 .claude/tools/checkctl.py ticket --grant",
+                 "python .claude/tools/checkctl.py ticket --grant",
+                 "python3.12 -X utf8 ./.claude/tools/checkctl.py ticket --grant --skill adopt",
+                 "py -3 .claude/tools/../tools/checkctl.py ticket --grant",
+                 "cd .claude/tools && python3 checkctl.py ticket --grant",
+                 "/usr/bin/python3 {root}/.claude/tools/checkctl.py ticket --grant",
+                 ".claude/tools/checkctl.py ticket --grant",
+                 "python3 -m checkctl ticket --grant",
+                 "uv run python .claude/tools/checkctl.py ticket --grant",
+                 "bash -c \"python3 .claude/tools/checkctl.py ticket --grant\"",
+                 "python3 -c \"import subprocess; subprocess.run(['python3', "
+                 "'.claude/tools/checkctl.py', 'ticket', '--grant'])\""],
+        "PowerShell": ["python .claude\\tools\\checkctl.py ticket --grant",
+                       "& python3.exe .\\.claude\\tools\\checkctl.py ticket --grant",
+                       "py .claude/tools/checkctl.py ticket --gr"],
+    }
+
+    def test_running_the_prompt_hook_by_hand_is_denied_to_every_identity(self):
+        for who in IDENTITIES:
+            for lane, commands in self.HOOK_RUNS.items():
+                for command in commands:
+                    command = command.replace("{root}", self.root.as_posix())
+                    with self.subTest(who=who, lane=lane, command=command):
+                        self.assertEqual(self.sh(command, who, lane), "deny")
+
+    def test_reading_the_prompt_hook_is_fine(self):
+        for lane, command in (("Bash", "cat .claude/hooks/ritual-ticket.sh"),
+                              ("Bash", "grep -n PROMPT_RE .claude/hooks/ritual-ticket.sh"),
+                              ("Bash", "wc -l .claude/hooks/*.sh"),
+                              ("Bash", "bash .claude/hooks/session-start.sh"),
+                              ("PowerShell", "Get-Content .claude/hooks/ritual-ticket.sh")):
+            with self.subTest(lane=lane, command=command):
+                self.assertIsNone(self.sh(command, lane=lane))
+
+    def test_the_human_grant_is_denied_to_every_identity(self):
+        for who in IDENTITIES:
+            for lane, commands in self.GRANTS.items():
+                for command in commands:
+                    command = command.replace("{root}", self.root.as_posix())
+                    with self.subTest(who=who, lane=lane, command=command):
+                        self.assertEqual(self.sh(command, who, lane), "deny")
+
+    def test_other_checkctl_subcommands_and_mentions_pass(self):
+        for lane, command in (
+            ("Bash", "python3 .claude/tools/checkctl.py doctor"),
+            ("Bash", "python3 .claude/tools/checkctl.py handoff T1 --run"),
+            ("Bash", "grep -n ticket .claude/tools/checkctl.py"),
+            ("Bash", 'python3 .claude/tools/statectl.py note "the user ran checkctl ticket --grant"'),
+            ("PowerShell", "python .claude\\tools\\checkctl.py doctor --json"),
+        ):
+            with self.subTest(lane=lane, command=command):
+                self.assertIsNone(self.sh(command, "verifier", lane))
+                self.assertIsNone(self.sh(command, None, lane))
+
+    def test_a_denial_names_the_reason(self):
+        import io as _io
+        payload = {"tool_name": "Bash", "agent_type": "builder",
+                   "tool_input": {"command": "python3 .claude/tools/checkctl.py ticket --grant"}}
+        data = dict(payload, cwd=str(self.root), _project_root=str(self.root))
+        path = Path(self._tmp.name) / "p.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        out = _io.StringIO()
+        with contextlib.redirect_stdout(out):
+            try:
+                self.gate().main([str(path)])
+            except SystemExit:
+                pass
+        reason = json.loads(out.getvalue())["hookSpecificOutput"]["permissionDecisionReason"]
+        self.assertIn("own terminal", reason)
+
+
+class TestLeadOnlyCommands(GateCase):
+    """`statectl dispatch` and `accept` cut worktrees and merge branches through git calls made
+    inside Python, past the git word match: the lead's alone, so sub-agents are denied them."""
+
+    RUNS = {
+        "Bash": ["python3 .claude/tools/statectl.py dispatch T1",
+                 "python3 .claude/tools/statectl.py accept T1",
+                 "python -X utf8 ./.claude/tools/statectl.py accept T1 --no-merge",
+                 "cd .claude/tools && python3 statectl.py dispatch T2 --model opus",
+                 "bash -c 'python3 .claude/tools/statectl.py accept T1'",
+                 "python3 -m statectl dispatch T1"],
+        "PowerShell": ["python .claude\\tools\\statectl.py dispatch T1",
+                       "& py -3 .claude/tools/statectl.py accept T1"],
+    }
+
+    def test_sub_agents_are_denied_dispatch_and_accept_on_both_lanes(self):
+        for who in ("worker", "builder", "anatomist", "verifier", "scout"):
+            for lane, commands in self.RUNS.items():
+                for command in commands:
+                    with self.subTest(who=who, lane=lane, command=command):
+                        self.assertEqual(self.sh(command, who, lane), "deny")
+
+    def test_the_lead_and_other_subcommands_pass(self):
+        for lane, commands in self.RUNS.items():
+            for command in commands:
+                with self.subTest(lane=lane, command=command):
+                    self.assertIsNone(self.sh(command, None, lane))
+        for lane, command in (("Bash", "python3 .claude/tools/statectl.py progress"),
+                              ("Bash", 'python3 .claude/tools/statectl.py need open "dispatch T1?"'),
+                              ("PowerShell", "python .claude\\tools\\statectl.py status")):
+            with self.subTest(lane=lane, command=command):
+                self.assertIsNone(self.sh(command, "builder", lane))
+
+    def test_naming_the_commands_in_text_is_not_running_them(self):
+        """An envelope or a note that names the commands, as every builder's report does."""
+        for lane, command in (
+            ("Bash", "python3 - <<'EOF'\nfrom pathlib import Path\n"
+                     "Path('.claude/state/handshakes/T1.json').write_text('{\"RESULT\": "
+                     "\"the lead runs python3 .claude/tools/statectl.py accept T1; the human runs "
+                     "python3 .claude/tools/checkctl.py ticket --grant\"}')\nEOF"),
+            ("Bash", 'python3 .claude/tools/statectl.py note "next: statectl.py dispatch T2"'),
+            ("Bash", "python3 notes.py statectl.py dispatch"),
+            ("Bash", "grep -n 'statectl.py accept' .claude/protocols/orchestration.md"),
+            ("PowerShell", "Select-String -Path x.md -Pattern 'checkctl.py ticket --grant'"),
+        ):
+            with self.subTest(lane=lane, command=command):
+                self.assertIsNone(self.sh(command, "builder", lane))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
