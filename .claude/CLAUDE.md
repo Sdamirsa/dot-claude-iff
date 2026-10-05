@@ -87,8 +87,9 @@ evolution) · `verifier` (adversarial claim checking).
 
 - Hooks and the six core tools are **bash + python3 stdlib only**, forever. Project steps and
   optional features may use uv.
-- `.claude/hooks/`, `config/`, `agents/`, `protocols/`, `settings.json` are the **protected
-  tree**: main session only. Sub-agents propose changes there, they do not make them.
+- `.claude/hooks/`, `tools/`, `config/`, `agents/`, `protocols/`, `skills/`, `console/`,
+  `settings.json` are the **protected tree**: main session only, on every write lane (Write/Edit,
+  Bash, PowerShell). Sub-agents propose changes there unless `policy.json` grants them a path.
 - Derived files (`session.json`, `HANDOFF.md`, `needs-human.json`, `map.json`, `console.html`)
   are never hand-edited. Change the source, rerun the generator.
 - Append-only stores are written through `statectl.py`, not by hand.
