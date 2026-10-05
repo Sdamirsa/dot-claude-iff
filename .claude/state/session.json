@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T14:47:53Z",
-  "last_event_ts": "2026-10-05T14:47:53Z",
+  "generated_at": "2026-10-05T15:26:08Z",
+  "last_event_ts": "2026-10-05T15:26:08Z",
   "session": {
     "id": "phase2-build",
     "mode": "fableous-orchestrated",
@@ -47,10 +47,10 @@
     {
       "id": "T13",
       "title": "030a T13 dispatch + zip flow",
-      "status": "doing",
+      "status": "done",
       "deps": [],
       "milestone": "M-0.3.0-alpha",
-      "ts": "2026-10-05T14:47:52Z"
+      "ts": "2026-10-05T15:26:08Z"
     },
     {
       "id": "T2",
@@ -118,10 +118,10 @@
     }
   ],
   "counts": {
-    "events": 110,
+    "events": 111,
     "tasks_total": 13,
-    "tasks_done": 9,
-    "tasks_open": 4,
+    "tasks_done": 10,
+    "tasks_open": 3,
     "open_loops": 0,
     "milestones": 6,
     "decisions": 3,
@@ -129,7 +129,7 @@
     "proposals_open": 3
   },
   "heartbeat": {
-    "ts": "2026-10-05T14:41:26Z",
+    "ts": "2026-10-05T14:53:04Z",
     "note": "turn ended"
   },
   "recent_milestones": [
