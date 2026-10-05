@@ -1,0 +1,78 @@
+{
+  "task_id": "T7",
+  "agent_id": "builder-T7",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "ok",
+  "RESULT": "memory.json `visibility` (tracked|ignored, registry card, one reader `_lib.visibility`) drives one managed .gitignore block rendered by distctl and written idempotently between marker lines by `distctl.py gitignore [--apply]`; the fresh zip's .gitignore is that block, the kit carries it, and /adopt Phase 3 applies it on clone, zip and kit installs (tested end to end through the installed distctl). gitignore_shadowing is quiet (SKIP) under `ignored`. `distctl.py export --to <dir> [--dry-run]` mirrors git-unignored project files plus only the publish.json-included .claude/ subset into an existing outside folder, under a hard-coded floor, behind the secrets scanner, with a manifest-driven mirror; reference/public-private.md documents the private-working / public-release pattern.",
+  "files_changed": [
+    ".gitignore",
+    ".claude/tools/_lib.py",
+    ".claude/tools/distctl.py",
+    ".claude/tools/checkctl.py",
+    ".claude/tools/tests/_fixture.py",
+    ".claude/tools/tests/test_dist.py",
+    ".claude/tools/tests/test_export.py",
+    ".claude/config/memory.json",
+    ".claude/config/registry.json",
+    ".claude/config/publish.json",
+    ".claude/skills/adopt/SKILL.md",
+    ".claude/reference/distribution-boundary.md",
+    ".claude/reference/public-private.md",
+    ".claude/system-map/cards/tool.distctl.json",
+    ".claude/system-map/cards/config.publish.json",
+    ".claude/system-map/cards/reference.public-private.json",
+    ".claude/dist/dot-claude-iff-fresh.zip",
+    ".claude/dist/dot-claude-iff-adopt-kit.zip",
+    ".claude/state/handshakes/T7.json"
+  ],
+  "tests": [
+    {"command": "python3 .claude/tools/tests/run_tests.py test_export test_dist -q", "exit_code": 0, "summary": "87 passed · 0 failed · 0 errored · 0 skipped / TESTS_OK"},
+    {"command": "python3 .claude/tools/tests/run_tests.py -q", "exit_code": 0, "summary": "372 passed · 0 failed · 0 errored · 1 skipped / TESTS_OK (skip: POSIX-only directory fsync test)"}
+  ],
+  "EVIDENCE": [
+    "distctl.py gitignore (worktree, before apply) -> exit 1 'does not carry this block'; --apply -> wrote; --apply again -> unchanged; gitignore -> exit 0 GITIGNORE_OK",
+    "export smoke test of the worktree into a temp folder: --dry-run 28 to add and nothing written; real run wrote 28 files plus the manifest, nothing from .claude/; second run 0 add / 0 update / 0 remove, 28 unchanged, manifest untouched",
+    "mutation probe (throwaway script, deleted): dropping .claude/state or STATUS.md from the floor, a no-op secrets scan, a no-op target check, trusting hostile manifest entries, skipping the publish.json normalisation, include-everything, include '*', a knob-blind shadowing branch, a dry run that writes, and kits shipping the legacy .gitignore each made the targeted tests fail; unmutated run 0/87 failing (the legacy-block mutation was missed at first; the test now checks the markers independently and catches it)",
+    "throwaway probe of git check-ignore: text-mode --stdin on Windows delivers '.claude/STATUS.md\\r' to git (output quoted with \\r), so the new branch passes paths as arguments",
+    "mapctl.py lint -> 0 errors (warnings are stale auto.hash and unplaced cards); checkctl.py probe -> 43 ok incl. config.publish and reference.public-private; check_config_registry OK 38 knobs; check_gitignore_shadowing OK; check_secrets_placement OK 173 files; check_no_machine_paths OK",
+    "distctl.py build -> wrote both zips; distctl.py verify -> fresh; TestCommittedZips equality ran strict (0 skipped)"
+  ],
+  "DEVIATIONS": [
+    "The block carries two rules beyond the listed ones: `.env*.local` in both values (matches the secrets scanner's per-user definition; T6 suggested it) and `.claude/**/*.tmp` under tracked (the atomic-write leftovers /adopt Phase 3 used to ask for). `ignored` = .claude/, .claude-iff/, the safety net and python caches.",
+    "gitignore_shadowing under ignored is SKIP with the reason when consistent; it WARNs only when the knob and git disagree (block missing -> names `distctl.py gitignore --apply`; files under the trees still tracked -> names the human step `git rm -r --cached .claude .claude-iff`, never runs it); an invalid visibility WARNs. Tracked branch unchanged.",
+    "Export rewrites one file in the copy: the root .gitignore's managed block is re-rendered as `tracked`, else an `ignored` source hands the release repo a rule hiding the .claude/ files publish.json chose to publish. The source's own .gitignore is never touched.",
+    "Export refuses when the project is not the top of a git work tree (it publishes what git does not ignore, so it needs git). Refusal also when the target has a folder/link where a file goes or a parent resolving outside the target; checked before anything is written.",
+    "Secrets gate scans the planned set in the source before writing (not the output after), so a refusal leaves the target untouched; WARN findings print as notes and do not block. `.mcp.json` is held back (not refused) on any scanner finding, with a note.",
+    "Manifest is write-gated (an unchanged export keeps it and its date). Mirror removes only listed files, never directories, so empty folders may remain. Hostile manifest entries (absolute, drive, .., backslash, .git, the manifest itself, non-strings) are ignored with a note. Source symlinks are skipped, not followed.",
+    "_adopter_memory_config also forces `visibility: tracked` in the kits (mechanism 3); `_adopter_publish_config` empties publish.json include. This repo's own publish.json include is left empty; the normalisation is proven with a fixture value.",
+    "_lib.py gained VISIBILITY_VALUES, DEFAULT_VISIBILITY and visibility(root) as the single reader for distctl and checkctl.",
+    "apply_gitignore writes the block in the file's own line ending and keeps every byte outside it (mixed endings included); the exact legacy kit block, when present, is swapped for the managed block (upgrade path).",
+    "Home .gitignore converted: duplicated safety-net/runtime/heartbeat/worktree/cache lines removed and the managed block applied with the tool; temp-to-analyse/, reference/private/ and the record comment stay outside it.",
+    "adopt SKILL: Phase 3's old .gitignore bullet replaced by the visibility step (placed after the RECORD_ROOT paragraph); Phase 4 step 7 also empties publish.json include on clones; Phase 5 adds a `distctl.py gitignore` exit-0 checkbox; Upgrade step 3 re-applies the block with the source's distctl. START-HERE (fresh zip) names the visibility step.",
+    "Rebuilt .claude/dist/*.zip in the worktree as the lead's task note asked (the brief's general rule says not to).",
+    "Envelope `status` is \"done\", not \"ok\": the post-write-validate hook accepts only done|partial|blocked and blocked the brief's \"same value as STATUS\" (ok). STATUS stays \"ok\"."
+  ],
+  "UNCERTAINTIES": [
+    "Linux not run locally; the posix-only executable-bit branch of export is untested.",
+    "Symlink handling (skip source symlinks, refuse a target folder resolving outside) is implemented but not tested: creating symlinks on this Windows box needs privilege.",
+    "`gh repo view --json visibility` was not executed; the skill assumes its documented {\"visibility\":\"PUBLIC\"} answer.",
+    "The kit/clone/fresh install-path test simulates Phase 3 (copy .claude/, set the answer, run the installed distctl gitignore --apply); it does not run the whole adopt skill.",
+    "checkctl doctor's DOCTOR_CONFIGS was not extended with publish (an older install without publish.json would then FAIL doctor); export reads an absent publish.json as include []."
+  ],
+  "needs_main": [
+    "Review and merge; git add the new files: .claude/config/publish.json, .claude/reference/public-private.md, .claude/system-map/cards/config.publish.json, .claude/system-map/cards/reference.public-private.json, .claude/tools/tests/test_export.py, this envelope.",
+    "Rebuild the zips at merge (distctl.py build), since other tasks change the payload too.",
+    "Run POLISH: map_scan refreshes stale auto.hash on tool.distctl, tool.checkctl, tool._lib, config.memory, config.registry, skill.adopt.",
+    "CHANGELOG entry for visibility + export (not touched here).",
+    "Optional: decide whether this repo's own publish.json should list anything (left empty)."
+  ],
+  "SUGGESTIONS": [
+    "checkctl.check_gitignore_shadowing (tracked branch, unchanged here) feeds paths via `--stdin` with text=True; on Windows each path reaches git with a trailing CR, so a file-level shadow like `*.zip` is missed and only directory patterns (dist/) are caught. Pass the paths as arguments or open stdin in binary.",
+    ".claude/README.md and the CLAUDE.md commands list never mention distctl (build, verify, gitignore, export); T10 could add one line pointing at reference/public-private.md.",
+    "checkctl._deliberately_ignored does not know `*.env` / `.env*.local` under .claude/; such a file there would WARN as a shadow under tracked.",
+    "adopt SKILL Phase 4 step 8 still says console.json ships port 7717 (it ships \"auto\").",
+    "adopt Phase 3's manifest rule (`git -C <source> ls-files`) cannot apply to an unzipped kit folder, which is not a git repo; the skill should say the kit's files are the manifest."
+  ]
+}

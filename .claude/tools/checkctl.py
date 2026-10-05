@@ -587,10 +587,16 @@ def check_gitignore_shadowing() -> Result:
     .gitignore can silently untrack shipped .claude/ paths - the adoption kits under
     .claude/dist/ vanished from git exactly this way in the field and nothing warned. Ask
     git itself: check-ignore over the shippable trees, warn on any hit that is not one of
-    the system's own deliberate ignores."""
+    the system's own deliberate ignores. Under memory.json `visibility: ignored` the two trees
+    are ignored on purpose, so there is nothing to shadow and the check is quiet."""
     root = _lib.project_root()
     if not (root / ".git").exists():
         return Result("gitignore_shadowing", SKIP, "not a git repository")
+    try:
+        if _lib.visibility(root) == "ignored":
+            return _visibility_ignored_result(root)
+    except _lib.LibError as exc:
+        return Result("gitignore_shadowing", WARN, str(exc))
     candidates = []
     for base in (root / ".claude", root / ".claude-iff"):
         if not base.is_dir():
@@ -627,6 +633,37 @@ def check_gitignore_shadowing() -> Result:
                       f"(a generic dist/, build/ or *.zip) is silently untracking them",
                       hits[:15])
     return Result("gitignore_shadowing", OK, f"{len(candidates)} shippable path(s), none shadowed")
+
+
+def _visibility_ignored_result(root: Path) -> Result:
+    """`visibility: ignored`: a shadow is impossible by design, so the check stays quiet. It
+    speaks only when the knob and git disagree: the managed block is missing (the trees would
+    reach the next `git add -A`), or files under them are still tracked from before."""
+    try:
+        # Paths as arguments, not --stdin: text-mode stdin on Windows sends CRLF and git keeps
+        # the CR as part of the path.
+        res = subprocess.run(["git", "check-ignore", "--no-index", "--",
+                              ".claude/STATUS.md", ".claude-iff/README.md"], capture_output=True,
+                             text=True, timeout=30, cwd=str(root), check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return Result("gitignore_shadowing", SKIP, f"git unavailable: {exc}")
+    if res.returncode not in (0, 1):
+        return Result("gitignore_shadowing", SKIP, f"git check-ignore failed (exit {res.returncode})")
+    ignored = {line.strip() for line in res.stdout.splitlines() if line.strip()}
+    missing = [t for t, probe in ((".claude/", ".claude/STATUS.md"),
+                                  (".claude-iff/", ".claude-iff/README.md")) if probe not in ignored]
+    if missing:
+        return Result("gitignore_shadowing", WARN,
+                      f"visibility is ignored but git does not ignore {', '.join(missing)}: run "
+                      f"`python3 .claude/tools/distctl.py gitignore --apply`")
+    tracked = _git_ls(root, "--cached", "--", ".claude", ".claude-iff") or []
+    if tracked:
+        return Result("gitignore_shadowing", WARN,
+                      f"visibility is ignored but {len(tracked)} file(s) under .claude/ or "
+                      f".claude-iff/ are still tracked; untracking them is a human step that "
+                      f"keeps the files: `git rm -r --cached .claude .claude-iff`", tracked[:15])
+    return Result("gitignore_shadowing", SKIP,
+                  "visibility is ignored: .claude/ and .claude-iff/ are gitignored on purpose")
 
 
 def check_theme_token_parity() -> Result:
@@ -1350,6 +1387,7 @@ def probe() -> list:
         ("config.registry", ".claude/config/registry.json"),
         ("config.model-prices", ".claude/config/model-prices.json"),
         ("config.brainstorm", ".claude/config/brainstorm.json"),
+        ("config.publish", ".claude/config/publish.json"),
         ("map.layers", ".claude/system-map/layers.json"),
         ("console.template", ".claude/console/console.template.html"),
         ("console.server", ".claude/console/console.py"),
@@ -1360,6 +1398,7 @@ def probe() -> list:
         ("memory.lessons", ".claude/LESSONS.jsonl"),
         ("reference.glossary", ".claude/reference/glossary.md"),
         ("reference.secrets", ".claude/reference/secrets.md"),
+        ("reference.public-private", ".claude/reference/public-private.md"),
         ("iff.readme", ".claude-iff/README.md"),
     ]
     results = []

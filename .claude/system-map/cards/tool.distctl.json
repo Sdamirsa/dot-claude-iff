@@ -5,14 +5,18 @@
   "package": null,
   "title": "Distctl",
   "path": ".claude/tools/distctl.py",
-  "description": "distctl.py - build the distribution zips: the system, packaged for other repos.",
+  "description": "distctl.py - build the distribution zips, write the managed .gitignore block, and export a clean public copy.",
   "reads": [
-    "store.cards"
+    "store.cards",
+    "config.memory",
+    "config.publish"
   ],
   "writes": [
     "store.dist"
   ],
-  "invokes": [],
+  "invokes": [
+    "tool.checkctl"
+  ],
   "flows": [],
   "glyphs": [],
   "auto": {

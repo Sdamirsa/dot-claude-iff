@@ -1,0 +1,20 @@
+{
+  "id": "reference.public-private",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Public and private",
+  "path": ".claude/reference/public-private.md",
+  "description": "The recommended pattern: work with the agent in a private repo, publish releases to a public repo with distctl.py export. What the record is and why it never leaves, what visibility tracked vs ignored means for a team, the exact commands, and that the export never commits or pushes.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T13:19:58Z",
-  "last_event_ts": "2026-10-05T13:19:58Z",
+  "generated_at": "2026-10-05T13:43:54Z",
+  "last_event_ts": "2026-10-05T13:43:54Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
@@ -90,23 +90,23 @@
     {
       "id": "T9",
       "title": "030a T9",
-      "status": "doing",
+      "status": "done",
       "deps": [],
-      "ts": "2026-10-05T12:43:53Z"
+      "ts": "2026-10-05T13:43:53Z"
     }
   ],
   "counts": {
-    "events": 82,
+    "events": 84,
     "tasks_total": 12,
-    "tasks_done": 3,
-    "tasks_open": 9,
+    "tasks_done": 4,
+    "tasks_open": 8,
     "open_loops": 0,
     "milestones": 6,
     "decisions": 3,
     "tooling": 5
   },
   "heartbeat": {
-    "ts": "2026-10-05T13:02:45Z",
+    "ts": "2026-10-05T13:21:28Z",
     "note": "turn ended"
   },
   "recent_milestones": [

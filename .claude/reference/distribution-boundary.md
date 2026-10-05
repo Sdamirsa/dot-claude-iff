@@ -24,9 +24,11 @@ project fails closed. Use when the component must not RUN outside the source rep
 
 For a config file that MUST ship (an adopter needs the key) but whose current value is this
 machine's or this repo's own choice. `distctl.py` rewrites specific keys on the way into the
-zips: `_adopter_memory_config` forces `distribution.enabled` false and empties the
-`project_steps` lists (this repo's test suite runs as a CHECK step here, never in an adopter);
-`_adopter_console_config` forces `port` to `"auto"` and `monitor.enabled` false. Use when the
+zips: `_adopter_memory_config` forces `distribution.enabled` false, `visibility` to `tracked`
+(the adopter answers that one in `/adopt`) and empties the `project_steps` lists (this repo's
+test suite runs as a CHECK step here, never in an adopter); `_adopter_console_config` forces
+`port` to `"auto"` and `monitor.enabled` false; `_adopter_publish_config` empties
+`publish.json`'s `include` (what this repo publishes is its own call). Use when the
 SHAPE of a config must ship but a particular VALUE would leak a decision only valid here. Its
 whole-file form is `HOME_ONLY_FILES`: a committed `.claude/` document meaningful only here
 (`reference/release-flow.md`) is dropped on the way in.

@@ -18,6 +18,7 @@
     "ask",
     "never"
   ],
+  "visibility": "tracked",
   "distribution": {
     "_comment": [
       "Gate for the home-repo-only steps: the demo_build and dist_build generators and the",

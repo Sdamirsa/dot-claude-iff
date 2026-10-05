@@ -16,7 +16,8 @@
       "observe",
       "console",
       "model-prices",
-      "brainstorm"
+      "brainstorm",
+      "publish"
     ],
     "exempt_keys": [
       "version",
@@ -75,6 +76,36 @@
         "never"
       ],
       "default": "ask"
+    },
+    {
+      "key": "memory.visibility",
+      "title": "Visibility of .claude/",
+      "description": "tracked: .claude/ and .claude-iff/ are committed with the project; the managed .gitignore block ignores only per-user and derived files. ignored: both trees stay in this checkout and never reach git; publish a clean copy with distctl.py export. /adopt asks once (recommends ignored when the remote is public); apply a change with distctl.py gitignore --apply. Absent reads as tracked; kits ship tracked.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "visibility"
+      },
+      "type": "string",
+      "enum": [
+        "tracked",
+        "ignored"
+      ],
+      "default": "tracked"
+    },
+    {
+      "key": "publish.include",
+      "title": "Export include list",
+      "description": "Globs (relative to the repo root, fnmatch style, a trailing / names a folder) of .claude/ and .claude-iff/ files distctl.py export may publish. Empty publishes nothing from either tree. Only narrows: the hard-coded floor (state, tasks, research, worktrees, private reference, STATUS, logs, lessons, the record surface, local settings, env files) always wins. Kits ship it empty.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "publish",
+        "path": "include"
+      },
+      "type": "list[string]",
+      "default": []
     },
     {
       "key": "memory.snapshot.enabled",

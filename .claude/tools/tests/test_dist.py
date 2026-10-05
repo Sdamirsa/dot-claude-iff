@@ -246,6 +246,19 @@ class TestPayload(DistCase):
                 self.assertIn(".claude/state/heartbeat.json", lines)
                 self.assertIn(".claude/worktrees/", lines)
 
+    def test_shipped_gitignore_is_the_managed_block_whatever_the_home_visibility(self):
+        """One renderer for every install path: the kits carry the block for the visibility
+        they ship (tracked), never this repo's own choice."""
+        cfg = _lib.read_json(self.root / ".claude" / "config" / "memory.json", {}) or {}
+        cfg["visibility"] = "ignored"
+        self.write_config("memory", cfg)
+        distctl.build(self.root)
+        block = distctl.render_gitignore_block("tracked")
+        for zip_name, entry in (("dot-claude-iff-fresh.zip", ".gitignore"),
+                                ("dot-claude-iff-adopt-kit.zip", "dot-claude-iff-kit/.gitignore")):
+            with self.subTest(zip=zip_name):
+                self.assertEqual(self.read(zip_name, entry), block)
+
     def test_stale_zips_red_after_an_edit_green_after_a_rebuild(self):
         distctl.build(self.root)
         self.assertEqual(distctl.stale_zips(self.root), [])
@@ -345,6 +358,24 @@ class TestDistributionGate(DistCase):
                                  "a kit shipping one machine's port just moves the collision")
                 self.assertFalse(shipped["monitor"]["enabled"],
                                  "the monitor is opt-in; kits must land with it off")
+
+    def test_shipped_kits_land_publishing_nothing_and_tracked(self):
+        """Mechanism 3: what this repo publishes from .claude/ and whether it tracks .claude/
+        are its own calls. The kits land with publish.json's include empty and visibility at
+        the default, so an adopter starts from "publish nothing" and /adopt asks the rest."""
+        self.write_config("publish", {"_comment": ["kept"], "include": [".claude/skills/", ".claude/*.md"]})
+        cfg = _lib.read_json(self.root / ".claude" / "config" / "memory.json", {}) or {}
+        cfg["visibility"] = "ignored"
+        self.write_config("memory", cfg)
+        distctl.build(self.root)
+        for prefix, zip_name in (("", "dot-claude-iff-fresh.zip"),
+                                 ("dot-claude-iff-kit/", "dot-claude-iff-adopt-kit.zip")):
+            with self.subTest(zip=zip_name):
+                publish = json.loads(self.read(zip_name, f"{prefix}.claude/config/publish.json"))
+                self.assertEqual(publish["include"], [])
+                self.assertEqual(publish["_comment"], ["kept"], "the shape still ships")
+                memory = json.loads(self.read(zip_name, f"{prefix}.claude/config/memory.json"))
+                self.assertEqual(memory["visibility"], "tracked")
 
     def test_ritual_reports_gated_generators_as_skipped(self):
         import checkctl
@@ -576,6 +607,18 @@ class TestCommittedZips(unittest.TestCase):
                 cfg = json.loads(self.read(name, entry).decode("utf-8"))
                 self.assertEqual(cfg["project_steps"]["check"], [])
                 self.assertFalse(cfg["distribution"]["enabled"])
+                self.assertEqual(cfg["visibility"], "tracked")
+
+    def test_kits_ship_publish_nothing_and_the_managed_gitignore(self):
+        block = distctl.render_gitignore_block("tracked").encode()
+        for name, prefix in (("dot-claude-iff-fresh.zip", ""),
+                             ("dot-claude-iff-adopt-kit.zip", "dot-claude-iff-kit/")):
+            with self.subTest(zip=name):
+                publish = json.loads(self.read(name, f"{prefix}.claude/config/publish.json"))
+                self.assertEqual(publish["include"], [])
+                self.assertEqual(self.read(name, f"{prefix}.gitignore"), block)
+                self.assertIn(f"{prefix}.claude/reference/public-private.md", self.names(name),
+                              "the public/private manual ships to adopters")
 
     def test_fresh_install_stop_hook_creates_the_heartbeat(self):
         """heartbeat.json is untracked and the kit ships no state/: the first Stop on a fresh
