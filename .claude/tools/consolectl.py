@@ -343,6 +343,17 @@ def _read_story():
     return _lib.read_json(_lib.state_dir() / "story-feed.json", None)
 
 
+def _read_context(map_data) -> dict:
+    """The MAP tab's Context list: map.json's `context` section (derived by ctxmap at compile,
+    so the live poll never re-walks the tree), read through ctxmap's own contract reader and
+    degrading to its empty shape when there is no map yet."""
+    try:
+        import ctxmap
+        return ctxmap.section_from_map(map_data)
+    except Exception:  # noqa: BLE001 - the console renders with or without the engine
+        return {"entries": []}
+
+
 # --------------------------------------------------------------------------- payload
 
 def _repo_links() -> dict:
@@ -418,6 +429,7 @@ def payload(live: bool = False) -> dict:
         "tokens": tokens,
         "work": work,
         "map": map_data,
+        "context": _read_context(map_data),
         "story": story_data,
         "analysis": analysis,
         "freshness": {"live": ["now", "analysis"], "ritual": ["tokens", "work.log_tail", "map", "story"]},

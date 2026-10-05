@@ -30,7 +30,8 @@ Read before writing anything:
 1. `<target>` README and manifests (`pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`,
    Makefile, whatever exists). Detect language, package manager, test runner, lint command.
 2. An existing `<target>/CLAUDE.md` or `<target>/.claude/CLAUDE.md`, if any: its content must
-   survive as source material, not be clobbered.
+   survive as source material, not be clobbered. Nested folder guides (`<folder>/CLAUDE.md`)
+   are noted, not folded: they stay where they are.
 3. An existing `<target>/.claude/`, if any: list every file. Anything already there (skills,
    agents, rules, config) belongs to the target, not to you.
 4. Top-level layout: where code, scripts, configs, and outputs live.
@@ -167,8 +168,10 @@ Turn the copied scaffold into this project's system:
    invariants, domain notes) from the Phase 1 inventory and the Phase 2 answers, from repo
    reality, not guesses. If the target already had a root `CLAUDE.md` or a pre-existing
    `.claude/CLAUDE.md`, fold that content verbatim into the right sections (Domain notes is the
-   usual home) and remove the redundant file with the user's OK: keep exactly ONE project guide
-   (Claude Code auto-loads `./CLAUDE.md` OR `./.claude/CLAUDE.md`, never both). A substantial
+   usual home) and remove the redundant file with the user's OK: keep exactly ONE root guide
+   (`./CLAUDE.md` or `./.claude/CLAUDE.md`; two split the always-on instructions in two, and
+   `context_health` fails on it). Nested folder guides are a different thing: allowed, left in
+   place, and mapped (`python3 .claude/tools/mapctl.py context` lists them). A substantial
    fold will push the guide past the anatomist's ~80-line health threshold on day one; that is
    expected, not a defect - do not trim the user's content to satisfy the check. Note "condense
    in an early evolution pass" and move on; the anatomist's audit grants adoption-day folds
@@ -243,8 +246,9 @@ runs with `<target>` as the working directory (or `CLAUDE_PROJECT_DIR=<target>` 
       own shipped template (kept placeholder-form on purpose, so the target can seed the next
       adoption) all contain `{{` forever. A checkbox that cannot pass teaches agents to report
       `partial` on every install, or worse, to stop reading the checklist.
-- [ ] Exactly one project guide exists: `<target>/.claude/CLAUDE.md`, or a root `CLAUDE.md` if
-      the user chose that, never both.
+- [ ] Exactly one root guide exists: `<target>/.claude/CLAUDE.md`, or a root `CLAUDE.md` if
+      the user chose that, never both. Nested folder guides the target already had stay where
+      they are; `python3 .claude/tools/mapctl.py context` lists every guide and rule.
 - [ ] Every JSON/JSONL file under `<target>/.claude/` parses (config, journal, Project-log,
       LESSONS, layers, registry).
 - [ ] `python3 <target>/.claude/tools/checkctl.py run --phase check` runs and its verdicts are

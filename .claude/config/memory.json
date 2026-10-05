@@ -36,6 +36,7 @@
       "heartbeat_present",
       "generator_freshness",
       "cards_lint",
+      "context_health",
       "config_registry_lint",
       "price_table",
       "record_size",
@@ -71,6 +72,15 @@
   "data_series": {
     "_comment": "Project counters plotted on the STORY tab's data-evolution lane. Each entry: {\"name\": \"...\", \"kind\": \"file_count\"|\"jsonl_lines\", \"path\": \"relative/path\"}.",
     "series": []
+  },
+  "context": {
+    "_comment": [
+      "Thresholds for the context_health check (ctxmap.py): guides (CLAUDE.md files) and",
+      "rules (.claude/rules/). size_target_lines applies to each file; always_on_budget_lines",
+      "to everything that loads at launch (root guide, its @imports, rules without paths:)."
+    ],
+    "size_target_lines": 200,
+    "always_on_budget_lines": 400
   },
   "snapshot": {
     "_comment": "Vault snapshots at PUBLISH. Off by default; the vault lives in RECORD_ROOT, never in the repo.",

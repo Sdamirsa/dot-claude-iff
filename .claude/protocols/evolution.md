@@ -19,7 +19,7 @@ Map observed friction (never imagined friction) to the smallest structure that k
 | A skill that needs fresh/large context, isolation, or a different model | **subagent** (`.claude/agents/<name>.md`) |
 | A deterministic command sequence repeated 2+ times | **script** (`.claude/tools/`) |
 | A recurring error class, or a trust-but-verify need | **verifier** step, or an instantiation of `.claude/agents/verifier.md` |
-| Recurring human correction of the same kind | **rule** (`.claude/rules/`) or a CLAUDE.md line plus a LESSONS entry |
+| Recurring human correction of the same kind | **rule** (`.claude/rules/`), a **folder guide**, or a CLAUDE.md line plus a LESSONS entry |
 | Repeatedly waiting on the human at the same point | **gate redesign** per `.claude/protocols/human-gates.md` |
 | A durable cross-session fact | **memory or log entry**: Project log, STATUS.md, or a research doc |
 | Zero or low use of an existing component across sessions | **prune**: demote or archive (see Pruning below) |
@@ -32,6 +32,14 @@ Map observed friction (never imagined friction) to the smallest structure that k
 | **skill** | The procedure needs judgment or live conversation context, and you keep re-explaining it. |
 | **subagent** | The work needs a clean or large context window, isolation from the conversation, or a different model, not merely a saved procedure. |
 | **rule** | The problem is a convention repeatedly violated in a specific part of the tree; a path-scoped rule corrects it passively, with no procedure to run. |
+| **folder guide** | One subtree (a package, a service, a data folder) has conventions of its own; a `CLAUDE.md` inside that folder loads only when Claude reads a file there. |
+
+**Rule or folder guide?** A path-scoped rule (`.claude/rules/<topic>.md` with `paths:`) fits a
+cross-cutting file type wherever it lives: every SQL file, every test. A folder guide fits one
+subtree's conventions. Inside `.claude/` itself, use a scoped rule: folder guides there are not
+mapped. Both are earned, never created up front: `python3 .claude/tools/mapctl.py context
+--suggest` proposes one only where 2+ lessons or logged mistakes name files in a subtree that
+nothing covers yet, and the proposal still goes through the bar and the gate below.
 
 Prefer the smallest intervention: a CLAUDE.md line beats a rule beats a skill beats a subagent.
 The same ordering runs backwards for pruning: demote a subagent to a skill before archiving it

@@ -87,6 +87,11 @@ class PayloadEmptyProjectTests(FixtureCase):
 
         self.assertIsNone(data["map"])
         self.assertIsNone(data["story"])
+        # The MAP tab's Context list: no map yet, so an empty list and zero findings, never
+        # a missing key the template would have to guess around.
+        self.assertEqual(data["context"]["entries"], [])
+        self.assertEqual(data["context"]["findings"], {"fail": 0, "warn": 0})
+        self.assertEqual(data["context"]["always_on_lines"], 0)
 
         self.assertEqual(data["freshness"], {"live": ["now", "analysis"], "ritual": ["tokens", "work.log_tail", "map", "story"]})
 
