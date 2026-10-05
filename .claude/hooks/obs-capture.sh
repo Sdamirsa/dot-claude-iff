@@ -11,6 +11,9 @@
 #
 # Wired to the lean event set by default (see .claude/config/observe.json); the payload is
 # passed through an env var because the python heredoc below claims stdin.
+# UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
+# hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
+export PYTHONUTF8=1
 
 set -u
 OBS_INPUT="$(cat 2>/dev/null || true)"

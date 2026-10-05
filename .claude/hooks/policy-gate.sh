@@ -13,6 +13,9 @@
 # LAW 2, gate half: if the judge exits non-zero, or python3 is missing entirely, we do a
 # last-resort grep for the protected prefixes and DENY on a match. That keeps a broken judge
 # from opening the protected tree without bricking every unrelated write in the session.
+# UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
+# hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
+export PYTHONUTF8=1
 
 set -u
 export CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"

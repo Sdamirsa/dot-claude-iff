@@ -14,6 +14,9 @@
 #   3. Optionally start the console server, guarded by a pidfile so N sessions start one server.
 #
 # Read-only with respect to project state: it never writes to the journal.
+# UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
+# hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
+export PYTHONUTF8=1
 
 set -u
 # The payload is small here (ids and paths, no prompt), so an env var carries it, as in

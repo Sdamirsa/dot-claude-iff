@@ -528,8 +528,9 @@ class TestSessionStartBlock(PhaseCase):
     def run_hook(self) -> str:
         env = dict(os.environ, CLAUDE_PROJECT_DIR=str(self.root),
                    CLAUDE_IFF_RECORD_ROOT=str(self.record))
-        res = subprocess.run(["bash", str(HOOKS / "session-start.sh")], input="{}",
-                             capture_output=True, text=True, timeout=60, env=env, check=False)
+        res = subprocess.run([_lib.find_bash() or "bash", str(HOOKS / "session-start.sh")],
+                             input="{}", capture_output=True, text=True, encoding="utf-8",
+                             timeout=60, env=env, check=False)
         self.assertEqual(res.returncode, 0, res.stderr)
         return res.stdout
 

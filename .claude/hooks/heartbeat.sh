@@ -11,6 +11,9 @@
 #
 # The file is gitignored (it changes every turn) and the kits ship no state/ at all, so this
 # hook is what makes it exist: on a fresh install it creates state/ the first time a turn ends.
+# UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
+# hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
+export PYTHONUTF8=1
 
 set -u
 cat >/dev/null 2>&1 || true   # drain stdin; the payload is not needed

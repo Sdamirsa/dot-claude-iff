@@ -19,6 +19,9 @@
 #
 # The payload goes to a temp FILE, as in policy-gate.sh: a prompt can be far larger than an
 # environment variable may hold.
+# UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
+# hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
+export PYTHONUTF8=1
 
 set -u
 export CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"

@@ -20,6 +20,9 @@
 # error means no output and exit 0. In freestyle and guided-solo it does nothing at all. The
 # payload goes through a temp file, not an environment variable: a SubagentStop payload can
 # carry the agent's whole last message, and an env string is capped (see policy-gate.sh).
+# UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
+# hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
+export PYTHONUTF8=1
 
 set -u
 export CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
