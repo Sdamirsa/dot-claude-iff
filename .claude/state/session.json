@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T15:26:08Z",
-  "last_event_ts": "2026-10-05T15:26:08Z",
+  "generated_at": "2026-10-05T15:49:04Z",
+  "last_event_ts": "2026-10-05T15:49:04Z",
   "session": {
     "id": "phase2-build",
     "mode": "fableous-orchestrated",
@@ -8,7 +8,7 @@
     "phase_since": "2026-10-05T13:57:35Z",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "M-0.3.0-alpha BUILD: 9/13 merged (dev pushed, suite 635 green). In flight: T12 (worktree t12), T13 (t13), stubs via statectl dispatch. Then T10 cleanup (gate false positives, ticket escape hatch, kit self-test, docs), then T11 release (human gate before tag and issue replies). New hooks and agents load only in a NEW session",
+  "resume_pointer": "M-0.3.0-alpha BUILD: 10/13 merged (suite 659 green, dev pushed). In flight: T12 (worktree t12). Then T10 cleanup via statectl dispatch/accept, then T11 release (human gate before tag and issue replies)",
   "open_loops": [],
   "open_intents": [],
   "tasks": [
@@ -39,10 +39,10 @@
     {
       "id": "T12",
       "title": "030a T12 long-run progress",
-      "status": "doing",
+      "status": "done",
       "deps": [],
       "milestone": "M-0.3.0-alpha",
-      "ts": "2026-10-05T14:47:52Z"
+      "ts": "2026-10-05T15:49:04Z"
     },
     {
       "id": "T13",
@@ -118,10 +118,10 @@
     }
   ],
   "counts": {
-    "events": 111,
+    "events": 114,
     "tasks_total": 13,
-    "tasks_done": 10,
-    "tasks_open": 3,
+    "tasks_done": 11,
+    "tasks_open": 2,
     "open_loops": 0,
     "milestones": 6,
     "decisions": 3,
@@ -129,8 +129,8 @@
     "proposals_open": 3
   },
   "heartbeat": {
-    "ts": "2026-10-05T14:53:04Z",
-    "note": "turn ended"
+    "ts": "2026-10-05T15:49:02Z",
+    "note": "working"
   },
   "recent_milestones": [
     {
