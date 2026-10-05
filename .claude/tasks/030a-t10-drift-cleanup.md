@@ -17,6 +17,8 @@ What ships matches what the docs say, with no dead knobs and a truthful map.
 - Runs after every other build task is merged.
 - `CLAUDE.md` still describes `temp-to-analyse/` as present; the folder is gone from this machine. Keep the gitignore line, reword the section.
 - Gate false positives found by the verifier (envelope `.claude/state/handshakes/verify-T1-policy-gate.json`), both to fix with a test each and without loosening any existing deny test: (1) a sub-agent's interpreter heredoc that writes to an allowed path (e.g. its own envelope under `.claude/state/handshakes/`) is denied when its TEXT merely names a protected path; (2) a backslash Windows path through a folder named `GIT` trips the sub-agent git word match (the lookbehind excludes `/` and `.` but not a backslash).
+- Ticket forging: any identity can still run `.claude/hooks/ritual-ticket.sh` by hand with a made-up payload and mint a ticket. The gate must deny executing that script through a shell lane for every identity (it is only ever launched by Claude Code as a prompt hook), with tests on both lanes.
+- `STATUS.md` still mentions `--hard`; it is rewritten by the ritual, so leave a note for the first `/project-memory`.
 - `check_gitignore_shadowing` feeds git paths in text mode on Windows (trailing CR), so file-level patterns like `*.zip` never match: fix with a test.
 - Tool count wording ('six core tools') must match reality without a volatile number.
 

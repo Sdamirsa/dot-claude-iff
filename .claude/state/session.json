@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T13:57:44Z",
-  "last_event_ts": "2026-10-05T13:57:44Z",
+  "generated_at": "2026-10-05T14:38:21Z",
+  "last_event_ts": "2026-10-05T14:38:21Z",
   "session": {
     "id": "phase2-build",
     "mode": "fableous-orchestrated",
@@ -55,10 +55,10 @@
     {
       "id": "T3",
       "title": "030a T3",
-      "status": "todo",
+      "status": "done",
       "deps": [],
       "milestone": "M-0.3.0-alpha",
-      "ts": "2026-10-05T13:57:33Z"
+      "ts": "2026-10-05T14:38:21Z"
     },
     {
       "id": "T4",
@@ -110,10 +110,10 @@
     }
   ],
   "counts": {
-    "events": 102,
+    "events": 103,
     "tasks_total": 12,
-    "tasks_done": 7,
-    "tasks_open": 5,
+    "tasks_done": 8,
+    "tasks_open": 4,
     "open_loops": 0,
     "milestones": 6,
     "decisions": 3,
@@ -121,7 +121,7 @@
     "proposals_open": 1
   },
   "heartbeat": {
-    "ts": "2026-10-05T13:43:57Z",
+    "ts": "2026-10-05T14:07:36Z",
     "note": "turn ended"
   },
   "recent_milestones": [
