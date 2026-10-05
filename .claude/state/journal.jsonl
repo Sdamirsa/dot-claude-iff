@@ -101,3 +101,5 @@
 {"ts": "2026-10-05T13:57:35Z", "action": "phase", "value": "build"}
 {"ts": "2026-10-05T13:57:44Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: merged T1 T2 T4 T6 T7 T8 T9 (7/12; dev pushed, suite 523 green, CI green on both OS). Wave 3 in flight: T3 (worktree t3), T5 (t5). Then T12, T10, T11 (human gate before tag/issue replies). Method: lead-made worktrees from dev, merge, distctl build, full suite, push"}
 {"ts": "2026-10-05T14:38:21Z", "action": "task", "id": "T3", "status": "done", "note": "merged; suite 556 passed"}
+{"ts": "2026-10-05T14:46:20Z", "action": "task", "id": "T5", "status": "done", "note": "merged; suite 635 passed"}
+{"ts": "2026-10-05T14:46:46Z", "action": "task", "id": "T13", "title": "030a T13 dispatch + zip flow", "status": "todo", "milestone": "M-0.3.0-alpha"}

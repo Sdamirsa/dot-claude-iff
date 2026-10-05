@@ -77,10 +77,11 @@ and (in CI) Ubuntu; the pre-release is visible with both zips; each issue has it
 - [ ] T3 ritual ticket + ROUTE, done when: `run_tests.py test_ritual` green
 - [ ] T5 fableous mode, done when: `run_tests.py test_orchestration` green
 - [ ] T12 long-run progress, done when: `run_tests.py test_progress test_console` green
+- [ ] T13 dispatch + zip flow, done when: `run_tests.py test_orchestration test_dist` green
 - [ ] T10 drift and cleanup, done when: full suite green, `checkctl probe` all green
 - [ ] T11 release, done when: pre-release published, issues answered (human-gated)
 
-Waves (by file overlap): 1 = T1 T2 T6 T8 T9 · 2 = T4 T7 · 3 = T3 T5 · 4 = T12 · 5 = T10 · 6 = T11.
+Waves (by file overlap): 1 = T1 T2 T6 T8 T9 · 2 = T4 T7 · 3 = T3 T5 · 4 = T12 T13 · 5 = T10 · 6 = T11.
 
 ## Checkpoint
 

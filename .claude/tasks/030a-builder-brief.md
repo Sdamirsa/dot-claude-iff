@@ -67,10 +67,10 @@ task's **Definition of done** true and its **Test** command green, nothing more.
 {
   "task_id": "T6",
   "agent_id": "builder-T6",
-  "status": "ok | partial | blocked (same value as STATUS; the current validator hook wants both)",
+  "status": "done | partial | blocked (same value as STATUS; the current validator hook wants both)",
   "agent": "builder",
   "model": "opus",
-  "STATUS": "ok | partial | blocked",
+  "STATUS": "done | partial | blocked",
   "RESULT": "two or three sentences: what now exists",
   "files_changed": ["relative/path", "..."],
   "tests": [{"command": "…", "exit_code": 0, "summary": "last line of output"}],

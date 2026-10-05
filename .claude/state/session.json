@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T14:41:10Z",
-  "last_event_ts": "2026-10-05T14:38:21Z",
+  "generated_at": "2026-10-05T14:46:46Z",
+  "last_event_ts": "2026-10-05T14:46:46Z",
   "session": {
     "id": "phase2-build",
     "mode": "fableous-orchestrated",
@@ -45,6 +45,14 @@
       "ts": "2026-10-05T13:57:35Z"
     },
     {
+      "id": "T13",
+      "title": "030a T13 dispatch + zip flow",
+      "status": "todo",
+      "deps": [],
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T14:46:46Z"
+    },
+    {
       "id": "T2",
       "title": "030a T2",
       "status": "done",
@@ -71,10 +79,10 @@
     {
       "id": "T5",
       "title": "030a T5",
-      "status": "todo",
+      "status": "done",
       "deps": [],
       "milestone": "M-0.3.0-alpha",
-      "ts": "2026-10-05T13:57:33Z"
+      "ts": "2026-10-05T14:46:20Z"
     },
     {
       "id": "T6",
@@ -110,9 +118,9 @@
     }
   ],
   "counts": {
-    "events": 103,
-    "tasks_total": 12,
-    "tasks_done": 8,
+    "events": 105,
+    "tasks_total": 13,
+    "tasks_done": 9,
     "tasks_open": 4,
     "open_loops": 0,
     "milestones": 6,
@@ -121,7 +129,7 @@
     "proposals_open": 5
   },
   "heartbeat": {
-    "ts": "2026-10-05T14:39:23Z",
+    "ts": "2026-10-05T14:41:26Z",
     "note": "turn ended"
   },
   "recent_milestones": [
