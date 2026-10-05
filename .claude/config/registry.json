@@ -123,58 +123,6 @@
       "default": []
     },
     {
-      "key": "memory.snapshot.enabled",
-      "title": "Vault snapshots",
-      "description": "Take a git-bundle + chat snapshot into RECORD_ROOT/vault at PUBLISH.",
-      "layer": "OBSERVE",
-      "target": {
-        "kind": "config",
-        "file": "memory",
-        "path": "snapshot.enabled"
-      },
-      "type": "bool",
-      "default": false
-    },
-    {
-      "key": "memory.snapshot.keep",
-      "title": "Vault retention count",
-      "description": "How many snapshots to keep. Older ones are reported as prunable, never auto-deleted.",
-      "layer": "OBSERVE",
-      "target": {
-        "kind": "config",
-        "file": "memory",
-        "path": "snapshot.keep"
-      },
-      "type": "int",
-      "default": 8
-    },
-    {
-      "key": "memory.snapshot.min_free_multiple",
-      "title": "Snapshot disk guard",
-      "description": "Refuse a snapshot unless free disk is at least this multiple of the estimated size.",
-      "layer": "OBSERVE",
-      "target": {
-        "kind": "config",
-        "file": "memory",
-        "path": "snapshot.min_free_multiple"
-      },
-      "type": "float",
-      "default": 2.0
-    },
-    {
-      "key": "memory.snapshot.include_claude_projects",
-      "title": "Snapshot includes chat transcripts",
-      "description": "Include ~/.claude/projects/<slug>/ transcripts in the vault snapshot.",
-      "layer": "OBSERVE",
-      "target": {
-        "kind": "config",
-        "file": "memory",
-        "path": "snapshot.include_claude_projects"
-      },
-      "type": "bool",
-      "default": true
-    },
-    {
       "key": "memory.context.size_target_lines",
       "title": "Guide and rule size target",
       "description": "context_health warns when one guide (CLAUDE.md, CLAUDE.local.md) or rule (.claude/rules/*.md) is longer than this many lines. 200 follows Claude Code's own guidance: a longer file costs context on every load and is followed less reliably.",
@@ -320,7 +268,7 @@
     {
       "key": "observe.analyze.provider",
       "title": "Retrospective analysis provider",
-      "description": "Which model service obsctl analyze calls over the raw record. none disables it.",
+      "description": "Which OpenAI-compatible service obsctl analyze calls over the raw record (each name has a default base_url; base_url overrides it). none disables it. Must match observe.json analyze.providers and obsctl.PROVIDER_BASE_URLS.",
       "layer": "OBSERVE",
       "target": {
         "kind": "config",
@@ -330,9 +278,9 @@
       "type": "string",
       "enum": [
         "none",
+        "openai",
         "ollama",
-        "openrouter",
-        "claude"
+        "openrouter"
       ],
       "default": "none"
     },

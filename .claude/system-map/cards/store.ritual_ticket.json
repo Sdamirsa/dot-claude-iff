@@ -5,7 +5,7 @@
   "package": null,
   "title": "Ritual ticket",
   "path": ".claude/state/ritual-ticket.json",
-  "description": "Proof the USER typed /project-memory or /adopt: {skill, ts, session_id, event}. Written only by the prompt hook (the gate denies it to every agent), checked by checkctl run and complete, consumed by complete. A tripwire, not cryptography; gitignored.",
+  "description": "Proof the USER typed /project-memory or /adopt: {skill, ts, session_id, event}. Written by the prompt hook, or by `checkctl ticket --grant` that the human runs in their own terminal (the gate denies the file and that subcommand to every agent); checked by checkctl run and complete, consumed by complete. A tripwire, not cryptography; gitignored.",
   "reads": [],
   "writes": [],
   "invokes": [],

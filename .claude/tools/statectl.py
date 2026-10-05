@@ -187,9 +187,6 @@ def _build_session_projection() -> dict:
                 rec["state"] = ev["state"]
             rec["ts"] = ts
 
-        elif action == "config":
-            pass  # config-change events are audit trail only - no dedicated session.json slot
-
         elif action == "gate":
             q = ev.get("question")
             if not q:

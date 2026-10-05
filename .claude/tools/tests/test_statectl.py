@@ -76,7 +76,6 @@ class TestEveryActionIsProjected(StatectlCase):
         "loop": {"id": "L1", "text": "check this later", "status": "open"},
         "note": {"text": "just narrating"},
         "intent": {"state": "begin", "intent_id": "I1", "op": "write", "files": ["a.py"]},
-        "config": {"changes": {"x": 1}, "via": "test"},
         "gate": {"question": "ok to proceed?", "kind": "blocking"},
         "tooling": {"change_type": "add-tool", "what": "statectl.py"},
         "mode": {"value": "guided-solo"},

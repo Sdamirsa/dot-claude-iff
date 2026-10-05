@@ -31,7 +31,7 @@ test suite runs as a CHECK step here, never in an adopter); `_adopter_console_co
 `publish.json`'s `include` (what this repo publishes is its own call). Use when the
 SHAPE of a config must ship but a particular VALUE would leak a decision only valid here. Its
 whole-file form is `HOME_ONLY_FILES`: a committed `.claude/` document meaningful only here
-(`reference/release-flow.md`) is dropped on the way in.
+(`reference/release-flow.md`, `reference/brand-identity.md`) is dropped on the way in.
 
 ## Decision rule
 

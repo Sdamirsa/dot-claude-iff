@@ -252,6 +252,18 @@ class TestLintWarnings(MapctlCase):
 
 # --------------------------------------------------------------------------- 5. compile write-gating
 
+class TestHashIgnoresLineEndings(MapctlCase):
+    def test_a_crlf_checkout_and_an_lf_checkout_hash_alike(self):
+        """Windows checkouts hold CRLF (autocrlf) where git and Linux hold LF: a raw-byte hash
+        made every card refreshed on one OS read stale on the other."""
+        lf, crlf = self.root / "lf.py", self.root / "crlf.py"
+        lf.write_bytes(b"a = 1\nb = 2\n")
+        crlf.write_bytes(b"a = 1\r\nb = 2\r\n")
+        self.assertEqual(mapctl.compute_hash(lf), mapctl.compute_hash(crlf))
+        lf.write_bytes(b"a = 1\nb = 3\n")
+        self.assertNotEqual(mapctl.compute_hash(lf), mapctl.compute_hash(crlf))
+
+
 class TestCompileWriteGated(MapctlCase):
     def test_second_compile_with_nothing_new_touches_nothing(self):
         # Hand-built, path: null cards - never flips `exists`, so this isolates the write-gate

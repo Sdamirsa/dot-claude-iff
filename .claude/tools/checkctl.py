@@ -21,7 +21,9 @@ Three things live here and nowhere else.
 4. THE TICKET. The ritual is the user's: `run` and `complete` refuse without a fresh
    state/ritual-ticket.json, which only the prompt hook writes (when the user types
    /project-memory or /adopt) and the policy gate denies to every agent. `complete` consumes it.
-   Every other subcommand is read-only and needs none.
+   `ticket --grant` is the human's escape hatch when the prompt hook never fires, typed in their
+   own terminal; the gate refuses that subcommand to every agent. Every other subcommand is
+   read-only and needs none.
 
 Steps report OK / WARN / FAIL. WARN never blocks: incompleteness informs, incorrectness stops.
 """
@@ -267,13 +269,36 @@ def ticket_state(run: dict | None = None) -> dict:
     return dict(out, status="fresh", reason=f"fresh: /{data['skill']} typed {int(max(age, 0) // 60)} min ago")
 
 
+# The human escape hatch, for when the prompt hook never fires (an older Claude Code, hooks not
+# trusted yet): the USER types this in their own terminal. The policy gate refuses `checkctl
+# ticket` to every identity on every shell lane, so no agent tool call can run it.
+GRANT_COMMAND = "python3 .claude/tools/checkctl.py ticket --grant"
+HUMAN_TERMINAL_EVENT = "human-terminal"
+
+
 def refuse_without_ticket(action: str, state: dict) -> int:
     print(f"refused: {action} needs a fresh ritual ticket - {state['reason']}.")
     print(f"{TICKET_ASK.capitalize()}. Do not work around this: the ticket is written by the "
           f"prompt hook when the user's own prompt starts with /project-memory (or /adopt). "
           f"Nothing was written.")
+    print(f"If the prompt hook never fires, the USER (never an agent) runs `{GRANT_COMMAND}` in "
+          f"their own terminal.")
     _lib.print_verdict("CHECK", False)
     return 1
+
+
+def grant_ticket(skill: str) -> dict:
+    """The human-terminal ticket: same shape as the prompt hook's, marked by its event."""
+    ticket = {"skill": skill, "ts": _lib.utc_now(),
+              "session_id": os.environ.get("CLAUDE_SESSION_ID") or None,
+              "event": HUMAN_TERMINAL_EVENT}
+    _lib.atomic_write_json(ritual_ticket_path(), ticket, durable=True)
+    try:  # telemetry, fails open: the record keeps that a human granted this one
+        _lib.obslog("ritual.ticket", skill=skill, trigger=HUMAN_TERMINAL_EVENT,
+                    session_id=ticket["session_id"] or "unknown")
+    except Exception:  # noqa: BLE001
+        pass
+    return ticket
 
 
 def stamp_ticket(run: dict, ticket: dict) -> None:
@@ -722,17 +747,20 @@ def check_gitignore_shadowing() -> Result:
     if not candidates:
         return Result("gitignore_shadowing", OK, "nothing to probe")
     try:
+        # Bytes, not text: a text-mode pipe on Windows ends each line in CRLF, git keeps the CR
+        # as part of the path, and then no file-level pattern (*.zip) can ever match.
         res = subprocess.run(
             ["git", "check-ignore", "-v", "--stdin"],
-            input="\n".join(candidates) + "\n",
-            capture_output=True, text=True, timeout=30, cwd=str(root), check=False,
+            input=("\n".join(candidates) + "\n").encode("utf-8"),
+            capture_output=True, timeout=30, cwd=str(root), check=False,
         )
     except (OSError, subprocess.SubprocessError) as exc:
         return Result("gitignore_shadowing", SKIP, f"git unavailable: {exc}")
     if res.returncode not in (0, 1):  # 0 = some path ignored, 1 = none ignored
         return Result("gitignore_shadowing", SKIP,
                       f"git check-ignore failed (exit {res.returncode})")
-    hits = [line for line in res.stdout.splitlines() if line.strip()]
+    out = (res.stdout or b"").decode("utf-8", errors="replace")
+    hits = [line.rstrip("\r") for line in out.splitlines() if line.strip()]
     if hits:
         return Result("gitignore_shadowing", WARN,
                       f"{len(hits)} shippable path(s) are gitignored: an over-broad pattern "
@@ -1751,11 +1779,73 @@ def _doctor_hooks():
                 ([f"not executable: {', '.join(not_exec)}"] if not_exec else [])
         return (Result("hooks", FAIL, "wired hook script(s) cannot run - " + "; ".join(parts)),
                 "restore .claude/hooks/ from the kit; on Linux/macOS: chmod +x .claude/hooks/*.sh")
+    # A wired command that names no hook script must still find its program.
+    import shutil
+    absent = []
+    for c in commands:
+        if re.search(r"\.claude/hooks/", c):
+            continue
+        first = (re.findall(r'"[^"]*"|\'[^\']*\'|\S+', c) or [""])[0].strip("\"'")
+        first = first.replace("$CLAUDE_PROJECT_DIR", str(_lib.project_root()))
+        if first and not (Path(first).is_file() or shutil.which(first)):
+            absent.append(first)
+    if absent:
+        return (Result("hooks", FAIL, f"wired hook command(s) name no program here: "
+                                      f"{', '.join(sorted(set(absent)))}"),
+                "install the program or remove the entry from .claude/settings.json")
     unwired = [s for s in EXPECTED_HOOKS if s not in scripts]
     if unwired:
         return Result("hooks", WARN, f"shipped hook(s) not wired: {', '.join(unwired)}"), fix
     return Result("hooks", OK, f"{len(commands)} hook command(s) wired, {len(scripts)} script(s) "
                                f"present (Claude Code still asks you to trust them once)"), ""
+
+
+def _wired_hook_scripts() -> set:
+    """The .claude/hooks/ file names settings.json's hook commands run."""
+    data = _lib.read_json(_lib.claude_dir() / "settings.json")
+    hooks = data.get("hooks") if isinstance(data, dict) else None
+    out = set()
+    for groups in hooks.values() if isinstance(hooks, dict) else ():
+        for group in groups if isinstance(groups, list) else ():
+            for hook in (group.get("hooks") or []) if isinstance(group, dict) else ():
+                if isinstance(hook, dict):
+                    out.update(re.findall(r"\.claude/hooks/([A-Za-z0-9_.-]+)",
+                                          str(hook.get("command", ""))))
+    return out
+
+
+def _doctor_hook_scripts():
+    """Every hook script can run as written: LF line endings (bash reads a CR as part of the
+    command), a `#!` line, the exec bit where the OS reports one; and every script in hooks/ is
+    wired in settings.json (a helper is fine when another hook names it)."""
+    hooks_dir = _lib.claude_dir() / "hooks"
+    if not hooks_dir.is_dir():
+        return (Result("hook_scripts", FAIL, "no .claude/hooks/ folder"),
+                "restore .claude/hooks/ from the kit")
+    files = sorted(p for p in hooks_dir.iterdir() if p.is_file() and p.suffix in (".sh", ".py"))
+    texts = {p.name: p.read_bytes() for p in files}
+    crlf = [n for n, b in texts.items() if b"\r\n" in b]
+    no_shebang = [n for n, b in texts.items() if not b.startswith(b"#!")]
+    no_exec = [n for n in texts if os.name == "posix" and n.endswith(".sh")
+               and not os.access(hooks_dir / n, os.X_OK)]
+    wired = _wired_hook_scripts()
+    named_by_hooks = b"".join(texts[n] for n in wired if n in texts)
+    unwired = [n for n in texts if n not in wired and n.encode() not in named_by_hooks]
+    problems = ([f"CRLF line endings: {', '.join(crlf)}"] if crlf else []) + \
+               ([f"no #! line: {', '.join(no_shebang)}"] if no_shebang else []) + \
+               ([f"not executable: {', '.join(no_exec)}"] if no_exec else [])
+    if problems:
+        return (Result("hook_scripts", FAIL, "hook script(s) cannot run as written - "
+                                             + "; ".join(problems)),
+                "restore .claude/hooks/ from the kit (LF endings: `git config core.autocrlf "
+                "false` before checkout); on Linux/macOS: chmod +x .claude/hooks/*.sh")
+    if unwired:
+        return (Result("hook_scripts", WARN, f"hook file(s) present but never run: "
+                                             f"{', '.join(unwired)}"),
+                "wire them in .claude/settings.json or delete them")
+    exec_note = "exec bit set" if os.name == "posix" else "exec bit not reported on this OS"
+    return Result("hook_scripts", OK, f"{len(texts)} hook file(s): LF, #! line, {exec_note}, "
+                                      f"all wired"), ""
 
 
 def _doctor_record_root():
@@ -1876,28 +1966,30 @@ def _ticket_hook_wired() -> bool:
 def _doctor_ritual_ticket():
     state = ticket_state()
     ttl = int(state["ttl_s"] // 60)
+    hatch = (f"if the prompt hook never fires, the user runs `{GRANT_COMMAND}` in their own "
+             f"terminal")
     fix_wire = ("restore the UserPromptSubmit and UserPromptExpansion entries for "
                 "hooks/ritual-ticket.sh in .claude/settings.json (and the script) from the kit, "
-                "then start a new session")
+                f"then start a new session; meanwhile {hatch}")
     if state["status"] == "fresh":
         left = int((state["ttl_s"] - max(state["age_s"], 0)) // 60)
         return Result("ritual_ticket", OK, f"{state['reason']}; valid {left} more min"), ""
     if state["status"] == "invalid":
         return (Result("ritual_ticket", WARN, f"{state['reason']}: checkctl run refuses it"),
-                "the user types /project-memory, which mints a fresh one")
+                f"the user types /project-memory, which mints a fresh one; {hatch}")
     if not _ticket_hook_wired():
         return (Result("ritual_ticket", WARN, "no prompt hook can mint a ticket (hooks/ritual-ticket.sh "
                                               "is missing or not wired), so every checkctl run "
                                               "refuses the ritual"), fix_wire)
     if state["status"] == "absent":
         return Result("ritual_ticket", OK, f"none open; the prompt hook mints one when the user types "
-                                           f"/project-memory or /adopt (valid {ttl} min)"), ""
+                                           f"/project-memory or /adopt (valid {ttl} min); {hatch}"), ""
     return Result("ritual_ticket", OK, f"{state['reason']}; the next /project-memory replaces it"), ""
 
 
 DOCTOR_ROWS = (
     _doctor_python, _doctor_python3, _doctor_bash, _doctor_git, _doctor_config, _doctor_hooks,
-    _doctor_record_root, _doctor_cloud_sync, _doctor_console, _doctor_heartbeat,
+    _doctor_hook_scripts, _doctor_record_root, _doctor_cloud_sync, _doctor_console, _doctor_heartbeat,
     _doctor_secrets, _doctor_mode, _doctor_phase, _doctor_ritual_ticket,
 )
 
@@ -2314,8 +2406,32 @@ def main(argv=None) -> int:
     complete = sub.add_parser("complete", help="mark the ritual complete (called at the end of "
                                                "EVOLVE); needs and consumes the ritual ticket")
     complete.add_argument("--note", default="")
+    ticket_cmd = sub.add_parser(
+        "ticket", help="HUMAN ONLY, in your own terminal: show the ritual ticket, or --grant one "
+                       "when the prompt hook never fires",
+        description="The escape hatch for the ritual ticket. Normally the prompt hook mints it "
+                    "when you type /project-memory or /adopt. If that hook never fires (an older "
+                    "Claude Code, hooks not trusted yet), run this with --grant in your own "
+                    "terminal, then type /project-memory. The policy gate refuses this "
+                    "subcommand to every agent, the main session included.")
+    ticket_cmd.add_argument("--grant", action="store_true",
+                            help="write a fresh ticket marked event: human-terminal")
+    ticket_cmd.add_argument("--skill", choices=RITUAL_SKILLS, default="project-memory")
 
     args = parser.parse_args(argv)
+
+    if args.command == "ticket":
+        if args.grant:
+            ticket = grant_ticket(args.skill)
+            print(f"ritual ticket granted from your terminal for /{ticket['skill']} "
+                  f"(valid {int(ticket_ttl_minutes())} min); now type /{ticket['skill']} in "
+                  f"Claude Code")
+        else:
+            state = ticket_state()
+            print(f"ritual ticket: {state['status']} - {state['reason']}")
+        _lib.print_verdict("CHECK", True)
+        return 0
+
 
     if args.command == "status":
         run = load_run()

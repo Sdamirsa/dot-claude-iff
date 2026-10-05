@@ -377,6 +377,51 @@ class TestDoctorRow(GateCase):
         self.assertIn("/project-memory", fix)
 
 
+class TestHumanGrant(GateCase):
+    """`checkctl ticket --grant`: the escape hatch the USER runs in their own terminal when the
+    prompt hook never fires. The gate refuses it to every agent (test_hooks.TestRitualEscapes);
+    here: what it writes, that it opens the ritual, and that the refusal and doctor name it."""
+
+    def test_grant_writes_a_human_terminal_ticket_that_opens_the_ritual(self):
+        code, out = self.cc("run", "--phase", "check", "--new")
+        self.assert_refused(code, out, checkctl.GRANT_COMMAND, "own terminal")
+        code, out = self.cc("ticket", "--grant")
+        self.assertEqual(code, 0, out)
+        ticket = _lib.read_json(_lib.state_dir() / "ritual-ticket.json")
+        self.assertEqual(ticket["event"], "human-terminal")
+        self.assertEqual(ticket["skill"], "project-memory")
+        self.assertEqual(checkctl.ticket_state()["status"], "fresh")
+        code, out = self.cc("run", "--phase", "check", "--new")
+        self.assertNotIn("refused:", out)
+        self.assertEqual(checkctl.load_run()["invoked_by"], "user-ticket")
+        self.cc("ticket", "--grant", "--skill", "adopt")
+        self.assertEqual(_lib.read_json(_lib.state_dir() / "ritual-ticket.json")["skill"], "adopt")
+
+    def test_without_grant_it_only_reads(self):
+        before = self.snapshot()
+        code, out = self.cc("ticket")
+        self.assertEqual(code, 0, out)
+        self.assertIn("absent", out)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_the_doctor_row_names_the_hatch(self):
+        result, fix = checkctl._doctor_ritual_ticket()  # no hook wired here
+        self.assertIn(checkctl.GRANT_COMMAND, fix)
+        shutil.copy(CLAUDE_DIR / "settings.json", self.root / ".claude" / "settings.json")
+        (self.root / ".claude" / "hooks").mkdir(parents=True, exist_ok=True)
+        shutil.copy(HOOKS / "ritual-ticket.sh", self.root / ".claude" / "hooks" / "ritual-ticket.sh")
+        result, _ = checkctl._doctor_ritual_ticket()
+        self.assertIn(checkctl.GRANT_COMMAND, result.message)
+
+    def test_the_skill_and_reference_document_it(self):
+        for path in (CLAUDE_DIR / "skills" / "project-memory" / "SKILL.md",
+                     CLAUDE_DIR / "reference" / "glossary.md"):
+            with self.subTest(path=path.name):
+                text = path.read_text(encoding="utf-8")
+                self.assertIn("ticket --grant", text)
+                self.assertIn("own terminal", text)
+
+
 # --------------------------------------------------------------------------- the nudge
 
 class TestSessionNudge(HookRunner):

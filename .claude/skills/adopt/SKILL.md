@@ -81,16 +81,21 @@ Do not proceed on silence. If the user answers "Other", capture their wording ve
 
 ## Phase 3: install
 
-Adopt from a CLEAN source. Check `git -C <source> status --short` first: if the source has
-uncommitted changes, tell the user and prefer its last commit (or ask them to commit first). An
-adoption snapshotted mid-edit can copy a file whose tests, producer or consumer moved on a
-minute later, and the target inherits a mismatch nobody wrote on purpose.
+**The copy manifest** depends on what `<source>` is:
 
-Copy only files git TRACKS in `<source>` - take the manifest from
-`git -C <source> ls-files -- .claude .claude-iff`, never from a directory walk. A clean
-`git status` does not vouch for gitignored content: a private, gitignored tree under
-`.claude/` (it happened with `reference/private/`) must never ride an adoption into someone
-else's repo. Skip `reference/private/` even if a source tracks it.
+- **An extracted kit** (the adopt-kit or fresh zip, no `.git` in it): the kit IS the
+  manifest. It was built from the source's tracked files minus everything below, so copy every
+  file under its `.claude/` and `.claude-iff/`.
+- **A git checkout** (a clone, or a project running the system): adopt from a CLEAN source.
+  Check `git -C <source> status --short` first: if the source has uncommitted changes, tell the
+  user and prefer its last commit (or ask them to commit first); an adoption snapshotted
+  mid-edit can copy a file whose tests, producer or consumer moved on a minute later. Then copy
+  only files git TRACKS - take the manifest from `git -C <source> ls-files -- .claude
+  .claude-iff`, never from a directory walk. A clean `git status` does not vouch for gitignored
+  content: a private, gitignored tree under `.claude/` (it happened with `reference/private/`)
+  must never ride an adoption into someone else's repo.
+
+Either way, skip `reference/private/` even if a source carries it.
 
 Copy that manifest into `<target>/.claude/`, file by file, using this rule:
 
@@ -101,13 +106,15 @@ Skip `__pycache__/` directories and any `*.tmp` files if present in `<source>`: 
 not shipped assets.
 
 This system ships **one profile: everything.** Unlike systems that hold back machine-specific
-files, `hooks/`, `settings.json`, and `settings.local.json` ARE part of this install: they are
-written portably against `$CLAUDE_PROJECT_DIR` (never a hardcoded path), so they carry cleanly
-into any target. Copy them like every other file, subject to the same merge rule. An existing
-`<target>/.claude/settings.json` is a conflict: report it and KEEP THE TARGET'S, like every
-other collision. Never replace it wholesale - that single write would unbind all of the
-target's hooks, bind this system's six, and silently drop the target's `permissions` and
-`env` blocks. Hook-wiring changes are individual line merges the user approves one by one.
+files, `hooks/` and `settings.json` ARE part of this install: they are written portably against
+`$CLAUDE_PROJECT_DIR` (never a hardcoded path), so they carry cleanly into any target. Copy
+them like every other file, subject to the same merge rule. `settings.local.json` is not in any
+manifest and never travels: it is per-user and gitignored, and it is where the TARGET's own
+keys go (`.claude/reference/secrets.md`). An existing `<target>/.claude/settings.json` is a
+conflict: report it and KEEP THE TARGET'S, like every other collision. Never replace it
+wholesale - that single write would unbind all of the target's hooks, bind this system's, and
+silently drop the target's `permissions` and `env` blocks. Hook-wiring changes are individual
+line merges the user approves one by one.
 
 **Exclude per-project state and identity, even from `<source>`.** These paths hold that
 project's own runtime history or its own voice, not shippable system content, and copying them
@@ -134,13 +141,14 @@ Also skip the derived files `.claude/console/console.html` and `.claude/system-m
 (both listed under `derived_files` in `policy.json`): Phase 5 regenerates both from scratch.
 
 Also skip, on a clone or any running source, the paths that are the source's own build
-machinery rather than the system (the kits already leave all three out):
+machinery rather than the system (the kits already leave all of them out):
 - `.claude/dist/`: the source's release zips. dot-claude-iff tracks them, so its manifest
   lists them, but they are build output, and a copy inside `<target>` would nest a stale
   system inside the installed one.
 - `.claude/worktrees/`: build-time scratch checkouts of the whole source repo. Gitignored, so
   the manifest should never list them; skip the tree even if it does.
 - `.claude/reference/release-flow.md`: dot-claude-iff's own dev/main release flow.
+- `.claude/reference/brand-identity.md`: dot-claude-iff's own look and voice.
 
 Do not create `RECORD_ROOT` (the sibling `<target-parent>/<target-name>_claude_iff/` folder) by
 hand: the first hook invocation creates it on demand, empty, and that is the correct starting
@@ -250,18 +258,17 @@ Turn the copied scaffold into this project's system:
    would zip its private `.claude/` into redistributable archives and render its real session
    state into `docs/`, which many repos publish. checkctl reports them as SKIP with the reason
    named; that is the correct steady state everywhere except the source repo. In the same
-   file, empty the `check`, `polish` and `generator` lists under `project_steps`: a clone
+   file, empty the `check` and `polish` lists under `project_steps`: a clone
    carries the source's own steps (dot-claude-iff runs its test suite as a CHECK step), and
    the kits already ship them empty. Likewise set `include` in `config/publish.json` to `[]`:
    a clone carries the source's own publishing list, the kits ship it empty.
-8. **Console port, decided once.** `config/console.json` ships port 7717, and every adoption
-   on one machine inherits it, so the second project's console loses the bind every session.
-   Pick a free port ONCE, now - e.g.
-   `python3 -c "import socket; s=socket.socket(); s.bind(('127.0.0.1',0)); print(s.getsockname()[1]); s.close()"`
-   - and write it into `<target>/.claude/config/console.json` with a `_comment` naming why, so
-   a future `/adopt --upgrade` reads it as intentional rather than unexplained drift. Decide it
-   here and never again: the session-start hook reports a busy port instead of silently
-   failing, but a collision reported every session is still a collision.
+8. **Console port: leave it `"auto"`.** `config/console.json` ships `"port": "auto"`: the
+   port derives from the target's folder name (and the console answers at
+   `http://<folder>.localhost:<port>/console.html`), so two projects on one machine do not
+   inherit one port. `python3 .claude/tools/checkctl.py doctor` prints the URL. Only if the
+   session-start hook reports the port busy, pick a free one ONCE and write it into
+   `<target>/.claude/config/console.json` with a `_comment` naming why, so a future
+   `/adopt --upgrade` reads it as intentional rather than drift.
 
 Do NOT preinstall speculative project-specific skills, rules, or agents, and tell the user so
 explicitly: the evolution protocol (`.claude/protocols/evolution.md`) adds tooling when evidence
@@ -285,9 +292,11 @@ verify read-only with `python3 .claude/tools/checkctl.py doctor` and `checkctl.p
 ticket needed), mark the CHECK and POLISH boxes deferred to the first ritual, and in Phase 6
 ask the user to open a new session in `<target>`, trust the hooks, and type `/project-memory`.
 
-- [ ] Every file in the Phase 3 copy manifest (git-tracked under `<source>/.claude/`, minus the
-      Phase 3 exclusions) exists at its matching path under `<target>/.claude/`, or was
-      reported as a conflict and resolved with the user.
+- [ ] Every file in the Phase 3 copy manifest (the kit's files, or git-tracked under
+      `<source>/.claude/`, minus the Phase 3 exclusions) exists at its matching path under
+      `<target>/.claude/`, or was reported as a conflict and resolved with the user.
+- [ ] `python3 <target>/.claude/tools/checkctl.py doctor` reports no FAIL (bash, python3, hook
+      scripts and wiring, record root, console URL, secrets placement, the ritual ticket).
 - [ ] `grep -rnE "\{\{[A-Z_]+\}\}" <target>/.claude --include="*.md" | grep -v "skills/adopt/" | grep -v _template`
       returns nothing. The pattern matches real placeholders only (`{{PROJECT_NAME}}`-shaped),
       scoped to markdown: a bare `grep "{{"` can NEVER return clean on a correct install,
@@ -360,8 +369,8 @@ Close by putting the system into motion:
 
 For a `<target>` that already has `.claude/` installed:
 
-1. Diff every git-tracked file under `<source>/.claude/` (same manifest rule as Phase 3, same
-   `reference/private/` skip) against its counterpart in `<target>/.claude/`,
+1. Diff every file of the Phase 3 manifest (the kit's files, or git-tracked under
+   `<source>/.claude/`; same `reference/private/` skip) against its counterpart in `<target>/.claude/`,
    with the same exclusions as Phase 3: never diff or touch `.claude/state/` (including
    `handshakes/`), `.claude-iff/obs/anchor.json`, `.claude-iff/obs/rollups/`, or the derived
    files `console/console.html` and `system-map/map.json`. All of these are per-project runtime

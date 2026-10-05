@@ -16,7 +16,11 @@ to open or continue a run without a fresh one, and `checkctl complete` needs it 
 it. The policy gate denies the file to every agent identity. The ticket is a tripwire, not
 cryptography: it makes an agent-opened ritual fail loudly and leaves the issue in the record;
 it does not make forging impossible, and it does not have to. If `checkctl` refuses for want of
-a ticket, stop and ask the user to type `/project-memory`. Never work around it.
+a ticket, stop and ask the user to type `/project-memory`. Never work around it. If the prompt
+hook never fires (an older Claude Code, hooks not trusted yet), the USER runs
+`python3 .claude/tools/checkctl.py ticket --grant` in their own terminal (a ticket marked
+`event: "human-terminal"`), then types `/project-memory`; the gate refuses that subcommand to
+every agent, you included, so never try it yourself.
 
 Run this in the MAIN session, never as a sub-agent. You are the only agent who saw the whole
 conversation, and curation is exactly the part that cannot be reconstructed from disk.

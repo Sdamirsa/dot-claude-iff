@@ -393,7 +393,7 @@ class TestRegistration(SecretsCase):
 # --------------------------------------------------------------------------- doctor
 
 ROW_RE = re.compile(r"^\[(OK  |WARN|FAIL|SKIP)\] (\S+)\s+(.*)$")
-DOCTOR_NAMES = {"python", "python3", "bash", "git", "config", "hooks", "record_root",
+DOCTOR_NAMES = {"python", "python3", "bash", "git", "config", "hooks", "hook_scripts", "record_root",
                 "record_cloud_sync", "console", "heartbeat", "secrets_placement", "mode",
                 "phase", "ritual_ticket"}
 
@@ -481,6 +481,60 @@ class TestDoctor(SecretsCase):
         self.assertEqual(result.status, checkctl.FAIL)
         self.assertIn("heartbeat.sh", result.message)
 
+    def install_hooks(self) -> Path:
+        shutil.copy(CLAUDE_DIR / "settings.json", self.root / ".claude" / "settings.json")
+        shutil.copytree(CLAUDE_DIR / "hooks", self.root / ".claude" / "hooks",
+                        ignore=shutil.ignore_patterns("__pycache__"), dirs_exist_ok=True)
+        hooks = self.root / ".claude" / "hooks"
+        if os.name == "posix":
+            for path in hooks.glob("*.sh"):
+                path.chmod(0o755)
+        return hooks
+
+    def test_hook_scripts_row(self):
+        """LF endings, a #! line, the exec bit where the OS reports it, and every hook file
+        wired (a helper another hook names counts as wired)."""
+        hooks = self.install_hooks()
+        result, fix = checkctl._doctor_hook_scripts()
+        self.assertEqual(result.status, checkctl.OK, result.message)
+        beat = hooks / "heartbeat.sh"
+        original = beat.read_bytes()
+        beat.write_bytes(original.replace(b"\n", b"\r\n"))
+        result, fix = checkctl._doctor_hook_scripts()
+        self.assertEqual(result.status, checkctl.FAIL)
+        self.assertIn("CRLF", result.message)
+        self.assertIn("heartbeat.sh", result.message)
+        self.assertTrue(fix)
+        beat.write_bytes(original.split(b"\n", 1)[1])
+        result, _ = checkctl._doctor_hook_scripts()
+        self.assertEqual(result.status, checkctl.FAIL)
+        self.assertIn("no #! line", result.message)
+        beat.write_bytes(original)
+        if os.name == "posix":
+            beat.chmod(0o644)
+            result, _ = checkctl._doctor_hook_scripts()
+            self.assertEqual(result.status, checkctl.FAIL)
+            self.assertIn("not executable", result.message)
+            beat.chmod(0o755)
+        (hooks / "orphan.sh").write_bytes(b"#!/usr/bin/env bash\nexit 0\n")
+        if os.name == "posix":
+            (hooks / "orphan.sh").chmod(0o755)
+        result, _ = checkctl._doctor_hook_scripts()
+        self.assertEqual(result.status, checkctl.WARN)
+        self.assertIn("orphan.sh", result.message)
+        self.assertNotIn("policy_gate.py", result.message, "a helper the gate wrapper runs")
+
+    def test_a_wired_command_naming_no_program_fails(self):
+        self.install_hooks()
+        settings = _lib.read_json(self.root / ".claude" / "settings.json")
+        settings["hooks"]["Stop"][0]["hooks"].append(
+            {"type": "command", "command": "no-such-program-iff --flag"})
+        _lib.atomic_write_json(self.root / ".claude" / "settings.json", settings)
+        result, fix = checkctl._doctor_hooks()
+        self.assertEqual(result.status, checkctl.FAIL)
+        self.assertIn("no-such-program-iff", result.message)
+        self.assertTrue(fix)
+
     def test_record_root_inside_the_repo_fails(self):
         os.environ["CLAUDE_IFF_RECORD_ROOT"] = str(self.root / "record_inside")
         result, fix = checkctl._doctor_record_root()
@@ -515,7 +569,10 @@ class TestDocs(SecretsCase):
                 self.assertIn(needle.lower(), text.lower())
 
     def test_understand_page_no_longer_keeps_keys_in_dotenv(self):
-        text = (REPO_ROOT / "docs" / "understand.html").read_text(encoding="utf-8")
+        page = REPO_ROOT / "docs" / "understand.html"
+        if not page.exists():
+            self.skipTest("home-repo-only: docs/ is the source repo's site and never ships")
+        text = page.read_text(encoding="utf-8")
         self.assertNotIn("API keys live in your environment or a gitignored <code>.env</code>", text)
         self.assertNotIn("gitignored; machine paths, keys", text)
         self.assertIn("settings.local.json", text)

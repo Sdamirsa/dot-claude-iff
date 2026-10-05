@@ -487,6 +487,10 @@ class TestGitignoreShadowing(FixtureCase):
             self.skipTest(f"git init failed: {r.stderr}")
 
     def test_generic_dist_pattern_is_caught(self):
+        # The dist zips are probed by name only where distribution is on (the home repo).
+        cfg = _lib.load_config("memory")
+        cfg["distribution"] = {"enabled": True}
+        self.write_config("memory", cfg)
         (self.root / ".gitignore").write_text("dist/\n", encoding="utf-8")
         result = checkctl.check_gitignore_shadowing()
         self.assertEqual(result.status, checkctl.WARN)
@@ -494,6 +498,18 @@ class TestGitignoreShadowing(FixtureCase):
 
     def test_clean_ignores_pass(self):
         self.assertEqual(checkctl.check_gitignore_shadowing().status, checkctl.OK)
+
+    def test_a_file_level_pattern_is_caught(self):
+        """Paths reached git through text-mode stdin, which on Windows ends each line in CRLF:
+        git kept the CR as part of the path, so `*.md` never matched `notes.md<CR>` and only
+        directory patterns ever fired."""
+        (self.root / ".claude" / "reference").mkdir(parents=True, exist_ok=True)
+        (self.root / ".claude" / "reference" / "notes.md").write_text("x\n", encoding="utf-8")
+        (self.root / ".gitignore").write_text("*.md\n", encoding="utf-8")
+        result = checkctl.check_gitignore_shadowing()
+        self.assertEqual(result.status, checkctl.WARN, result.message)
+        self.assertTrue(any("notes.md" in d for d in result.details), result.details)
+        self.assertFalse(any("\r" in d for d in result.details), result.details)
 
     def test_deliberate_private_ignore_is_not_a_shadow(self):
         private = self.root / ".claude" / "reference" / "private"
@@ -523,6 +539,14 @@ class TestGitignoreShadowing(FixtureCase):
 class TestChangelogParity(FixtureCase):
     """The release flow pins one CHANGELOG.md section per version; this check is the
     mechanical half of that promise, and it must stay silent outside the home repo."""
+
+    def setUp(self):
+        # The fixture IS a home repo: set the knob rather than inherit whatever the repo running
+        # the suite ships (a kit ships it false, and these tests must pass inside a kit too).
+        super().setUp()
+        cfg = _lib.load_config("memory")
+        cfg["distribution"] = {"enabled": True}
+        self.write_config("memory", cfg)
 
     def test_gated_off_outside_the_home_repo(self):
         cfg = _lib.load_config("memory")
@@ -673,6 +697,87 @@ class TestVersionGrammar(unittest.TestCase):
                          "a heading with no date suffix at end of file still matches")
         self.assertEqual(_lib.changelog_section("## v1.0.0 - x\n## v0.9.0\n", "v1.0.0"), "",
                          "an empty section is present (not None)")
+
+
+class TestNoDeadKnobs(unittest.TestCase):
+    """Knobs and actions nothing read: a knob that does nothing teaches the user that knobs
+    do nothing. Each was confirmed unread before it went; this keeps them gone."""
+
+    def test_the_removed_knobs_stay_removed(self):
+        memory = _lib.read_json(CLAUDE_DIR / "config" / "memory.json")
+        self.assertNotIn("snapshot", memory)
+        self.assertEqual(set(memory["phases"]), {"check", "polish", "publish"},
+                         "phases.<name> is read for check, polish and publish only")
+        self.assertEqual({k for k in memory["project_steps"] if not k.startswith("_")},
+                         {"check", "polish"}, "checkctl runs project steps of these kinds only")
+        keys = {e.get("key") for e in _lib.read_json(CLAUDE_DIR / "config" / "registry.json")["entries"]}
+        self.assertFalse({k for k in keys if k and k.startswith("memory.snapshot")})
+        self.assertNotIn("config", _lib.JOURNAL_ACTIONS, "no writer ever emitted it")
+
+    def test_the_analyze_provider_enum_agrees_everywhere(self):
+        entry = next(e for e in _lib.read_json(CLAUDE_DIR / "config" / "registry.json")["entries"]
+                     if e.get("key") == "observe.analyze.provider")
+        observe = _lib.read_json(CLAUDE_DIR / "config" / "observe.json")["analyze"]
+        code = {"none"} | set(obsctl.PROVIDER_BASE_URLS)
+        self.assertEqual(set(entry["enum"]), code, "registry.json enum vs obsctl")
+        self.assertEqual(set(observe["providers"]), code, "observe.json providers vs obsctl")
+        self.assertIn(observe["provider"], code)
+
+
+def _subcommands_named(text: str, tool: str) -> set:
+    """Words a guide names as `tool`'s subcommands: inline (`statectl mode`, `statectl.py
+    phase`) and in a commands block: the rest of the `tools/<tool>.py` line plus its indented
+    continuation lines."""
+    import re
+    out = set(re.findall(rf"\b{tool}(?:\.py)?\s+([a-z][a-z-]*)", text))
+    for m in re.finditer(rf"tools/{tool}\.py[ \t]+([^\n]*(?:\n[ \t]{{8,}}[^\n]*)*)", text):
+        out |= set(re.findall(r"[a-z][a-z-]*", m.group(1)))
+    return out
+
+
+class TestGuidesNameEveryCommand(unittest.TestCase):
+    """The guide and the manual are where a human or an agent learns a command exists: one
+    that neither names is a command nobody runs."""
+
+    COMMANDS = {
+        "statectl": ("mode", "phase", "proposal", "dispatch", "accept", "progress"),
+        "checkctl": ("doctor", "phase-exit", "handoff", "ticket"),
+        "distctl": ("export", "gitignore", "verify"),
+        "mapctl": ("context",),
+    }
+
+    def test_each_new_command_is_named(self):
+        texts = [(CLAUDE_DIR / name).read_text(encoding="utf-8")
+                 for name in ("CLAUDE.md", "README.md")]
+        for tool, subs in self.COMMANDS.items():
+            named = set().union(*(_subcommands_named(t, tool) for t in texts))
+            for sub in subs:
+                with self.subTest(tool=tool, sub=sub):
+                    self.assertIn(sub, named, f"neither CLAUDE.md nor README.md names "
+                                              f"`{tool} {sub}`")
+
+    def test_the_matcher_can_fail(self):
+        self.assertNotIn("ticket", _subcommands_named("python3 .claude/tools/checkctl.py doctor\n"
+                                                      "the ticket is minted", "checkctl"))
+
+    def test_the_guide_says_whose_the_ritual_is_and_that_adhd_is_suggested(self):
+        import re
+        for path in (CLAUDE_DIR / "CLAUDE.md", CLAUDE_DIR / "skills" / "adopt" / "CLAUDE.template.md"):
+            with self.subTest(guide=path.name):
+                text = re.sub(r"\s+", " ", path.read_text(encoding="utf-8"))
+                self.assertIn("The ritual is the user's command", text)
+                self.assertRegex(text, r"`/adhd` \([^)]*suggest it[^)]*never run it\)")
+                self.assertNotIn("six core tools", text)
+                self.assertNotIn("temp-to-analyse", text)
+
+    def test_the_readmes_say_the_gate_is_a_tripwire(self):
+        for path in (CLAUDE_DIR / "README.md", CLAUDE_DIR.parent / ".github" / "README.md"):
+            if not path.exists():
+                continue  # .github/ is the source repo's; a kit has none
+            with self.subTest(readme=path.parent.name):
+                text = path.read_text(encoding="utf-8")
+                self.assertIn("What is new in 0.3", text)
+                self.assertIn("not a sandbox", text)
 
 
 if __name__ == "__main__":
