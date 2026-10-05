@@ -44,7 +44,8 @@
       "no_machine_paths",
       "gitignore_shadowing",
       "theme_token_parity",
-      "changelog_parity"
+      "changelog_parity",
+      "secrets_placement"
     ],
     "polish": [
       "map_scan",

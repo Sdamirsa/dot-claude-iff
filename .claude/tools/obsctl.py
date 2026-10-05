@@ -647,8 +647,11 @@ def _collect_recent_raw(paths: dict, limit) -> list:
 # response_format; the reply is mechanically parsed, repaired and validated against the taxonomy.
 # Nothing here is "analyzed by Claude": it is a tool call with a schema, end to end.
 #
-# The API key comes from the ENVIRONMENT ONLY (observe.json is committed to git):
-#   export ANALYZE_API_KEY=...        preferred, provider-agnostic
+# The API key comes from the ENVIRONMENT ONLY (observe.json is committed to git). Its home is
+# the env block of .claude/settings.local.json (per-user, gitignored; Claude Code passes it to
+# every command and hook it runs); exporting it in a shell is the alternative for runs outside
+# Claude Code. See .claude/reference/secrets.md.
+#   ANALYZE_API_KEY                   preferred, provider-agnostic
 #   (OPENROUTER_API_KEY / OPENAI_API_KEY are honored as fallbacks)
 # A localhost base_url (Ollama, LM Studio, vLLM) needs no key at all.
 
@@ -886,8 +889,11 @@ def cmd_analyze(args) -> int:
             "     Any OpenAI-compatible endpoint works: https://openrouter.ai/api/v1 (get a key\n"
             "     at openrouter.ai/keys), https://api.openai.com/v1 (platform.openai.com), or a\n"
             "     local server like Ollama at http://localhost:11434/v1 (no key needed).\n"
-            "  2. For remote endpoints, put the key in your environment, never in config:\n"
-            "     export ANALYZE_API_KEY=sk-...   (add it to your shell profile)\n"
+            "  2. For remote endpoints, put the key in the env block of\n"
+            "     .claude/settings.local.json (per-user, gitignored), never in config:\n"
+            "       {\"env\": {\"ANALYZE_API_KEY\": \"sk-...\"}}\n"
+            "     Outside Claude Code, export ANALYZE_API_KEY in your shell instead.\n"
+            "     See .claude/reference/secrets.md.\n"
             "  3. Rerun this command. --dry-run shows what would be sent."
         )
         _lib.print_verdict("OBS", True)

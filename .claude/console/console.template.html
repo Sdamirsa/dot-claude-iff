@@ -1169,10 +1169,12 @@ function renderSetupGuide(analysis) {
   ]));
   wrap.appendChild(el("div", { class: "kv-row" }, [
     "Put base_url and model in .claude/config/observe.json under \"analyze\". The key itself "
-    + "goes in your ENVIRONMENT, never in that file:"
+    + "goes in the env block of .claude/settings.local.json (per-user, gitignored), never in "
+    + "that file:"
   ]));
-  wrap.appendChild(copyBox("export ANALYZE_API_KEY=sk-...",
-    "also accepted: " + (analysis.key_envs_accepted || []).join(", ")));
+  wrap.appendChild(copyBox("\"env\": { \"ANALYZE_API_KEY\": \"sk-...\" }",
+    "outside Claude Code: export ANALYZE_API_KEY=sk-... in your shell · also accepted: "
+    + (analysis.key_envs_accepted || []).join(", ") + " · see .claude/reference/secrets.md"));
 
   const statusRow = el("div", { class: "sev-row" });
   if (analysis.key_env) {
@@ -1256,7 +1258,8 @@ function renderAnalysisCard() {
     "JSON schema; every reply is validated mechanically (an off-taxonomy label fails its " +
     "whole chunk - nothing is judged by Claude). Plain code then aggregates the labels " +
     "per day into the Analysis-labels lane above. The API key lives only in your " +
-    "environment; with a local Ollama endpoint nothing leaves this machine, and products " +
+    "environment (the env block of .claude/settings.local.json, or your shell); with a " +
+    "local Ollama endpoint nothing leaves this machine, and products " +
     "stay in the record until a human promotes them into the repo."]));
   card.appendChild(info);
   card.appendChild(analysis.configured ? renderConfiguredStatus(analysis) : renderSetupGuide(analysis));

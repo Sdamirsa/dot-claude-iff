@@ -65,8 +65,12 @@
     update check, no CDN. The hooks and tools make exactly zero network calls. The one
     exception is <code>obsctl analyze</code>, which is off by default and only ever talks to
     the endpoint <em>you</em> configure - and with a local Ollama endpoint, even that never
-    leaves your machine. API keys live in your environment or a gitignored <code>.env</code>,
-    never in a committed file, and the tests prove a key placed in config is ignored.</li>
+    leaves your machine. API keys live in the <code>env</code> block of your gitignored
+    <code>.claude/settings.local.json</code> (or your shell), never in a committed file: this
+    system reads no keys from <code>.env</code>, and Claude Code does not load <code>.env</code>
+    either. The tests prove a key placed in config is ignored, and the ritual's
+    <code>secrets_placement</code> check fails if a key-shaped string lands in a file git would
+    commit (<code>.claude/reference/secrets.md</code> says where each kind of key belongs).</li>
     <li><b>Claude Code itself talks to Anthropic.</b> Your conversation, and files the agent
     reads, go to the Claude API - that is how Claude Code works, with or without this system,
     under your account's data settings. This system neither adds to that traffic nor reduces
@@ -107,9 +111,10 @@ python3 .claude/tools/tests/run_tests.py</code></pre>
 │  ├─ state/journal.jsonl      <span class="risk-chip careful">contains your words</span> <span class="rt-note">pointers and notes you typed</span>
 │  ├─ state/needs-human.jsonl  <span class="risk-chip careful">contains your words</span> <span class="rt-note">questions, context, your answers</span>
 │  ├─ Project-log.jsonl        <span class="risk-chip careful">contains your words</span> <span class="rt-note">decisions and summaries</span>
+│  ├─ settings.local.json      <span class="risk-chip never">never share</span> <span class="rt-note">gitignored; your API keys (its env block)</span>
 │  └─ everything else          <span class="risk-chip safe">safe to push</span> <span class="rt-note">code, config, protocols, map cards</span>
 ├─ .claude-iff/                <span class="risk-chip safe">safe to push</span> <span class="rt-note">allowlisted totals + integrity anchor only</span>
-└─ .env                        <span class="risk-chip never">never share</span> <span class="rt-note">gitignored; machine paths, keys</span>
+└─ .env                        <span class="risk-chip never">never share</span> <span class="rt-note">gitignored; machine-local paths (no keys are read from it)</span>
 
 <b class="rt-zone">your-repo_claude_iff/</b>  <span class="rt-note">(sibling folder - git cannot reach it)</span>
 ├─ spool/ · sealed-raw/        <span class="risk-chip never">never share</span> <span class="rt-note">VERBATIM: prompts, file contents, tool output</span>

@@ -11,10 +11,13 @@
     "config.registry",
     "config.model-prices",
     "config.observe",
+    "config.policy",
+    "config.console",
     "store.journal",
     "store.heartbeat",
     "store.memory_run",
-    "store.needs_human"
+    "store.needs_human",
+    "store.session"
   ],
   "writes": [
     "store.memory_run",

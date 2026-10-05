@@ -14,6 +14,16 @@
   ],
   "version": 1,
   "record_root": null,
+  "secrets": {
+    "_comment": [
+      "checkctl's secrets_placement check (ritual CHECK and `checkctl doctor`). allow_paths:",
+      "paths (prefixes or globs, repo-relative) the scanner skips and whose per-user secret",
+      "files are committed on purpose - vendored fixtures, a stack that commits its .env.",
+      "Prefer an inline iff:allow-secret comment for a single line. Where keys belong:",
+      ".claude/reference/secrets.md."
+    ],
+    "allow_paths": []
+  },
   "_protected_comment": [
     "Every directory whose contents the gate itself executes or trusts. tools/ is here because",
     "policy_gate.py imports _lib from it on every tool call: a sub-agent that can write",
