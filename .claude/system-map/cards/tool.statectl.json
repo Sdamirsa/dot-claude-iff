@@ -11,7 +11,8 @@
     "store.needs_human",
     "store.heartbeat",
     "store.proposals",
-    "config.phases"
+    "config.phases",
+    "store.handshakes"
   ],
   "writes": [
     "store.journal",
@@ -19,7 +20,8 @@
     "store.handoff",
     "store.needs_human",
     "store.machine",
-    "store.proposals"
+    "store.proposals",
+    "store.handshakes"
   ],
   "invokes": [
     "tool.checkctl"

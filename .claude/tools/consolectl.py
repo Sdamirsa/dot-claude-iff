@@ -150,15 +150,11 @@ def _read_in_flight() -> list:
         envelope = hs_dir / f"{task_id}.json"
         if envelope.exists():
             continue
-        data = _lib.read_json(stub, {}) or {}
-        # The envelope contract (post-write-validate.sh, handshake.md) is
-        # {agent_id, task_id, status, artifacts[], notes}; a stub is exempt from that
-        # contract's required-keys check but conventionally carries the same field names.
-        out.append({
-            "agent": str(data.get("agent_id") or data.get("agent") or ""),
-            "task_id": str(data.get("task_id") or task_id),
-            "since": str(data.get("since") or data.get("ts") or ""),
-        })
+        # The stub contract (handshake.md) is {task_id, agent, dispatched_at, worktree?};
+        # _lib.read_stub is its one reader and still reads the older since/ts names.
+        data = _lib.read_stub(stub)
+        out.append({"agent": data["agent"], "task_id": data["task_id"],
+                    "dispatched_at": data["dispatched_at"]})
     return out
 
 
@@ -310,10 +306,12 @@ def _parse_task_file(path: Path) -> dict:
 
 
 def _read_tasks() -> list:
+    """Task files on the WORK tab: `_`-prefixed files are scaffolds (the task template, the
+    builder brief), never tasks, the same rule checkctl's task readers apply."""
     tdir = _lib.claude_dir() / "tasks"
     if not tdir.is_dir():
         return []
-    return [_parse_task_file(f) for f in sorted(tdir.glob("*.md"))]
+    return [_parse_task_file(f) for f in sorted(tdir.glob("*.md")) if not f.name.startswith("_")]
 
 
 def _read_log_tail() -> list:

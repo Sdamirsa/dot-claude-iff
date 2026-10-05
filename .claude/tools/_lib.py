@@ -34,7 +34,7 @@ from pathlib import Path
 JOURNAL_ACTIONS = (
     "session_start",  # a working session opened            {session, phase, note}
     "pointer",        # the next concrete action            {text}
-    "task",           # task state                          {id, title, status, deps, milestone, note}
+    "task",           # task state                          {id, title, status, deps, milestone, note, no_envelope}
     "milestone",      # something shipped                   {id, title, note}
     "decision",       # a choice and its reason             {text, why}
     "loop",           # an open/closed thread               {id, text, status}
@@ -59,6 +59,9 @@ TASK_STATUS_LINE_RE = re.compile(r"^_Created.*?·\s*Status:\s*([A-Za-z0-9-]+)_?\
 MODES = ("freestyle", "guided-solo", "fableous-orchestrated")
 DEFAULT_MODE = "freestyle"
 ORGANISED_MODES = ("guided-solo", "fableous-orchestrated")
+# The one mode with lead-and-team routing (protocols/orchestration.md): the handoff guard, the
+# builder stop check and the delegation nudge act in it and in no other.
+ORCHESTRATED_MODE = "fableous-orchestrated"
 MODE_ALIASES = {"guided": "guided-solo", "solo": "guided-solo",
                 "fableous": "fableous-orchestrated", "orchestrated": "fableous-orchestrated"}
 MODE_LABELS = {"freestyle": "Freestyle", "guided-solo": "Guided Solo",
@@ -767,6 +770,392 @@ def proposal_records() -> list:
             rec["resolved"] = str(ev.get("ts", ""))
             rec["note"] = str(ev.get("note", ""))
     return list(records.values())
+
+
+# --------------------------------------------------------------------------- handoff envelopes
+#
+# ONE envelope contract (.claude/protocols/handshake.md), checked by ONE function. The
+# post-write hook (every Write/Edit of an envelope), `checkctl handoff` (the lead's review
+# before a merge) and the `statectl task --status done` guard all call validate_envelope():
+# two validators is how the 0.3.0 builder brief and the hook came to disagree.
+
+ENVELOPE_STATUSES = ("done", "partial", "blocked")
+ENVELOPE_DONE = "done"
+ENVELOPE_REQUIRED = ("agent_id", "task_id", "status")
+# What a builder's handoff adds, so the lead can review and merge without re-reading the run.
+BUILDER_ENVELOPE_REQUIRED = ("agent", "model", "files_changed", "tests", "needs_main")
+# The 0.3.0 builder brief's uppercase STATUS (ok|partial|blocked). Optional; when present it
+# must say what `status` says.
+LEGACY_ENVELOPE_STATUS = {"ok": "done", "done": "done", "partial": "partial", "blocked": "blocked"}
+# The report sections: prose inside `notes`, or top-level keys holding a string or a list.
+REPORT_SECTIONS = ("RESULT", "EVIDENCE", "DEVIATIONS", "UNCERTAINTIES", "QUESTIONS", "SUGGESTIONS")
+# A stub's dispatch time. `dispatched_at` is the contract; `since` and `ts` are still read for
+# stubs written before the name was settled.
+STUB_TIME_KEYS = ("dispatched_at", "since", "ts")
+
+
+def handshakes_dir(root: Path | None = None) -> Path:
+    return (Path(root) if root else project_root()) / ".claude" / "state" / "handshakes"
+
+
+def envelope_path(task_id: str, root: Path | None = None) -> Path:
+    return handshakes_dir(root) / f"{task_id}.json"
+
+
+def stub_path(task_id: str, root: Path | None = None) -> Path:
+    return handshakes_dir(root) / f"{task_id}.stub.json"
+
+
+def _text(value) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _text_list(value) -> bool:
+    return isinstance(value, list) and all(isinstance(x, str) for x in value)
+
+
+def validate_envelope(obj, builder: bool | None = None) -> list:
+    """Every way `obj` breaks the envelope contract, one message each; [] when it is valid.
+
+    builder=None decides from the envelope itself (agent == "builder"); True demands the
+    builder keys whatever the envelope says (checkctl handoff, the done guard). A builder that
+    says `done` must have recorded at least one test, and every test it recorded exited 0."""
+    if not isinstance(obj, dict):
+        return ["the envelope is not a JSON object"]
+    errors = []
+    for key in ENVELOPE_REQUIRED:
+        if not _text(obj.get(key)):
+            errors.append(f"{key} is missing or empty")
+    status = obj.get("status")
+    if _text(status) and status not in ENVELOPE_STATUSES:
+        errors.append(f"status must be one of {'|'.join(ENVELOPE_STATUSES)}, got {status!r}")
+    if "STATUS" in obj:
+        legacy = LEGACY_ENVELOPE_STATUS.get(str(obj["STATUS"]).strip().lower())
+        if legacy is None:
+            errors.append(f"STATUS must be ok|partial|blocked, got {obj['STATUS']!r}")
+        elif status in ENVELOPE_STATUSES and legacy != status:
+            errors.append(f"STATUS {obj['STATUS']!r} disagrees with status {status!r}")
+    if "artifacts" in obj and not _text_list(obj["artifacts"]):
+        errors.append("artifacts must be a list of paths")
+    if "notes" in obj and not isinstance(obj["notes"], str):
+        errors.append("notes must be a string")
+    for key in REPORT_SECTIONS:
+        if key in obj and not (isinstance(obj[key], str) or _text_list(obj[key])):
+            errors.append(f"{key} must be a string or a list of strings")
+    if builder is None:
+        builder = obj.get("agent") == "builder"
+    if not builder:
+        return errors
+    for key in ("agent", "model"):
+        if not _text(obj.get(key)):
+            errors.append(f"{key} is missing or empty (builder envelope)")
+    if not _text_list(obj.get("files_changed")):
+        errors.append("files_changed must be a list of repo-relative paths (builder envelope)")
+    tests = obj.get("tests")
+    if not isinstance(tests, list):
+        errors.append("tests must be a list of {command, exit_code, summary} (builder envelope)")
+        tests = []
+    for i, test in enumerate(tests):
+        if not isinstance(test, dict):
+            errors.append(f"tests[{i}] must be an object {{command, exit_code, summary}}")
+            continue
+        if not _text(test.get("command")):
+            errors.append(f"tests[{i}].command is missing or empty")
+        code = test.get("exit_code")
+        if not isinstance(code, int) or isinstance(code, bool):
+            errors.append(f"tests[{i}].exit_code must be an integer, got {code!r}")
+        if not isinstance(test.get("summary"), str):
+            errors.append(f"tests[{i}].summary must be a string (the last line of the output)")
+    needs = obj.get("needs_main")
+    if not isinstance(needs, list) or any(not isinstance(x, (str, dict)) for x in needs):
+        errors.append("needs_main must be a list (strings, or {path, diff} objects; [] when none)")
+    if status == ENVELOPE_DONE:
+        codes = [t.get("exit_code") for t in tests if isinstance(t, dict)]
+        if not codes:
+            errors.append("status is done but no test is recorded: run the task's Test and record it")
+        elif any(c != 0 for c in codes):
+            errors.append(f"status is done but a recorded test failed (exit codes {codes}): "
+                          f"fix it, or say partial")
+    return errors
+
+
+def read_stub(path: Path) -> dict:
+    """One dispatch stub as {task_id, agent, dispatched_at, worktree}; a missing field reads
+    as "" and the task id falls back to the file name. Never raises."""
+    data = read_json(path, {})
+    data = data if isinstance(data, dict) else {}
+    name = Path(path).name
+    fallback = name[:-len(".stub.json")] if name.endswith(".stub.json") else Path(path).stem
+    when = next((str(data[k]) for k in STUB_TIME_KEYS if data.get(k)), "")
+    return {"task_id": str(data.get("task_id") or fallback),
+            "agent": str(data.get("agent") or data.get("agent_id") or ""),
+            "dispatched_at": when,
+            "worktree": str(data.get("worktree") or "")}
+
+
+def write_stub(task_id: str, agent: str, worktree: str | None = None) -> Path:
+    """The dispatch stub, written by the lead before it dispatches (statectl dispatch): makes
+    an in-flight agent visible, and dates the dispatch for the builder stop check."""
+    stub = {"task_id": task_id, "agent": agent, "dispatched_at": utc_now()}
+    if worktree:
+        stub["worktree"] = Path(worktree).as_posix()
+    return atomic_write_json(stub_path(task_id), stub)
+
+
+# --------------------------------------------------------------------------- orchestration
+#
+# fableous-orchestrated's runtime state (state/orchestration.json): when each sub-agent began
+# (the builder stop check's "since") and how many code edits the lead made since the last
+# dispatch (the delegation nudge). Nothing here acts in freestyle or guided-solo, and the hooks
+# that call it fail open: a broken counter costs a reminder, never a tool call.
+
+ORCHESTRATION_DEFAULTS = {"nudge_after": 8, "handoff_test_timeout": 1800}
+AGENT_STARTS_KEPT = 64
+# Edits the delegation nudge does not count: bookkeeping and prose are the lead's own work.
+NUDGE_EXEMPT_PREFIXES = (".claude/state/", ".claude/tasks/", "docs/")
+NUDGE_EXEMPT_SUFFIXES = (".md", ".rst", ".txt")
+_WORKTREE_PREFIX_RE = re.compile(r"^\.claude/worktrees/[^/]+/")
+# Timestamps are second-precision; a builder runs for minutes.
+STOP_SLACK_SECONDS = 2.0
+
+
+def orchestration_knob(name: str) -> int:
+    """An integer knob from config/orchestration.json, the shipped default when absent or bad."""
+    default = ORCHESTRATION_DEFAULTS[name]
+    cfg = load_config("orchestration")
+    try:
+        return int(cfg.get(name, default)) if isinstance(cfg, dict) else default
+    except (TypeError, ValueError):
+        return default
+
+
+def orchestration_state_path() -> Path:
+    return state_dir() / "orchestration.json"
+
+
+def orchestration_state() -> dict:
+    data = read_json(orchestration_state_path(), {})
+    return data if isinstance(data, dict) else {}
+
+
+def _epoch(ts):
+    dt = parse_ts(ts) if isinstance(ts, str) else None
+    return dt.timestamp() if dt else None
+
+
+def _is_subagent(payload: dict) -> bool:
+    """Same identity rule as the policy gate: only an ABSENT agent_type/agent_name is the lead."""
+    return bool(str(payload.get("agent_type") or "").strip()
+                or str(payload.get("agent_name") or "").strip())
+
+
+def payload_rel_path(payload: dict):
+    """The repo-relative POSIX path a Write/Edit payload targeted; None when it names no file
+    or a file outside the project."""
+    tool_input = payload.get("tool_input")
+    if not isinstance(tool_input, dict):
+        return None
+    target = tool_input.get("file_path") or tool_input.get("path") or tool_input.get("notebook_path")
+    if not target:
+        return None
+    root = str(project_root())
+    cwd = str(payload.get("cwd") or root)
+    full = os.path.realpath(os.path.join(cwd, os.path.expanduser(str(target))))
+    prefix = root.rstrip("\\/") + os.sep
+    if not os.path.normcase(full).startswith(os.path.normcase(prefix)):
+        return None
+    return full[len(prefix):].replace("\\", "/")
+
+
+def nudge_counts(rel: str) -> bool:
+    """Whether an edit to repo-relative `rel` is code the nudge counts. A worktree path is
+    judged by its path inside the worktree."""
+    inner = _WORKTREE_PREFIX_RE.sub("", rel)
+    return not (inner.startswith(NUDGE_EXEMPT_PREFIXES)
+                or inner.lower().endswith(NUDGE_EXEMPT_SUFFIXES))
+
+
+def note_subagent_start(payload: dict) -> None:
+    """SubagentStart, fableous-orchestrated only: remember when this agent began (the builder
+    stop check's "since") and reset the lead's edit counter, since a dispatch is exactly what
+    the nudge asks for."""
+    if not isinstance(payload, dict) or current_mode() != ORCHESTRATED_MODE:
+        return
+    state = orchestration_state()
+    now = utc_now()
+    agents = state.get("agents") if isinstance(state.get("agents"), dict) else {}
+    agent_id = str(payload.get("agent_id") or "").strip()
+    if agent_id:
+        agents[agent_id] = {"type": str(payload.get("agent_type") or ""), "started_at": now}
+        if len(agents) > AGENT_STARTS_KEPT:
+            ordered = sorted(agents.items(), key=lambda kv: str(
+                kv[1].get("started_at", "") if isinstance(kv[1], dict) else ""))
+            agents = dict(ordered[-AGENT_STARTS_KEPT:])
+    state["agents"] = agents
+    state["nudge"] = {"count": 0, "since": now}
+    atomic_write_json(orchestration_state_path(), state)
+
+
+def delegation_nudge(payload: dict):
+    """PostToolUse on the lead's Write/Edit, fableous-orchestrated only: count code edits since
+    the last sub-agent dispatch; when the count reaches orchestration.nudge_after (0 = off),
+    return one reminder to delegate and start counting again. Returns text, decides nothing."""
+    if not isinstance(payload, dict) or _is_subagent(payload):
+        return None
+    rel = payload_rel_path(payload)
+    if rel is None or not nudge_counts(rel):
+        return None
+    limit = orchestration_knob("nudge_after")
+    if limit <= 0 or current_mode() != ORCHESTRATED_MODE:
+        return None
+    state = orchestration_state()
+    nudge = state.get("nudge") if isinstance(state.get("nudge"), dict) else {}
+    try:
+        count = int(nudge.get("count", 0)) + 1
+    except (TypeError, ValueError):
+        count = 1
+    if count < limit:
+        state["nudge"] = {**nudge, "count": count}
+        atomic_write_json(orchestration_state_path(), state)
+        return None
+    state["nudge"] = {"count": 0, "since": nudge.get("since") or "", "nudged_at": utc_now()}
+    atomic_write_json(orchestration_state_path(), state)
+    return (f"DELEGATION NUDGE (advisory): {count} code edits by the lead since the last "
+            f"sub-agent dispatch, the latest {rel}. In fableous-orchestrated mode the lead plans, "
+            f"reviews and merges, and a builder implements in a worktree "
+            f"(.claude/protocols/orchestration.md). If this task is small enough to do yourself, "
+            f"carry on and close it with `statectl task <id> --status done --no-envelope "
+            f"\"<why>\"`. Tune or silence it: nudge_after in .claude/config/orchestration.json "
+            f"(0 = off).")
+
+
+def agent_started_at(payload: dict):
+    """When this sub-agent began, as epoch seconds: its SubagentStart record, else the first
+    timestamp in its transcript, else None (unknown)."""
+    agent_id = str(payload.get("agent_id") or "").strip()
+    agents = orchestration_state().get("agents")
+    rec = agents.get(agent_id) if agent_id and isinstance(agents, dict) else None
+    if isinstance(rec, dict) and _epoch(rec.get("started_at")) is not None:
+        return _epoch(rec.get("started_at"))
+    transcript = payload.get("agent_transcript_path")
+    if not isinstance(transcript, str) or not transcript:
+        return None
+    try:
+        with open(transcript, "r", encoding="utf-8", errors="replace") as fh:
+            for _ in range(20):
+                line = fh.readline()
+                if not line:
+                    break
+                try:
+                    obj = json.loads(line)
+                except ValueError:
+                    continue
+                when = _epoch(obj.get("timestamp")) if isinstance(obj, dict) else None
+                if when is not None:
+                    return when
+    except OSError:
+        return None
+    return None
+
+
+def _delivered_at(task_id: str, worktree: str = ""):
+    """mtime of the newest VALID builder envelope for task_id, in the project or any of its
+    worktrees (a builder writes its envelope inside its worktree); None when there is none."""
+    root = project_root()
+    candidates = [envelope_path(task_id, root)]
+    if worktree:
+        candidates.append(envelope_path(task_id, root / worktree))
+    wt_dir = root / ".claude" / "worktrees"
+    if wt_dir.is_dir():
+        candidates += [envelope_path(task_id, d) for d in sorted(wt_dir.iterdir()) if d.is_dir()]
+    best = None
+    for path in candidates:
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        obj = read_json(path, None)
+        if obj is None or validate_envelope(obj, builder=True):
+            continue
+        best = mtime if best is None else max(best, mtime)
+    return best
+
+
+def builder_stop_reason(payload: dict):
+    """SubagentStop for a builder, fableous-orchestrated only: the reason to send it back once,
+    when it is stopping with no valid envelope written since it started for any open builder
+    stub; None to let it stop. A stub dispatched after this agent began belongs to another
+    builder; one answered before it began is closed. Best effort by design: an unknown start
+    time, a set stop_hook_active (already sent back once) or any other gap lets it stop."""
+    if not isinstance(payload, dict) or payload.get("stop_hook_active"):
+        return None
+    if str(payload.get("agent_type") or "").strip() != "builder":
+        return None
+    if current_mode() != ORCHESTRATED_MODE:
+        return None
+    started = agent_started_at(payload)
+    hs = handshakes_dir()
+    if started is None or not hs.is_dir():
+        return None
+    pending = []
+    for path in sorted(hs.glob("*.stub.json")):
+        stub = read_stub(path)
+        if stub["agent"] != "builder":
+            continue
+        dispatched = _epoch(stub["dispatched_at"])
+        if dispatched is None:
+            try:
+                dispatched = path.stat().st_mtime
+            except OSError:
+                continue
+        if dispatched > started + STOP_SLACK_SECONDS:
+            continue
+        delivered = _delivered_at(stub["task_id"], stub["worktree"])
+        if delivered is not None and delivered >= dispatched - STOP_SLACK_SECONDS:
+            if delivered >= started - STOP_SLACK_SECONDS:
+                return None
+            continue
+        pending.append(stub["task_id"])
+    if not pending:
+        return None
+    return (f"HANDOFF MISSING: you are a builder in fableous-orchestrated mode and no valid "
+            f"handoff envelope was written since you started (open builder task: "
+            f"{', '.join(pending)}). Before you stop, write .claude/state/handshakes/<task_id>.json "
+            f"inside your worktree per .claude/protocols/handshake.md: agent_id, task_id, status "
+            f"(done|partial|blocked), agent, model, files_changed[], tests[] {{command, "
+            f"exit_code, summary}}, needs_main[]. Check it from your worktree with "
+            f"`python3 .claude/tools/checkctl.py handoff <task_id>`. Unfinished or blocked is a "
+            f"valid handoff: say so with status partial or blocked. This reminder comes once.")
+
+
+# --------------------------------------------------------------------------- advisory channel
+#
+# How a hook hands the lead a note WITHOUT deciding anything: the note rides
+# hookSpecificOutput.additionalContext on an exit-0 run, so it can never block, deny or undo
+# what a gate decided. lead_advisories() collects every note due on this hook call (today the
+# delegation nudge; a periodic progress report can join it as one more source), each source
+# isolated so a broken one costs only its own note.
+
+def lead_advisories(payload: dict) -> list:
+    notes = []
+    for source in (delegation_nudge,):
+        try:
+            note = source(payload)
+        except Exception:  # noqa: BLE001 - advisory: a broken source loses its note, nothing else
+            note = None
+        if note:
+            notes.append(str(note))
+    return notes
+
+
+def advisory_output(event: str, notes):
+    """The JSON a hook prints to hand the model its notes as additional context; None when
+    there is nothing to say."""
+    texts = [str(n).strip() for n in (notes or ()) if str(n or "").strip()]
+    if not texts:
+        return None
+    return json.dumps({"hookSpecificOutput": {"hookEventName": event,
+                                              "additionalContext": "\n\n".join(texts)}})
 
 
 # --------------------------------------------------------------------------- observability

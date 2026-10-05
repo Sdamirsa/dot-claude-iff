@@ -109,6 +109,12 @@ KNOWN_STORES = [
     {"id": "store.handshakes", "path": ".claude/state/handshakes", "title": "Handshake envelopes",
      "description": "Agent-to-agent Structured Return envelopes (stub at dispatch, envelope at delivery).",
      "glyphs": ["envelope"]},
+    {"id": "store.orchestration", "path": ".claude/state/orchestration.json",
+     "title": "Orchestration runtime",
+     "description": "fableous-orchestrated runtime, per machine and gitignored: when each sub-agent "
+                     "began (the builder stop check's 'since') and the lead's code edits since the "
+                     "last dispatch (the delegation nudge). Written by the hooks only.",
+     "glyphs": []},
     {"id": "store.generators", "path": ".claude/state/generators.json", "title": "Generator ledger",
      "description": "Law-1 anti-rot ledger: content hash of each generator's inputs/output, stamped "
                      "after it runs through the ritual.",
@@ -272,6 +278,7 @@ _LITERAL_TO_STORE = {
     "memory-run.json": "store.memory_run",
     "ritual-ticket.json": "store.ritual_ticket",
     "handshakes": "store.handshakes",
+    "orchestration.json": "store.orchestration",
     "generators.json": "store.generators",
 }
 

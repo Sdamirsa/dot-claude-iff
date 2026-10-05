@@ -44,7 +44,7 @@ scope creep, the most common silent failure in parallel work.
 ## Structured Return: the envelope
 
 The Structured Return is not markdown in the reply text. It is a **JSON envelope** the subagent
-writes to `.claude/state/handshakes/<task_id>.json`:
+writes to `.claude/state/handshakes/<task_id>.json`. ONE contract, for every agent:
 
 ```json
 {
@@ -56,30 +56,54 @@ writes to `.claude/state/handshakes/<task_id>.json`:
 }
 ```
 
-`status` is exactly one of `done`, `partial`, `blocked`. `artifacts` lists the durable output
-paths, never the payload itself. `notes` carries the same seven sections in order: `STATUS ·
-RESULT · EVIDENCE · DEVIATIONS · UNCERTAINTIES · QUESTIONS · SUGGESTIONS`. Empty sections may
-be omitted, except STATUS, RESULT, and EVIDENCE, which always appear.
+**Required of every envelope:** `agent_id`, `task_id`, `status`. `status` is exactly one of
+`done`, `partial`, `blocked`. `artifacts` (optional) lists the durable output paths, never the
+payload itself. The seven sections `STATUS · RESULT · EVIDENCE · DEVIATIONS · UNCERTAINTIES ·
+QUESTIONS · SUGGESTIONS` travel either as prose in `notes`, in that order, or as top-level
+keys (`RESULT`, `EVIDENCE`, ... each a string or a list of strings). Empty sections may be
+omitted, except STATUS, RESULT and EVIDENCE, which always appear.
+
+**A builder's envelope** (`"agent": "builder"`, `orchestration.md`) adds what the lead needs to
+review and merge without re-reading the run, all required:
+
+| Key | Holds |
+|---|---|
+| `agent`, `model` | `"builder"` and the model that ran it |
+| `files_changed[]` | repo-relative paths that exist after the change; a deletion goes in `needs_main` |
+| `tests[]` | `{command, exit_code, summary}` per command run: the task's Test first, then the suite |
+| `needs_main[]` | what only the lead can do (git index changes, zip rebuilds), as text or `{path, diff}`; `[]` when none |
+
+A builder's `done` means at least one test is recorded and every recorded `exit_code` is 0;
+anything less is `partial`. An optional uppercase `STATUS` (`ok | partial | blocked`, from
+the 0.3.0 brief) must say what `status` says.
+
+One function checks this contract, `_lib.validate_envelope`, called from three places:
+`post-write-validate.sh` **blocks a malformed envelope on write** (exit 2, before the subagent
+moves on), `checkctl.py handoff <task_id> [--run] [--root <worktree>]` is the lead's review
+(schema, status done, `files_changed` exist, tests recorded green, `--run` reruns them), and
+in `fableous-orchestrated` `statectl.py task <id> --status done` refuses without a valid
+envelope whose tests passed. A Bash-written envelope gets no write-time check: run `checkctl
+handoff` yourself.
 
 **Why JSON, not prose in the reply:** structured hand-offs survive parsing across a compacted
 or resumed conversation; free prose in a chat turn does not. `statectl.py` and the console read
-`state/handshakes/*.json` as data, not by re-reading transcripts. `post-write-validate.sh`
-enforces the contract on write and **blocks a malformed envelope on the spot**, exit code 2,
-before the subagent moves on.
+`state/handshakes/*.json` as data, not by re-reading transcripts.
 
 ## The stub
 
-Before dispatch, the parent (or the dispatching skill) writes
-`.claude/state/handshakes/<task_id>.stub.json`:
+Before dispatch, the parent writes `.claude/state/handshakes/<task_id>.stub.json`, with
+`python3 .claude/tools/statectl.py dispatch <task_id> --agent <name> [--worktree <path>]`:
 
 ```json
-{"task_id": "<id>", "agent": "<agent name>", "dispatched_at": "<ISO-8601 UTC>"}
+{"task_id": "<id>", "agent": "<agent name>", "dispatched_at": "<ISO-8601 UTC>", "worktree": "<optional>"}
 ```
 
 The stub makes an in-flight agent visible: the console's in-flight panel reads stubs with no
 delivered envelope yet, so a dispatched-but-not-returned task shows as running, not missing.
-The stub is exempt from envelope validation (filename ends `.stub.json`); the real envelope at
-`<task_id>.json` replaces it in meaning, not in place, once the subagent returns.
+`dispatched_at` is the one name for the dispatch time (stubs from before it was settled, with
+`since` or `ts`, still read). The stub is exempt from envelope validation (filename ends
+`.stub.json`); the real envelope at `<task_id>.json` replaces it in meaning, not in place, once
+the subagent returns.
 
 ## Durable outputs
 
@@ -117,4 +141,5 @@ When running agents in parallel:
 
 `.claude/protocols/human-gates.md` (QUESTIONS, and why background agents never block on a
 human) · `.claude/tasks/_template.md` (Checkpoint and NEEDS-HUMAN blocks) ·
-`.claude/agents/verifier.md` (checks EVIDENCE independently).
+`.claude/agents/verifier.md` (checks EVIDENCE independently) ·
+`.claude/protocols/orchestration.md` (who dispatches whom, and the handoff steps).

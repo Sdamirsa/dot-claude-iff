@@ -745,7 +745,7 @@ function renderNow() {
       flightCard.appendChild(el("div", { class: "needs-human-row" }, [
         kindChip("agent"),
         el("span", { class: "title" }, [f.agent + " · " + f.task_id]),
-        el("span", { class: "mono", style: "color:var(--text-dim);font-size:11px;" }, ["since " + (f.since || "?")])
+        el("span", { class: "mono", style: "color:var(--text-dim);font-size:11px;" }, ["dispatched " + (f.dispatched_at || "?")])
       ]));
     });
   } else {

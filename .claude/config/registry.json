@@ -18,7 +18,8 @@
       "model-prices",
       "brainstorm",
       "publish",
-      "phases"
+      "phases",
+      "orchestration"
     ],
     "exempt_keys": [
       "version",
@@ -546,6 +547,84 @@
       },
       "type": "string",
       "default": "inherit"
+    },
+    {
+      "key": "agent.builder.model",
+      "title": "Builder model",
+      "description": "Implements one task card in a git worktree in the fableous-orchestrated mode; the lead reviews and merges. Pinned to the strongest builder so the lead reviews a diff instead of redoing it.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "builder",
+        "path": "model"
+      },
+      "type": "string",
+      "default": "opus"
+    },
+    {
+      "key": "agent.builder.effort",
+      "title": "Builder effort",
+      "description": "Reasoning effort for the builder: high, because a builder carries a whole task card to a green suite on its own and a shallow pass costs a second dispatch.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "builder",
+        "path": "effort"
+      },
+      "type": "string",
+      "default": "high"
+    },
+    {
+      "key": "agent.scout.model",
+      "title": "Scout model",
+      "description": "Read-only research for the lead (surveys, lookups, quick checks); a cheaper model, because finding facts costs tokens the lead should keep for decisions.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "scout",
+        "path": "model"
+      },
+      "type": "string",
+      "default": "sonnet"
+    },
+    {
+      "key": "agent.scout.effort",
+      "title": "Scout effort",
+      "description": "Reasoning effort for the scout: medium, enough to search well; a scout reports facts and leaves the reasoning about them to the lead.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "scout",
+        "path": "effort"
+      },
+      "type": "string",
+      "default": "medium"
+    },
+    {
+      "key": "orchestration.nudge_after",
+      "title": "Delegation nudge threshold",
+      "description": "fableous-orchestrated only: after this many lead Write/Edit calls on code (not .claude/state/, .claude/tasks/, docs/ or .md/.rst/.txt files) with no sub-agent dispatched, the post-write hook hands the lead one advisory reminder to delegate, then counts again. 0 turns it off. Never blocks.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "orchestration",
+        "path": "nudge_after"
+      },
+      "type": "int",
+      "default": 8
+    },
+    {
+      "key": "orchestration.handoff_test_timeout",
+      "title": "Handoff rerun timeout",
+      "description": "Seconds each recorded test may run under `checkctl handoff <id> --run`. A timeout is a FAIL for that test.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "orchestration",
+        "path": "handoff_test_timeout"
+      },
+      "type": "int",
+      "default": 1800
     },
     {
       "key": "brainstorm.branch_count",

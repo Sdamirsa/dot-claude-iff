@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Lead-and-team routing in the fableous-orchestrated mode (.claude/protocols/orchestration.md).",
+    "Nothing here acts in freestyle or guided-solo.",
+    "",
+    "nudge_after: after this many Write/Edit calls by the lead on code (outside .claude/state/,",
+    ".claude/tasks/, docs/ and prose files) with no sub-agent dispatched, the post-write hook",
+    "hands the lead one advisory reminder to delegate, then counts again. 0 turns it off. It never",
+    "blocks and never changes a gate decision.",
+    "handoff_test_timeout: seconds each recorded test may run under `checkctl handoff <id> --run`.",
+    "A timeout is a FAIL for that test."
+  ],
+  "version": 1,
+  "nudge_after": 8,
+  "handoff_test_timeout": 1800
+}

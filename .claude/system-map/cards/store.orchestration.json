@@ -1,0 +1,21 @@
+{
+  "id": "store.orchestration",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Orchestration runtime",
+  "path": ".claude/state/orchestration.json",
+  "description": "fableous-orchestrated runtime, per machine and gitignored: when each sub-agent began (the builder stop check's 'since') and the lead's code edits since the last dispatch (the delegation nudge). Written by the hooks only.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

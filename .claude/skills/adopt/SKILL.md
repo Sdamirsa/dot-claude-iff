@@ -231,8 +231,9 @@ Turn the copied scaffold into this project's system:
 6. **Old-project state**: if `<source>` is an adopted project rather than a pristine checkout,
    its `.claude/tasks/`, `.claude/rules/`, `.claude/research/`, `.claude/reference/`, and
    `.claude/system-map/cards/` may hold ITS project-specific history, not the system's. Empty
-   `<target>/.claude/tasks/` of everything that ARRIVED IN THIS INSTALL except `_template.md`,
-   and remove an ARRIVED `tasks/archive/` entirely (the template is scaffold, not history; the
+   `<target>/.claude/tasks/` of everything that ARRIVED IN THIS INSTALL except the
+   `_`-prefixed scaffolds (`_template.md`, `_builder-brief.md`), and remove an ARRIVED
+   `tasks/archive/` entirely (scaffolds are not history; the
    archive is all history) - a live task or archive the target already had keeps running,
    untouched, per the step-3 rule. For
    `system-map/cards/`, drop ONLY cards whose `layer` names one of `<source>`'s own flow layers
@@ -339,6 +340,10 @@ Close by putting the system into motion:
 
 1. Set a pointer to the project's actual first move:
    `python3 <target>/.claude/tools/statectl.py pointer "<first real next action>"`.
+   Ask which work mode the user wants and record it with `statectl.py mode <freestyle |
+   guided-solo | fableous-orchestrated>` (freestyle is the default); for fableous-orchestrated,
+   point them to `.claude/protocols/orchestration.md`, which says who does what (the lead
+   plans and merges, builders implement in worktrees, scouts research).
 2. Show the console: `python3 <target>/.claude/tools/consolectl.py open` prints the console's
    `file://` path and the one-line command to start the live server (`consolectl.py serve`).
    Recommend the half-screen layout: console in one half of the screen, Claude Code in the

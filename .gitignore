@@ -30,6 +30,9 @@ settings.local.json
 # Ritual ticket: minted by the prompt hook when the user types /project-memory, consumed at the end
 .claude/state/ritual-ticket.json
 
+# Orchestration runtime (agent start times, the delegation counter), rewritten by hooks
+.claude/state/orchestration.json
+
 # Agent worktrees (build-time scratch copies of the repo)
 .claude/worktrees/
 

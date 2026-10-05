@@ -36,6 +36,8 @@
     "agent_type",
     "agent_name",
     "subagent_type",
+    "agent_id",
+    "is_subagent",
     "tool_name",
     "permission_mode",
     "model",

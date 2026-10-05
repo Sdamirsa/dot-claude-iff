@@ -19,7 +19,9 @@
     "store.memory_run",
     "store.needs_human",
     "store.session",
-    "store.ritual_ticket"
+    "store.ritual_ticket",
+    "store.handshakes",
+    "config.orchestration"
   ],
   "writes": [
     "store.memory_run",
