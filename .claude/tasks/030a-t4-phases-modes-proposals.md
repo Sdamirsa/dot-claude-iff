@@ -24,7 +24,7 @@ The project always knows its phase and mode, prints the matching contract, check
 
 - [ ] `statectl mode|phase|proposal` + `task --milestone` + projections, done when: statectl tests pass
 - [ ] `phases.json` + `checkctl phase-exit` (4 checks) + `deploy_drift`, done when: pass/fail fixtures per phase
-- [ ] SessionStart block, done when: hook tests cover freestyle/guided/fableous output
+- [ ] SessionStart block, done when: hook tests cover freestyle/guided-solo/fableous-orchestrated output
 - [ ] Console badge + proposals list, done when: console tests incl. empty project
 - [ ] plan-task skill + template, done when: template parses under `check_task_reality` and the console reader
 - [ ] Cards, registry, probe, glossary entries, done when: `test_contracts` and `test_mapctl` green

@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-05T12:43:53Z",
-  "last_event_ts": "2026-10-05T12:43:53Z",
+  "generated_at": "2026-10-05T13:02:33Z",
+  "last_event_ts": "2026-10-05T13:02:33Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "M-0.3.0-alpha BUILD wave 1 in flight (T1 T2 T6 T8 T9, 5 Opus builders in .claude/worktrees/agent-*). On each return: review diff, commit in worktree, merge to dev, run suite, rebuild zips. Then wave 2 (T4 T7), wave 3 (T3 T5), T10, T11 (human gate before tag/issue replies)",
+  "resume_pointer": "M-0.3.0-alpha BUILD wave 1 re-dispatched: 5 Opus builders in LEAD-MADE worktrees .claude/worktrees/t1 t2 t6 t8 t9 (branches wt/tN from dev; harness isolation branches from origin/main so do not use it). On return: review diff in worktree, commit there, merge wt/tN into dev, run suite, rebuild zips, git rm --cached heartbeat. Then wave 2 (T4 T7), wave 3 (T3 T5), T10, T11 (human gate)",
   "open_loops": [],
   "open_intents": [],
   "tasks": [
@@ -30,6 +30,13 @@
       "status": "todo",
       "deps": [],
       "ts": "2026-10-05T12:41:58Z"
+    },
+    {
+      "id": "T12",
+      "title": "030a T12 long-run progress",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T13:02:33Z"
     },
     {
       "id": "T2",
@@ -89,17 +96,17 @@
     }
   ],
   "counts": {
-    "events": 73,
-    "tasks_total": 11,
+    "events": 76,
+    "tasks_total": 12,
     "tasks_done": 0,
-    "tasks_open": 11,
+    "tasks_open": 12,
     "open_loops": 0,
     "milestones": 6,
-    "decisions": 2,
+    "decisions": 3,
     "tooling": 5
   },
   "heartbeat": {
-    "ts": "2026-10-05T12:10:06Z",
+    "ts": "2026-10-05T13:01:10Z",
     "note": "turn ended"
   },
   "recent_milestones": [
@@ -139,6 +146,11 @@
       "text": "0.3.0-alpha scope fixed: modes freestyle/guided/fableous; phases plan/build/review/deploy; ritual user-ticket with ROUTE step; fableous = protocol + builder/scout + validated JSON handoff + delegation nudge; secrets check + doctor; visibility knob + export; adhd skill vendored and tunable; folder context map + lint; Jev gate deferred to proposals; zips stay committed with freshness test; dev branch with main as last stable; v0.3.0-alpha.1 then v0.3.1",
       "why": "maintainer decisions 2026-10-05 after planning review of issues 7-14",
       "ts": "2026-10-05T12:41:56Z"
+    },
+    {
+      "text": "modes renamed: freestyle, guided-solo, fableous-orchestrated (short aliases accepted); T12 long-run progress added to M-0.3.0-alpha",
+      "why": "maintainer request 2026-10-05 mid-build",
+      "ts": "2026-10-05T13:02:33Z"
     }
   ],
   "recent_tooling": [

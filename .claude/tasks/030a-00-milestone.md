@@ -31,13 +31,15 @@ and (in CI) Ubuntu; the pre-release is visible with both zips; each issue has it
 | Mode | Meaning |
 |---|---|
 | `freestyle` | Default when unset. Record, gates and ritual only. No phase contract, no exit checks. |
-| `guided` | Phase contract printed at session start; leaving a phase runs its exit check. One agent. |
-| `fableous` | `guided` plus lead-and-team routing (`protocols/orchestration.md`), handoff validation, delegation nudge. |
+| `guided-solo` | Phase contract printed at session start; leaving a phase runs its exit check. One agent. |
+| `fableous-orchestrated` | `guided-solo` plus lead-and-team routing (`protocols/orchestration.md`), handoff validation, delegation nudge. |
 
-- `statectl mode <freestyle|guided|fableous>` -> journal action `mode{value}`.
+- `statectl mode <freestyle|guided-solo|fableous-orchestrated>` -> journal action `mode{value}`.
 - `statectl phase <plan|build|review|deploy> [--override "<why>"] [--signoff "<text>"]` ->
-  journal action `phase{value,from,override,signoff}`. In `guided`/`fableous` it runs
+  journal action `phase{value,from,override,signoff}`. In `guided-solo`/`fableous-orchestrated` it runs
   `checkctl phase-exit --from <current>` first and refuses on FAIL unless `--override`.
+- Short aliases are accepted on input (`guided`, `solo`, `fableous`, `orchestrated`); the stored and displayed
+  values are the full names. Display labels: Freestyle · Guided Solo · Fableous Orchestrated.
 - Both project into `session.json` (`session.mode`, `session.phase`), HANDOFF.md, the
   console badge and the SessionStart resume block.
 - Phase exit checks (`checkctl phase-exit --from X`):
@@ -55,7 +57,7 @@ and (in CI) Ubuntu; the pre-release is visible with both zips; each issue has it
   `checkctl complete` refuse without a fresh one. One command to remember: `/project-memory`;
   it ends with a ROUTE step (AskUserQuestion: next phase, next mode, maturation pass).
 - Handoff envelope: `.claude/state/handshakes/<task_id>.json`, validated by
-  `checkctl handoff <task_id> [--run]`. In `fableous`, `statectl task <id> --status done`
+  `checkctl handoff <task_id> [--run]`. In `fableous-orchestrated`, `statectl task <id> --status done`
   refuses without a valid envelope whose test passed.
 - Invariants that still hold: hooks and core tools are bash + python3 stdlib only; every new
   journal action is added to `_lib.JOURNAL_ACTIONS` and the projector in the same change;
@@ -74,10 +76,11 @@ and (in CI) Ubuntu; the pre-release is visible with both zips; each issue has it
 - [ ] T7 visibility + export, done when: `run_tests.py test_export` green
 - [ ] T3 ritual ticket + ROUTE, done when: `run_tests.py test_ritual` green
 - [ ] T5 fableous mode, done when: `run_tests.py test_orchestration` green
+- [ ] T12 long-run progress, done when: `run_tests.py test_progress test_console` green
 - [ ] T10 drift and cleanup, done when: full suite green, `checkctl probe` all green
 - [ ] T11 release, done when: pre-release published, issues answered (human-gated)
 
-Waves (by file overlap): 1 = T1 T2 T6 T8 T9 · 2 = T4 T7 · 3 = T3 T5 · 4 = T10 · 5 = T11.
+Waves (by file overlap): 1 = T1 T2 T6 T8 T9 · 2 = T4 T7 · 3 = T3 T5 · 4 = T12 · 5 = T10 · 6 = T11.
 
 ## Checkpoint
 
