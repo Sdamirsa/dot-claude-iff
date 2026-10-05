@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T17:06:42Z",
-  "last_event_ts": "2026-10-05T17:06:41Z",
+  "generated_at": "2026-10-05T17:06:57Z",
+  "last_event_ts": "2026-10-05T17:06:57Z",
   "session": {
     "id": "phase2-build",
     "mode": "fableous-orchestrated",
@@ -23,10 +23,10 @@
     {
       "id": "T10",
       "title": "030a T10",
-      "status": "done",
+      "status": "doing",
       "deps": [],
       "milestone": "M-0.3.0-alpha",
-      "ts": "2026-10-05T17:06:40Z"
+      "ts": "2026-10-05T17:06:57Z"
     },
     {
       "id": "T11",
@@ -118,10 +118,10 @@
     }
   ],
   "counts": {
-    "events": 120,
+    "events": 121,
     "tasks_total": 13,
-    "tasks_done": 12,
-    "tasks_open": 1,
+    "tasks_done": 11,
+    "tasks_open": 2,
     "open_loops": 0,
     "milestones": 6,
     "decisions": 3,

@@ -13,6 +13,61 @@ this project's own release history structurally never reaches an adopting repo.
 
 - Nothing yet.
 
+## v0.3.0-alpha.1 - 2026-10-05
+
+Pre-release for testing. The suite passes on Windows and Ubuntu, but none of the new hooks
+has run in a live session yet: work through `docs/alpha-test-checklist.md` before relying on
+it. "Latest" stays on v0.2.2 until v0.3.1.
+
+- Modes: `statectl mode freestyle | guided-solo | fableous-orchestrated`. Freestyle (the
+  default) is the record, the gates and the ritual with nothing enforced. Guided Solo adds
+  phases. Fableous Orchestrated adds a lead that plans and stays accountable while builders
+  and scouts do the work (issues #11, #13).
+- Phases: `statectl phase plan | build | review | deploy`. Each prints a short contract at
+  session start; leaving one runs an exit check (`checkctl phase-exit`): plan needs task files
+  with a named test under a milestone, build reruns those tests, review needs a human
+  sign-off, deploy needs a clean `checkctl doctor` (#13).
+- Proposal box: `statectl proposal add | list | resolve`. Ideas that are out of scope right
+  now, including everything raised during deploy, land here and feed the next plan.
+- The ritual is the user's: `/project-memory` only opens when the user types it. A prompt hook
+  mints a short-lived ticket and `checkctl run` refuses without one. `checkctl ticket --grant`
+  is the human's fallback from their own terminal. One command to remember: it now ends with a
+  ROUTE step (next phase, next mode, maturation pass), which replaces `--hard` (#9).
+- Fableous orchestration: `protocols/orchestration.md`, `builder` and `scout` agents with
+  model and effort pins that are compared against the registry, one validated JSON handoff
+  envelope (`checkctl handoff`), `statectl dispatch` (worktree, stub, filled brief) and
+  `statectl accept` (validate, merge, clean up), a delegation nudge, and
+  `obsctl report --by agent` (#11).
+- Long-run progress: `statectl progress`, a Progress panel on the console's NOW tab, a
+  heartbeat that refreshes during long turns, and a periodic progress block for the chat.
+- Secrets: a `secrets_placement` check in the ritual, `checkctl doctor` (a read-only health
+  table), and `reference/secrets.md` on where keys belong (#7).
+- Visibility and publishing: a `visibility` setting (`tracked` or `ignored`) that writes one
+  managed `.gitignore` block on every install path, `distctl export` to copy a clean,
+  allowlisted tree into a public checkout, and `reference/public-private.md` (#10).
+- Folder context: nested `CLAUDE.md` files and `.claude/rules/` are discovered and linted
+  (`context_health`), `mapctl context <path>` shows what loads for a file, and
+  `mapctl context --suggest` proposes a folder guide only where the lessons justify one (#14).
+- Communication: a short Communication block in the guide, and the `/adhd` brainstorm skill
+  (adapted from UditAkhourii/adhd, MIT) with its frames, branch count and models in
+  `config/brainstorm.json` (#8).
+- Security: the policy gate now protects the protected tree on the Bash and PowerShell lanes,
+  not only Write/Edit; the ritual ticket and its hook are closed to every identity; builders
+  hold no grant in the protected tree. The gate is a tripwire for honest mistakes, not a
+  sandbox: the README lists what it does not stop.
+- Release engineering: pre-release tags publish as GitHub pre-releases; CI runs the suite on
+  every push and pull request on both OS; the zips are LF-normalised and byte-identical
+  across OS, and must equal a rebuild on `main`, on tags and on pull requests into `main`;
+  a kit self-test runs the fresh zip's own suite inside an empty folder; work happens on
+  `dev`, `main` is the last stable release (`reference/release-flow.md`).
+- Fixes, Windows: hooks and tests find Git Bash explicitly (a bare `bash` can be the WSL
+  launcher); hooks force UTF-8 for their Python children; hook files are pinned to LF; the
+  gitignore-shadowing check no longer misses file-level patterns.
+- Removed: `--hard`, the vault snapshot knobs, the empty `evolve` phase list, the journal
+  `config` action and other settings nothing read. `heartbeat.json` is no longer tracked.
+- Not in this release: a model-based yes/no gate (Jev-style, #12). It is in the proposal box
+  with the bar for building it.
+
 ## v0.2.2 - 2026-08-26
 
 Windows security hardening, and the console learns three things: its own port, its machine,
