@@ -1,0 +1,14 @@
+{
+  "_comment": [
+    "What `distctl.py export --to <dir>` may publish from .claude/ and .claude-iff/ into a clean",
+    "public copy of this project. Everything else git does not ignore exports as it is.",
+    "include: globs relative to the repo root, fnmatch style (`*` also crosses `/`); an entry",
+    "ending in `/` names a whole folder, e.g. \".claude/skills/\" or \".claude/agents/*.md\".",
+    "Empty (the default) publishes nothing from .claude/ or .claude-iff/.",
+    "This list can only NARROW. A hard-coded floor in distctl.py wins over any entry here: state,",
+    "tasks, research, worktrees, private reference, STATUS.md, Project-log.jsonl, LESSONS.jsonl,",
+    "the record surface (.claude-iff/obs/), settings.local.json and env files never export.",
+    "Kits ship this list empty whatever the source repo chose. Manual: .claude/reference/public-private.md"
+  ],
+  "include": []
+}

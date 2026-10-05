@@ -674,6 +674,25 @@ def system_version() -> str:
     return str(load_config("registry").get("system_version", "0.0.0"))
 
 
+# memory.json `visibility`: is the agent system committed with the project (tracked) or kept
+# local to this checkout (ignored)? One reader for distctl (the managed .gitignore block, the
+# export) and checkctl (gitignore_shadowing), so the three can never disagree.
+VISIBILITY_VALUES = ("tracked", "ignored")
+DEFAULT_VISIBILITY = "tracked"
+
+
+def visibility(root: Path | None = None) -> str:
+    """The `visibility` knob. Absent reads as "tracked", the behaviour every install had before
+    the knob existed. Any other value raises LibError: a tool that writes ignore rules or
+    publishes files must not guess which of the two was meant."""
+    cfg = read_json((root or project_root()) / ".claude" / "config" / "memory.json", {})
+    value = cfg.get("visibility", DEFAULT_VISIBILITY) if isinstance(cfg, dict) else DEFAULT_VISIBILITY
+    if value not in VISIBILITY_VALUES:
+        raise LibError(f"memory.json visibility is {value!r}; expected one of "
+                       f"{', '.join(VISIBILITY_VALUES)}")
+    return value
+
+
 # The release grammar: X.Y.Z (stable) or X.Y.Z-(alpha|beta|rc).N (pre-release), no leading
 # zeros. A tag is "v" + version and a CHANGELOG heading is "## v<version> - YYYY-MM-DD". ONE
 # parser for the stamp, the tag filter, the changelog parity check and release.yml, so the

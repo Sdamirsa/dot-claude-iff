@@ -47,8 +47,14 @@ first, before touching the target. Ask:
 |---|---|---|
 | Mission, 1 to 2 sentences: what is this project for? | Code shows *what*, not *why* | Draft one from the README and offer it for editing |
 | What counts as an invariant here? | Load-bearing constraints live in the human's head | Offer candidates you spotted in Phase 1 (e.g. "single source-of-truth data file", "atomic writes") |
-| Track `.claude/` in git? | Team/privacy call | Yes, the system is designed to be tracked |
+| Visibility: commit `.claude/` with the code (`tracked`), or keep it in this checkout only (`ignored`)? | Team and privacy call: the journal, the project log and the lessons hold the user's own words | Run `gh repo view --json visibility` in `<target>` first. When it answers `PUBLIC`, recommend `ignored` and say why in one sentence: the journal and the project log hold the user's own words, and a public remote would publish them. Otherwise (private, no remote, `gh` missing or signed out) ask plainly, `tracked` first as today's behaviour, without pushing either |
 | Does this project already run an agent operating system of its own (a continuity engine, policy hooks, self-tests, a console)? | Phase 1 sees files, not systems; kinship flips the whole install mode | If yes, use **Sibling mode** (end of Phase 3) instead of the copy |
+
+With the visibility question, recommend the pattern that makes the answer easy: work with the
+agent in a private repository and publish releases to a public one with
+`python3 .claude/tools/distctl.py export --to <public-checkout>`, which never carries the
+record, the memory spine or secrets, and never commits or pushes. The whole pattern, and what
+`tracked` and `ignored` mean for a team, is in `.claude/reference/public-private.md`.
 
 Also compute and report the record root, and warn if it looks cloud-synced:
 
@@ -135,17 +141,33 @@ machinery rather than the system (the kits already leave all three out):
   the manifest should never list them; skip the tree even if it does.
 - `.claude/reference/release-flow.md`: dot-claude-iff's own dev/main release flow.
 
-Also create, if `<target>` lacks it:
-- A root `.gitignore` entry for `.claude/tools/__pycache__/` and any stray `*.tmp` atomic-write
-  leftovers under `.claude/`, if the target doesn't already ignore them. While there, check the
-  target's EXISTING patterns for over-broad shadows: a generic `dist/`, `build/` or `*.zip`
-  matches at any depth and silently untracks `.claude/` paths (checkctl's gitignore_shadowing
-  check warns about this from then on). RECORD_ROOT itself needs no gitignore entry: it is a
-  sibling folder outside the repo, already unreachable by git.
-
 Do not create `RECORD_ROOT` (the sibling `<target-parent>/<target-name>_claude_iff/` folder) by
 hand: the first hook invocation creates it on demand, empty, and that is the correct starting
 state.
+
+**Visibility and the managed `.gitignore` block** (every install path: clone, fresh zip, kit).
+Record the Phase 2 answer in `<target>/.claude/config/memory.json` as `"visibility": "tracked"`
+or `"visibility": "ignored"` (kits ship `tracked`; a clone carries its source's value), then
+write the block from inside `<target>`:
+
+```
+python3 .claude/tools/distctl.py gitignore --apply
+```
+
+It renders one block between two marker lines and appends it to `<target>/.gitignore`
+(creating the file when absent), or rewrites it in place on a rerun; the target's own lines are
+never touched. Both values carry the secrets safety net (`.env`, `*.env`, `.env*.local`,
+`settings.local.json`) and the python caches; `tracked` adds the console runtime, the
+heartbeat, `.claude/worktrees/` and atomic-write leftovers, `ignored` ignores `.claude/` and
+`.claude-iff/` whole. This command is the one writer: never copy a source's `.gitignore` (the
+kit's `dot-claude-iff-kit/.gitignore`, a clone's root file) by hand. If the answer is `ignored`
+and the target already tracks files under `.claude/`, tell the user that untracking them is
+their git step (`git rm -r --cached .claude .claude-iff`, which keeps the files on disk); do not
+run it. Under `tracked`, also check the target's EXISTING patterns for over-broad shadows: a
+generic `dist/`, `build/` or `*.zip` matches at any depth and silently untracks `.claude/` paths
+(checkctl's gitignore_shadowing check warns about this from then on, and is quiet under
+`ignored`). RECORD_ROOT itself needs no gitignore entry: it is a sibling folder outside the
+repo, already unreachable by git.
 
 **Sibling mode.** When the Phase 2 gate found the target already running an agent operating
 system of its own (common when source and target share ancestry), do NOT run the copy above.
@@ -226,7 +248,8 @@ Turn the copied scaffold into this project's system:
    named; that is the correct steady state everywhere except the source repo. In the same
    file, empty the `check`, `polish` and `generator` lists under `project_steps`: a clone
    carries the source's own steps (dot-claude-iff runs its test suite as a CHECK step), and
-   the kits already ship them empty.
+   the kits already ship them empty. Likewise set `include` in `config/publish.json` to `[]`:
+   a clone carries the source's own publishing list, the kits ship it empty.
 8. **Console port, decided once.** `config/console.json` ships port 7717, and every adoption
    on one machine inherits it, so the second project's console loses the bind every session.
    Pick a free port ONCE, now - e.g.
@@ -259,6 +282,8 @@ runs with `<target>` as the working directory (or `CLAUDE_PROJECT_DIR=<target>` 
       the user chose that, never both.
 - [ ] Every JSON/JSONL file under `<target>/.claude/` parses (config, journal, Project-log,
       LESSONS, layers, registry).
+- [ ] `python3 <target>/.claude/tools/distctl.py gitignore` exits 0: `<target>/.gitignore`
+      carries the managed block for the visibility recorded in `memory.json`.
 - [ ] `python3 <target>/.claude/tools/checkctl.py run --phase check` runs and its verdicts are
       legible (fresh install, so most checks pass trivially; report anything that doesn't).
 - [ ] `python3 <target>/.claude/tools/mapctl.py scan` runs, then dispatch the **anatomist agent
@@ -327,6 +352,11 @@ For a `<target>` that already has `.claude/` installed:
    `<source>`'s value. `checkctl`'s registry lint warns loudly whenever `system_version` is
    behind what `<source>` ships, so an upgrade that skips this step leaves the warning firing
    even though the files are current.
+   Then bring the managed `.gitignore` block up to date with the source's renderer:
+   `CLAUDE_PROJECT_DIR=<target> python3 <source>/.claude/tools/distctl.py gitignore --apply`.
+   An install from before the block existed reads `visibility` as `tracked` and gets the block
+   appended (or swapped in for the old kit lines, when those are present verbatim); ask the
+   Phase 2 visibility question first if the target's `memory.json` has no `visibility` yet.
 4. Re-run the Phase 5 verify checklist; an upgrade that adds new tools or agents still needs the
    anatomist dispatched to place them and `consolectl.py build` to pick them up.
 5. Report drift and what was applied in Structured Return form, same shape as Phase 5.
