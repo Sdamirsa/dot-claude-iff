@@ -92,7 +92,9 @@ or resumed conversation; free prose in a chat turn does not. `statectl.py` and t
 ## The stub
 
 Before dispatch, the parent writes `.claude/state/handshakes/<task_id>.stub.json`, with
-`python3 .claude/tools/statectl.py dispatch <task_id> --agent <name> [--worktree <path>]`:
+`python3 .claude/tools/statectl.py dispatch <task_id> --agent <name> [--worktree <path>]`
+(for a builder it also cuts the worktree and prints the brief unless `--no-worktree`;
+`orchestration.md`):
 
 ```json
 {"task_id": "<id>", "agent": "<agent name>", "dispatched_at": "<ISO-8601 UTC>", "worktree": "<optional>"}

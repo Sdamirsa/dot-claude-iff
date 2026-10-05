@@ -14,9 +14,10 @@ accountable for it. Your job is to make the task's **Definition of done** true a
 
 ## Contract
 
-1. Read the brief your prompt names (a filled copy of `.claude/tasks/_builder-brief.md`) in
-   full, then `.claude/CLAUDE.md`, the shared contracts it lists, your task file, and every
-   source file your task touches, before designing anything.
+1. Read the brief in full (your prompt: `.claude/tasks/_builder-brief.md` as `statectl.py
+   dispatch` filled it, or a filled copy your prompt names), then `.claude/CLAUDE.md`, the
+   shared contracts it lists, your task file, and every source file your task touches, before
+   designing anything.
 2. Work ONLY under your worktree, `.claude/worktrees/<wt>/`: every path you read, create or
    edit is under it. Start each Bash call with `cd .claude/worktrees/<wt> && ...` (relative).
 3. Implement the smallest sound change that meets the Definition of done. Match the
@@ -43,6 +44,7 @@ Unfinished or blocked is a valid handoff: say so with `partial` or `blocked`.
 
 - Commit, branch, push or run any mutating git command (sub-agents are denied git writes).
 - Touch the main checkout, another task's worktree or another task's files.
-- Edit the journal, STATUS.md, CHANGELOG.md, `system_version` or the dist zips: those are
-  the lead's, listed in `needs_main` if your change needs them.
+- Edit the journal, STATUS.md, CHANGELOG.md or `system_version`, or rebuild, stage or commit
+  the dist zips: those are the lead's (`statectl.py accept` discards any change under
+  `.claude/dist/`), listed in `needs_main` if your change needs them.
 - Claim anything you did not run. Report failures with their output.

@@ -61,8 +61,9 @@ jobs:
         run: |
           python3 .claude/tools/distctl.py build
           ls -la .claude/dist/
-          # The rebuild must equal the committed zips (the suite already proved it; this is the
-          # same claim made where the assets are published).
+          # The rebuild must equal the committed zips. On a tag the suite already proved it
+          # (_lib.zip_equality_required); on a manual run from dev this step is the only check.
+          # Either way it is made where the assets are published, so it stays.
           git diff --exit-code --stat -- .claude/dist/
 
       - name: Create the GitHub Release with both zips

@@ -26,7 +26,8 @@ Mode and phase are journal actions (`mode`, `phase`), folded by `_lib.fold_lifec
 one reader the projector, the SessionStart hook, checkctl and the console share. Leaving a
 phase in an organised mode runs `checkctl phase-exit --from <current>` first. In
 fableous-orchestrated, `task <id> --status done` runs `checkctl handoff <id>` first and refuses
-on FAIL unless `--no-envelope "<why>"` (logged); `dispatch` writes the stub a dispatch needs.
+on FAIL unless `--no-envelope "<why>"` (logged). `dispatch` cuts a builder's worktree, writes the
+stub and prints its brief; `accept` validates, commits and merges the builder's work (lead only).
 """
 
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent)); import _lib
@@ -511,17 +512,479 @@ def cmd_task(args) -> int:
     return 0
 
 
+# --------------------------------------------------------------------------- dispatch / accept
+#
+# The lead's two worktree commands (.claude/protocols/orchestration.md). `dispatch` cuts a
+# builder's worktree from HEAD, writes the stub and prints the filled builder brief; `accept`
+# validates the builder's handoff inside that worktree, commits it there, merges it into the
+# current branch and removes the worktree. LEAD ONLY: both run git, which the policy gate denies
+# to sub-agents. Every git call is an argv list (never a shell); nothing is pushed; `--force`
+# appears once, removing a worktree whose branch was just merged.
+
+import os  # noqa: E402 - only the worktree commands below need it
+
+WORKTREES_DIR = ".claude/worktrees"
+WORKTREE_BRANCH_PREFIX = "wt/"
+BRIEF_TEMPLATE = ".claude/tasks/_builder-brief.md"
+# Uncommitted tracked changes that do not block a dispatch: the lead's bookkeeping (statectl
+# rewrites the journal and its projections on every command, dispatch included), the zips, and
+# _lib.derived_files(). Anything else uncommitted is invisible to a worktree cut from HEAD.
+DISPATCH_DIRTY_EXEMPT = (".claude/state/", ".claude/dist/")
+# Restored to HEAD in the worktree before accept commits, with _lib.derived_files(): the zips
+# are rebuilt and committed by the release step, never by a builder (release-flow.md).
+ACCEPT_RESTORE = (".claude/dist",)
+GIT_TIMEOUT = 600
+_WT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+_CONTRACTS_RE = re.compile(r"Shared contracts:\s*`([^`\n]+)`")
+_BRIEF_SCAFFOLD_RE = re.compile(r"^Scaffold, not a task:.*?\n[ \t]*\n", re.MULTILINE | re.DOTALL)
+# A placeholder stands alone (`<wt>`), unlike a name pattern glued to a word (`test_<name>.py`).
+_BRIEF_PLACEHOLDER_RE = re.compile(r"(?<!\w)<[A-Za-z_][A-Za-z0-9_ -]*>")
+
+
+class _Stop(Exception):
+    """Why dispatch or accept will not go on, in one line."""
+
+
+def _git(args: list, cwd):
+    import subprocess  # local: only the two worktree commands run git
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_MERGE_AUTOEDIT="no")
+    try:
+        return subprocess.run(["git", *args], cwd=str(cwd), capture_output=True, text=True,
+                              encoding="utf-8", errors="replace", timeout=GIT_TIMEOUT,
+                              check=False, env=env)
+    except FileNotFoundError:
+        raise _Stop("git is not on PATH") from None
+    except subprocess.TimeoutExpired:
+        raise _Stop(f"`git {' '.join(args)}` timed out after {GIT_TIMEOUT}s") from None
+
+
+def _git_said(res) -> str:
+    lines = [ln.strip() for ln in ((res.stderr or "") + (res.stdout or "")).splitlines() if ln.strip()]
+    return " / ".join(lines[-3:]) or f"exit {res.returncode}"
+
+
+def _git_ok(args: list, cwd) -> str:
+    """Raw stdout of a git command that must succeed; a failure stops with git's own words."""
+    res = _git(args, cwd)
+    if res.returncode != 0:
+        raise _Stop(f"`git {' '.join(args)}` failed: {_git_said(res)}")
+    return res.stdout
+
+
+def _same_dir(a, b) -> bool:
+    try:
+        return os.path.samefile(str(a), str(b))
+    except OSError:
+        return os.path.normcase(str(Path(a).resolve())) == os.path.normcase(str(Path(b).resolve()))
+
+
+def _covers(prefix: str, path: str) -> bool:
+    """`path` is `prefix` or lies under it (repo-relative; case-folded where the OS folds, L-9)."""
+    a = os.path.normcase(prefix.replace("\\", "/").rstrip("/"))
+    b = os.path.normcase(path.replace("\\", "/"))
+    return b == a or b.startswith(a + os.path.normcase("/"))
+
+
+def _porcelain_paths(out: str) -> list:
+    """Paths named by `git status --porcelain=v1 -z` (both sides of a rename)."""
+    tokens, paths, i = out.split("\0"), [], 0
+    while i < len(tokens):
+        tok = tokens[i]
+        i += 1
+        if len(tok) < 4:
+            continue
+        paths.append(tok[3:])
+        if "R" in tok[:2] or "C" in tok[:2]:
+            if i < len(tokens) and tokens[i]:
+                paths.append(tokens[i])
+            i += 1
+    return paths
+
+
+def _repo_branch(root: Path) -> str:
+    """The checkout's current branch; stops when `root` is not the top of a git repository with
+    a commit, or HEAD is detached."""
+    res = _git(["rev-parse", "--show-toplevel"], root)
+    if res.returncode != 0:
+        raise _Stop(f"{_lib.tilde(root)} is not a git repository")
+    top = res.stdout.strip()
+    if not _same_dir(top, root):
+        raise _Stop(f"the project root is not the git top level ({_lib.tilde(top)}): make the "
+                    f"worktree by hand and record it with --worktree <path> --no-worktree")
+    if _git(["rev-parse", "-q", "--verify", "HEAD^{commit}"], root).returncode != 0:
+        raise _Stop("the repository has no commit yet: a worktree is cut from HEAD")
+    res = _git(["symbolic-ref", "-q", "--short", "HEAD"], root)
+    if res.returncode != 0 or not res.stdout.strip():
+        raise _Stop("HEAD is detached: check out the working branch first")
+    return res.stdout.strip()
+
+
+def _task_file_for(task_id: str):
+    """The task file the id maps to (checkctl's rule: the file stem or the id leading its
+    `# Task:` title, case-insensitive), or None."""
+    import checkctl
+    want = task_id.casefold()
+    return next((tf for tf in checkctl.task_files() if want in [i.casefold() for i in tf["ids"]]),
+                None)
+
+
+def _worktree_target(task_id: str, given) -> tuple:
+    """(repo-relative path, name) of a builder's worktree: .claude/worktrees/<name>, the one
+    place the stop check and the delegation nudge look."""
+    raw = Path(given) if given else Path(WORKTREES_DIR) / task_id.lower()
+    rel_path = _lib.rel(raw) if raw.is_absolute() else raw.as_posix()
+    parent, _, name = rel_path.rpartition("/")
+    if parent != WORKTREES_DIR or not _WT_NAME_RE.match(name) or ".." in name:
+        raise _Stop(f"a builder's worktree is {WORKTREES_DIR}/<name> with a plain name, not "
+                    f"{rel_path!r}")
+    return rel_path, name
+
+
+def _dispatch_preflight(root: Path, task_id: str, given) -> tuple:
+    """Every dispatch refusal, checked before anything is written: (task file, worktree path,
+    worktree name, current branch)."""
+    tf = _task_file_for(task_id)
+    if tf is None:
+        raise _Stop(f"no task file maps to {task_id}: none in .claude/tasks/ is named for it or "
+                    f"titled `# Task: {task_id} - ...` (/plan-task writes one)")
+    wt_rel, name = _worktree_target(task_id, given)
+    branch = _repo_branch(root)
+    task_rel = _lib.rel(tf["path"])
+    if not _git_ok(["ls-tree", "--name-only", "HEAD", "--", task_rel], root).strip():
+        raise _Stop(f"{task_rel} is not committed: the worktree is cut from HEAD and would not "
+                    f"see it. Commit it first")
+    exempt = list(DISPATCH_DIRTY_EXEMPT)
+    try:
+        exempt += _lib.derived_files(root)
+    except _lib.LibError:
+        pass  # fewer exemptions only make the refusal below stricter
+    dirty = sorted({p for p in _porcelain_paths(_git_ok(
+        ["status", "--porcelain=v1", "-z", "--untracked-files=no"], root))
+        if not any(_covers(e, p) for e in exempt)})
+    if dirty:
+        shown = ", ".join(dirty[:5]) + (f" and {len(dirty) - 5} more" if len(dirty) > 5 else "")
+        raise _Stop(f"uncommitted changes to tracked files ({shown}): the worktree is cut from "
+                    f"HEAD and the builder would not see them. Commit them first")
+    if (root / wt_rel).exists():
+        raise _Stop(f"{wt_rel} already exists: accept or remove that worktree first, or name "
+                    f"another with --worktree")
+    wt_branch = WORKTREE_BRANCH_PREFIX + name
+    if _git(["check-ref-format", "--branch", wt_branch], root).returncode != 0:
+        raise _Stop(f"{wt_branch} is not a valid branch name")
+    if _git(["rev-parse", "-q", "--verify", f"refs/heads/{wt_branch}"], root).returncode == 0:
+        raise _Stop(f"branch {wt_branch} already exists: merge or delete it first "
+                    f"(`git branch -d {wt_branch}`)")
+    return tf, wt_rel, name, branch
+
+
+def _agent_model(root: Path, agent: str) -> str:
+    try:
+        text = (root / ".claude" / "agents" / f"{agent}.md").read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    m = re.search(r"(?m)^model:\s*([^\s#]+)", text)
+    return m.group(1) if m else ""
+
+
+def _ci_platforms(root: Path) -> str:
+    found = []
+    wf = root / ".github" / "workflows"
+    for path in sorted(wf.glob("*.y*ml")) if wf.is_dir() else []:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for m in re.finditer(r"(?m)^\s*(?:-\s*)?(?:os|runs-on):\s*([A-Za-z0-9._-]+)\s*(?:#.*)?$",
+                             text):
+            if m.group(1) not in found:
+                found.append(m.group(1))
+    return ", ".join(found) if found else "no CI workflow in .github/workflows/; the platforms " \
+                                          "the project supports"
+
+
+def _platform_text() -> str:
+    import platform
+    if os.name == "nt":
+        return "Windows with Git Bash; `python3` works"
+    system = platform.system() or "POSIX"
+    return ("macOS" if system == "Darwin" else system) + " with bash"
+
+
+def fill_brief(template: str, values: dict) -> str:
+    """The builder brief with every `<placeholder>` in `values` filled and the scaffold note
+    dropped. An empty `<contracts>` drops its line and renumbers the read-first list."""
+    text = _BRIEF_SCAFFOLD_RE.sub("", template, count=1)
+    if not values.get("<contracts>"):
+        text = "".join(ln for ln in text.splitlines(keepends=True) if "<contracts>" not in ln)
+    head, sep, tail = text.partition("## Read first")
+    if sep:
+        section, nxt, rest = tail.partition("\n## ")
+        counter = iter(range(1, 100))
+        section = re.sub(r"(?m)^\d+\. ", lambda _m: f"{next(counter)}. ", section)
+        text = head + sep + section + nxt + rest
+    for key, value in values.items():
+        text = text.replace(key, value)
+    return text
+
+
+def _builder_prompt(root: Path, task_id: str, tf, wt_rel: str, name: str, branch: str,
+                    agent: str) -> tuple:
+    """(prompt text, placeholders left unfilled); (None, why) when the template is missing."""
+    template = root / BRIEF_TEMPLATE
+    try:
+        text = template.read_text(encoding="utf-8")
+    except OSError:
+        return None, f"no brief template at {BRIEF_TEMPLATE}: write the builder's prompt by hand"
+    task_rel = _lib.rel(tf["path"])
+    contracts = ""
+    m = _CONTRACTS_RE.search(tf["path"].read_text(encoding="utf-8", errors="replace"))
+    if m:
+        named = m.group(1).strip()
+        for cand in (root / named, tf["path"].parent / named):
+            if cand.is_file():
+                contracts = _lib.rel(cand)
+                break
+        contracts = contracts or named
+    brief = fill_brief(text, {
+        "<TASK_ID>": task_id, "<task file>": task_rel, "<contracts>": contracts,
+        "<branch>": branch or "current", "<wt>": name, "<platform>": _platform_text(),
+        "<ci>": _ci_platforms(root), "<model>": _agent_model(root, agent) or agent,
+    })
+    header = (f"You are the {agent} for task {task_id}. Task file: `{task_rel}`. Worktree: "
+              f"`{name}` (`{wt_rel}/`, branch `{WORKTREE_BRANCH_PREFIX}{name}`). Brief: "
+              f"`{BRIEF_TEMPLATE}`, filled below; follow it exactly.\n\n")
+    return header + brief, sorted(set(_BRIEF_PLACEHOLDER_RE.findall(brief)))
+
+
 def cmd_dispatch(args) -> int:
-    """Write the dispatch stub (state/handshakes/<id>.stub.json) the lead writes before it
-    dispatches an agent: it shows the agent in flight on the console and dates the dispatch
-    for the builder stop check. Journaled as a note so a resumed session sees the dispatch."""
-    path = _lib.write_stub(args.id, args.agent, args.worktree)
-    where = f" in {Path(args.worktree).as_posix()}" if args.worktree else ""
+    """Dispatch an agent for a task. For a builder (the default agent): cut its worktree from
+    HEAD (`git worktree add .claude/worktrees/<id> -b wt/<id> HEAD`), write the stub and print the
+    filled builder brief, ready to paste as its prompt; refuse with one line and change nothing
+    when no task file maps to the id, the worktree or branch exists, tracked files outside the
+    lead's bookkeeping are uncommitted, or this is not a git repo. --no-worktree (or any other
+    agent) writes the stub alone, recording --worktree when given, as before. The stub shows the
+    agent in flight on the console and dates the dispatch for the builder stop check; the
+    journal note lets a resumed session see it."""
+    root = _lib.project_root()
+    builder = args.agent == "builder"
+    wt_rel = Path(args.worktree).as_posix() if args.worktree else None
+    tf, name, branch, warn = None, None, "", False
+    if builder and not args.no_worktree:
+        try:
+            tf, wt_rel, name, branch = _dispatch_preflight(root, args.id, args.worktree)
+        except _Stop as exc:
+            print(f"refused: {exc}. Nothing was created.")
+            _lib.print_verdict("STATE", False)
+            return 1
+        res = _git(["worktree", "add", wt_rel, "-b", WORKTREE_BRANCH_PREFIX + name, "HEAD"], root)
+        if res.returncode != 0:
+            print(f"refused: git could not create the worktree: {_git_said(res)}. Check "
+                  f"`git worktree list` and `git branch --list {WORKTREE_BRANCH_PREFIX}{name}`.")
+            _lib.print_verdict("STATE", False)
+            return 1
+        base = _git(["rev-parse", "--short", "HEAD"], root).stdout.strip()
+        print(f"worktree: {wt_rel} on branch {WORKTREE_BRANCH_PREFIX}{name}, cut from {branch} "
+              f"at {base}")
+        if _git(["check-ignore", "-q", wt_rel], root).returncode != 0:
+            warn = True
+            print(f"WARNING: {WORKTREES_DIR}/ is not gitignored here; the main checkout lists the "
+                  f"worktree as untracked (distctl.py gitignore --apply adds the rule)")
+    elif builder:
+        try:
+            tf = _task_file_for(args.id)
+        except Exception:  # noqa: BLE001 - the brief is a courtesy here; the stub is the job
+            tf = None
+        name = Path(wt_rel).name if wt_rel else args.id.lower()
+        branch = _lib.git_output(["rev-parse", "--abbrev-ref", "HEAD"], root)
+    path = _lib.write_stub(args.id, args.agent, wt_rel)
+    where = f" in {wt_rel}" if wt_rel else ""
     _lib.journal_append("note", text=f"dispatched {args.agent} for {args.id}{where}",
                         tags=["dispatch"])
     refresh_all()
-    print(_lib.rel(path))
-    _lib.print_verdict("STATE", True)
+    print(f"stub: {_lib.rel(path)}")
+    if tf is not None:
+        prompt, left = _builder_prompt(root, args.id, tf, wt_rel or f"{WORKTREES_DIR}/{name}",
+                                       name, branch, args.agent)
+        if prompt is None:
+            warn = True
+            print(left)
+        else:
+            if left:
+                warn = True
+                print(f"WARNING: the brief still holds {', '.join(left)}: fill it before pasting")
+            print("----- builder prompt: paste everything between these markers -----")
+            print(prompt.rstrip("\n"))
+            print("----- end of builder prompt -----")
+    _lib.print_verdict("STATE", True, warn=warn)
+    return 0
+
+
+def _accept_worktree(root: Path, task_id: str, given) -> Path:
+    """--worktree, else the worktree the stub recorded, else .claude/worktrees/<id lowercased>."""
+    if not given:
+        stub = _lib.stub_path(task_id)
+        given = _lib.read_stub(stub)["worktree"] if stub.is_file() else ""
+    raw = Path(given) if given else Path(WORKTREES_DIR) / task_id.lower()
+    return raw if raw.is_absolute() else root / raw
+
+
+def _task_topic(task_id: str) -> str:
+    """What the task is about, for the commit subject: its title without the leading id."""
+    title = ""
+    try:
+        tf = _task_file_for(task_id)
+        title = tf["title"] if tf else ""
+    except Exception:  # noqa: BLE001 - a subject line is not worth failing an accept over
+        pass
+    if not title:
+        title = next((t.get("title") or "" for t in _build_session_projection()["tasks"]
+                      if t["id"].casefold() == task_id.casefold()), "")
+    m = re.match(rf"^\s*{re.escape(task_id)}\s*[-–—:]\s*(.+)$", title, re.IGNORECASE)
+    return (m.group(1) if m else title).strip() or "builder handoff"
+
+
+def _restore_derived(wt: Path, paths: list) -> list:
+    """Restore `paths` to HEAD inside the worktree, so a builder's rebuild of the zips or a
+    projection never merges. Returns what the builder had changed there (discarded: a new
+    untracked file is left out of the commit and goes with the worktree)."""
+    changed = _porcelain_paths(_git_ok(["status", "--porcelain=v1", "-z", "--untracked-files=all",
+                                        "--", *paths], wt))
+    tracked = [p for p in paths if _git_ok(["ls-tree", "-r", "--name-only", "HEAD", "--", p], wt).strip()]
+    if tracked:
+        _git_ok(["checkout", "HEAD", "--", *tracked], wt)
+    return sorted(set(changed))
+
+
+def _hook_exec_bits(wt: Path) -> list:
+    """Mark every .sh under .claude/hooks/ executable in the index (git on Windows never sees the
+    bit, so a new hook would merge as 100644 and fail to run on Linux)."""
+    fixed = []
+    for entry in _git_ok(["ls-files", "-s", "-z", "--", ".claude/hooks"], wt).split("\0"):
+        meta, _, path = entry.partition("\t")
+        if path.endswith(".sh") and meta.split(" ")[0] != "100755":
+            _git_ok(["update-index", "--chmod=+x", "--", path], wt)
+            fixed.append(path)
+    return fixed
+
+
+def cmd_accept(args) -> int:
+    """Accept a builder's work: (1) `checkctl handoff <id> --run --root <worktree>` must pass
+    (--no-run validates without rerunning); (2) restore .claude/dist/ and the derived files to
+    HEAD in the worktree; (3) stage the rest, mark hook scripts executable in the index, commit
+    there; (4) merge its branch into the current branch with --no-ff, stopping on a conflict with
+    the merge left in progress; (5) remove the worktree and its branch. Never pushes; never marks
+    the task done (the lead does, after the suite)."""
+    root = _lib.project_root()
+    task_id = args.id
+    try:
+        branch = _repo_branch(root)
+        if _git(["rev-parse", "-q", "--verify", "MERGE_HEAD"], root).returncode == 0:
+            raise _Stop("a merge is already in progress here: finish it (`git commit`) or abort "
+                        "it (`git merge --abort`) first")
+        wt = _accept_worktree(root, task_id, args.worktree)
+        wt_rel = _lib.rel(wt)
+        listed = [ln[len("worktree "):] for ln in _git_ok(["worktree", "list", "--porcelain"], root)
+                  .splitlines() if ln.startswith("worktree ")]
+        if not wt.is_dir() or not any(_same_dir(p, wt) for p in listed if Path(p).is_dir()):
+            raise _Stop(f"no worktree at {wt_rel}. Never resume a builder whose worktree is gone: "
+                        f"re-dispatch (`statectl.py dispatch {task_id}`)")
+        res = _git(["symbolic-ref", "-q", "--short", "HEAD"], wt)
+        wt_branch = res.stdout.strip() if res.returncode == 0 else ""
+        if not wt_branch or wt_branch == branch:
+            raise _Stop(f"{wt_rel} is not on a branch of its own: commit and merge it by hand")
+        restore = list(ACCEPT_RESTORE) + _lib.derived_files(root)
+    except (_Stop, _lib.LibError) as exc:
+        print(f"refused: {exc}. Nothing was committed or merged.")
+        _lib.print_verdict("STATE", False)
+        return 1
+
+    import checkctl
+    results = checkctl.handoff_check(task_id, root=wt, run=not args.no_run)
+    checkctl.render(results, f"handoff {task_id}")
+    if any(r.status == checkctl.FAIL for r in results):
+        print(f"\nrefused: {task_id}'s handoff in {wt_rel} does not pass; nothing was committed or "
+              f"merged. Send the builder back, or fix the envelope, then accept again.")
+        _lib.print_verdict("STATE", False)
+        return 1
+
+    subject = (args.message or "").strip() or f"{task_id}: {_task_topic(task_id)}"
+    topic = re.sub(rf"^\s*{re.escape(task_id)}\s*:\s*", "", subject, flags=re.IGNORECASE) or subject
+    try:
+        discarded = _restore_derived(wt, restore)
+        _git_ok(["add", "-A", "--", ".", *[f":(exclude){p}" for p in restore]], wt)
+        made_exec = _hook_exec_bits(wt)
+        leaked = _git_ok(["diff", "--cached", "--name-only", "--", *restore], wt).split()
+        if leaked:
+            raise _Stop(f"derived files are still staged ({', '.join(leaked)})")
+        if _git(["diff", "--cached", "--quiet"], wt).returncode != 0:
+            _git_ok(["commit", "-q", "-m", subject], wt)
+            print(f"\ncommitted in {wt_rel} on {wt_branch}: {subject}")
+        else:
+            print(f"\nnothing new to commit in {wt_rel}; merging {wt_branch} as it stands")
+    except _Stop as exc:
+        print(f"stopped before the merge: {exc}. Nothing was merged; {wt_rel} is kept as accept "
+              f"left it. Fix the cause and accept again.")
+        _lib.print_verdict("STATE", False)
+        return 1
+    for path in discarded:
+        print(f"discarded the builder's change to derived {path}")
+    for path in made_exec:
+        print(f"exec bit set in the index: {path}")
+    try:
+        return _accept_merge(root, task_id, topic, branch, wt, wt_rel, wt_branch)
+    except _Stop as exc:
+        print(f"stopped during the merge: {exc}. `git status` shows where it stands; {wt_rel} and "
+              f"{wt_branch} are kept.")
+        _lib.print_verdict("STATE", False)
+        return 1
+
+
+def _accept_merge(root: Path, task_id: str, topic: str, branch: str, wt: Path, wt_rel: str,
+                  wt_branch: str) -> int:
+    """accept's steps 4 and 5: merge --no-ff (stop on a conflict, merge left in progress), then
+    remove the worktree and its branch."""
+    before = _git(["rev-parse", "HEAD"], root).stdout.strip()
+    res = _git(["merge", "--no-ff", "--no-edit", "-m", f"merge {task_id}: {topic}", wt_branch], root)
+    if res.returncode != 0:
+        if _git(["rev-parse", "-q", "--verify", "MERGE_HEAD"], root).returncode == 0:
+            conflicted = [p for p in _git(["diff", "--name-only", "--diff-filter=U"], root)
+                          .stdout.splitlines() if p.strip()]
+            print(f"\nCONFLICT: merging {wt_branch} into {branch} stopped on "
+                  f"{len(conflicted)} path(s):")
+            for path in conflicted:
+                print(f"  {path}")
+            print(f"The merge is left in progress; {wt_rel} and {wt_branch} are kept.")
+            print("  finish: resolve each path, `git add <path>`, `git commit --no-edit`, then "
+                  f"`statectl.py accept {task_id} --no-run` removes the worktree and branch")
+            print(f"  abort:  `git merge --abort` ({wt_branch} keeps the builder's commit)")
+        else:
+            print(f"\nstopped: git refused the merge: {_git_said(res)}. Nothing was merged; "
+                  f"{wt_branch} keeps the builder's commit and {wt_rel} is kept. Fix the cause, "
+                  f"then `statectl.py accept {task_id}` again.")
+        _lib.print_verdict("STATE", False)
+        return 1
+    head = _git(["rev-parse", "HEAD"], root).stdout.strip()
+    after = head[:12]
+    merged = "already merged, nothing new" if head == before else f"merge commit {after}"
+    print(f"merged {wt_branch} into {branch} ({merged})")
+
+    problems = []
+    for step in (["worktree", "remove", "--force", str(wt)], ["branch", "-d", wt_branch]):
+        res = _git(step, root)
+        if res.returncode != 0:
+            problems.append(f"`git {' '.join(step)}` failed: {_git_said(res)}")
+    _lib.journal_append("note", text=f"accepted {task_id}: merged {wt_branch} into {branch} "
+                                     f"({after})", tags=["accept"])
+    refresh_all()
+    if problems:
+        for problem in problems:
+            print(f"WARNING: cleanup: {problem}; finish it by hand")
+    else:
+        print(f"removed {wt_rel} and branch {wt_branch}")
+    print(f"next: `python3 .claude/tools/tests/run_tests.py -q` on {branch}, then "
+          f"`statectl.py task {task_id} --status done`. accept never pushes and never marks a "
+          f"task done.")
+    _lib.print_verdict("STATE", True, warn=bool(problems))
     return 0
 
 
@@ -953,12 +1416,30 @@ def _build_parser() -> argparse.ArgumentParser:
                          "handoff envelope (logged); without it, --status done needs a valid one")
     sp.set_defaults(func=cmd_task)
 
-    sp = sub.add_parser("dispatch", help="write the dispatch stub before dispatching an agent "
-                                         "(state/handshakes/<id>.stub.json)")
+    lead_only = ("LEAD ONLY (main session): it runs git, which the policy gate denies to "
+                 "sub-agents. ")
+    sp = sub.add_parser("dispatch", help="for a builder: cut its worktree from HEAD, write the "
+                                         "stub, print the filled brief; other agents: the stub "
+                                         "only (state/handshakes/<id>.stub.json)",
+                        description=lead_only + cmd_dispatch.__doc__.split("\n\n")[0])
     sp.add_argument("id", help="the task id; the agent's envelope will be <id>.json")
     sp.add_argument("--agent", default="builder", help="the agent type dispatched (default builder)")
-    sp.add_argument("--worktree", help="the worktree the agent works in, e.g. .claude/worktrees/t5")
+    sp.add_argument("--worktree", help="the worktree the agent works in (a builder's default: "
+                                       ".claude/worktrees/<id lowercased>, branch wt/<same>)")
+    sp.add_argument("--no-worktree", dest="no_worktree", action="store_true",
+                    help="create nothing: record --worktree (one made by hand) in the stub")
     sp.set_defaults(func=cmd_dispatch)
+
+    sp = sub.add_parser("accept", help="validate a builder's handoff in its worktree, commit it "
+                                       "there, merge it --no-ff, remove the worktree",
+                        description=lead_only + cmd_accept.__doc__.split("\n\n")[0])
+    sp.add_argument("id", help="the task id the builder was dispatched for")
+    sp.add_argument("--no-run", dest="no_run", action="store_true",
+                    help="validate the envelope without rerunning its tests")
+    sp.add_argument("--message", help="the worktree commit's subject (default: <id>: <task title>)")
+    sp.add_argument("--worktree", help="the worktree to accept (default: the stub's, else "
+                                       ".claude/worktrees/<id lowercased>)")
+    sp.set_defaults(func=cmd_accept)
 
     sp = sub.add_parser("mode", help="how organised the work is: "
                                      + " | ".join(_lib.MODES) + " (aliases: "

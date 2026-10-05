@@ -157,7 +157,10 @@ are the maintainer's call, never yours. When they say "release vX.Y.Z":
    written for readers of the release, not a commit dump - then start a fresh `## Unreleased`
    above it. The `changelog_parity` check FAILS the ritual if any version tag or the stamped
    `system_version` lacks its section, so a release cannot quietly outrun its changelog.
-3. Commit `release: vX.Y.Z - <one line>` and tag `git tag vX.Y.Z`. Push per the `push` knob;
+3. The zip step, on the release commit itself: `python3 .claude/tools/distctl.py build`, then
+   `python3 .claude/tools/distctl.py verify` must say fresh (`.claude/reference/release-flow.md`;
+   a pre-release cut from `dev` takes the same step, since its tag makes CI strict about the
+   zips). Commit `release: vX.Y.Z - <one line>` with the zips and tag `git tag vX.Y.Z`. Push per the `push` knob;
    if this session's credentials cannot push tags (branch-scoped tokens cannot), hand the
    maintainer the exact commands and say so in the report.
 4. **Do not create the GitHub release by hand.** Pushing the tag fires

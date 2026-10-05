@@ -4,14 +4,16 @@
 A zip that leaks the source's journal, queue, or filled CLAUDE.md hands every adopter another
 project's memory; a zip that goes stale hands them last month's system. So: exclusions proven,
 placeholder form proven, determinism proven (identical content, identical bytes, write-gated,
-whatever line endings the checkout used), and - in the home repo - the committed zips proven
-equal to a rebuild, byte for byte.
+whatever line endings the checkout used), and - in the home repo, where
+_lib.zip_equality_required() says so (main, tags, pull requests into main) - the committed zips
+proven equal to a rebuild, byte for byte. `distctl.py verify` is strict everywhere.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -539,6 +541,85 @@ class TestZipVerdict(DistCase):
                          "STATUS.md is reset in the kits; editing it is not a payload edit")
         self.assertEqual(zip_verdict(self.root)[0], "fresh")
 
+    def test_verify_stays_strict_where_the_suite_is_not(self):
+        """Off main the equality test skips; `distctl.py verify` still says stale and exits 1."""
+        import contextlib
+        import io
+        _git(self.root, "symbolic-ref", "HEAD", "refs/heads/dev")
+        distctl.build(self.root)
+        self._commit("system + zips")
+        (self.root / ".claude" / "tasks" / "_template.md").write_text("# Task: v2\n", encoding="utf-8")
+        self._commit("payload edit merged on dev without a rebuild")
+        self.assertEqual(_lib.zip_equality_required(env={})[0], False, "dev: the suite skips")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = distctl.main(["verify"])
+        self.assertEqual(code, 1, out.getvalue())
+        self.assertIn("stale: .claude/dist/dot-claude-iff-fresh.zip", out.getvalue())
+        self.assertIn("DIST_FAIL", out.getvalue())
+
+
+class TestZipEqualityScope(unittest.TestCase):
+    """_lib.zip_equality_required: the one place that decides where the committed zips must equal
+    a rebuild. Strict on main, on tags, on pull requests into main and on CI for main; skipped
+    with a one-line reason everywhere else."""
+
+    CASES = (
+        ("dev, local", {}, "dev", False),
+        ("feature branch", {}, "wt/t13", False),
+        ("detached, local", {}, "HEAD", False),
+        ("main, local", {}, "main", True),
+        ("push to dev", {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "dev",
+                         "GITHUB_BASE_REF": ""}, "dev", False),
+        ("push to main, detached", {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "main",
+                                    "GITHUB_BASE_REF": ""}, "HEAD", True),
+        ("tag", {"GITHUB_REF_TYPE": "tag", "GITHUB_REF_NAME": "v0.3.0-alpha.1"}, "HEAD", True),
+        ("pre-release tag on dev", {"GITHUB_REF_TYPE": "tag", "GITHUB_REF_NAME": "v0.3.0-alpha.2"},
+         "dev", True),
+        ("PR into main", {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "12/merge",
+                          "GITHUB_BASE_REF": "main"}, "HEAD", True),
+        ("PR into dev", {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "13/merge",
+                         "GITHUB_BASE_REF": "dev"}, "HEAD", False),
+        ("manual release run from dev", {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "dev"},
+         "dev", False),
+    )
+
+    def test_each_environment(self):
+        for label, env, branch, expected in self.CASES:
+            with self.subTest(case=label):
+                required, reason = _lib.zip_equality_required(env=env, branch=branch)
+                self.assertIs(required, expected, reason)
+                self.assertTrue(reason and "\n" not in reason, "one line of reason")
+                if not required:
+                    self.assertIn("not required", reason)
+
+    def test_env_defaults_to_the_process_environment(self):
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"GITHUB_REF_TYPE": "tag", "GITHUB_REF_NAME": "v1.0.0"}):
+            self.assertTrue(_lib.zip_equality_required(branch="dev")[0])
+        quiet = {k: "" for k in ("GITHUB_REF_TYPE", "GITHUB_REF_NAME", "GITHUB_BASE_REF")}
+        with mock.patch.dict(os.environ, quiet):
+            self.assertFalse(_lib.zip_equality_required(branch="dev")[0])
+
+
+class TestZipEqualityBranch(FixtureCase):
+    """With no branch given, the helper asks git for the checkout's own branch."""
+
+    def setUp(self):
+        if not GIT:
+            self.skipTest("git not available")
+        super().setUp()
+        self.assertEqual(_git(self.root, "init", "-q").returncode, 0)
+        (self.root / "f.txt").write_text("x\n", encoding="utf-8")
+        _git(self.root, "add", "-A")
+        self.assertEqual(_git(self.root, *_COMMIT, "one").returncode, 0)
+
+    def test_the_current_branch_decides(self):
+        for branch, expected in (("main", True), ("dev", False)):
+            with self.subTest(branch=branch):
+                _git(self.root, "checkout", "-q", "-B", branch)
+                self.assertIs(_lib.zip_equality_required(env={})[0], expected)
+
 
 @unittest.skipUnless(_home_repo(), "home-repo-only: the committed zips live in dot-claude-iff")
 class TestCommittedZips(unittest.TestCase):
@@ -566,6 +647,12 @@ class TestCommittedZips(unittest.TestCase):
             return z.read(entry)
 
     def test_committed_zips_equal_a_rebuild(self):
+        # Strict only where people download the zips or a release is cut (main, tags, PRs into
+        # main): between releases the zips on dev may lag, so no merge there needs a rebuild.
+        branch = _git(REPO_ROOT, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        required, reason = _lib.zip_equality_required(branch=branch)
+        if not required:
+            self.skipTest(reason)
         mismatched = []
         for name in distctl.ZIP_NAMES:
             committed = REPO_ROOT / ".claude" / "dist" / name
@@ -573,6 +660,8 @@ class TestCommittedZips(unittest.TestCase):
                 mismatched.append(name)
         if not mismatched:
             return
+        # Still needed where the test is strict: the ritual's CHECK runs this suite before POLISH
+        # rebuilds the zips, so a payload edit waiting for that rebuild is not staleness yet.
         pending = uncommitted_payload(REPO_ROOT)
         if pending:
             self.skipTest(f"zips behind {len(pending)} uncommitted payload edit(s), e.g. "
@@ -684,6 +773,22 @@ class TestWorkflows(unittest.TestCase):
         self.assertIn('KIND_FLAGS="--prerelease --latest=false"', rel)
         create = rel[rel.index("gh release create"):]
         self.assertIn("$KIND_FLAGS", create, "the flags must reach gh release create")
+
+    def test_release_still_rebuilds_and_diffs_the_zips(self):
+        """The suite skips zip equality off main; the release job never does."""
+        rel = self.text("release.yml")
+        build = rel.index("python3 .claude/tools/distctl.py build")
+        self.assertIn("git diff --exit-code --stat -- .claude/dist/", rel[build:])
+        self.assertLess(build, rel.index('gh release create "$TAG"'), "rebuild before publishing")
+
+    def test_release_flow_states_the_zip_step_and_its_consequence(self):
+        text = re.sub(r"\s+", " ", (REPO_ROOT / ".claude" / "reference" / "release-flow.md")
+                      .read_text(encoding="utf-8"))
+        for phrase in ("distctl.py build", "distctl.py verify", "commit the zips, then tag",
+                       "_lib.zip_equality_required", "pre-release cut from `dev`",
+                       "may lag the tree", "guaranteed equal to a rebuild", "statectl.py accept"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
 
     def _notes_script(self) -> str:
         rel = self.text("release.yml")

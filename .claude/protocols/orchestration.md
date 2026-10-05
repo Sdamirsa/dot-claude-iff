@@ -37,32 +37,56 @@ named for the same id: `.claude/state/handshakes/<id>.json`.
 
 ## Dispatch
 
-1. **Task file** written and registered, its Test runnable from the repo root.
-2. **Worktree**, created by the lead from the working branch:
-   `git worktree add .claude/worktrees/<name> -b wt/<name> <branch>`. The harness's own
-   worktree isolation branches from the remote default branch, not the working branch, so
-   it is not used.
-3. **Brief**: a copy of `.claude/tasks/_builder-brief.md` with its placeholders filled (or one
-   shared brief per milestone, as `030a-builder-brief.md` was).
-4. **Stub**: `statectl.py dispatch <id> --agent builder --worktree .claude/worktrees/<name>`
-   writes `<id>.stub.json` with `dispatched_at`; the console shows it in flight.
-5. **Builder**: dispatch `builder` with a prompt naming the brief, the task file and the
-   worktree name. Builders of one wave are dispatched together.
+`statectl.py dispatch` and `statectl.py accept` are the lead's: they run git, which the gate
+denies to sub-agents.
+
+1. **Task file** written, registered and committed, its Test runnable from the repo root. The
+   worktree is cut from HEAD, so anything uncommitted (outside `.claude/state/`, the zips and
+   the derived files) would be invisible to the builder; dispatch refuses until it is committed.
+2. **One command**: `statectl.py dispatch <id>` cuts `.claude/worktrees/<id lowercased>` on a
+   new branch `wt/<id lowercased>` from HEAD, writes `<id>.stub.json` with `dispatched_at`
+   (the console shows it in flight) and prints `.claude/tasks/_builder-brief.md` filled with
+   the task id, task file, worktree, branch and first-read list. It refuses with one line and
+   changes nothing when no task file maps to the id, the worktree or branch exists, the tree
+   is dirty, or this is not a git repo. `--agent scout` (any non-builder) writes the stub only.
+   The harness's own worktree isolation branches from the remote default branch, not the
+   working branch, so it is not used.
+3. **Builder**: dispatch `builder` with the printed brief as its prompt. Builders of one wave
+   are dispatched together.
+
+By hand, the fallback: `git worktree add .claude/worktrees/<name> -b wt/<name> <branch>`, then
+`statectl.py dispatch <id> --worktree .claude/worktrees/<name> --no-worktree` for the stub.
 
 ## Handoff
 
 1. **Envelope**: the builder writes `<id>.json` in its worktree (`handshake.md`); a builder
    that stops without one is sent back once by the SubagentStop check.
-2. **Validate**: `checkctl.py handoff <id> --run --root .claude/worktrees/<name>`: schema,
-   status done, every `files_changed` path exists, every recorded test reruns as recorded.
-3. **Review the diff** (`git -C .claude/worktrees/<name> diff`): read it as the owner, not as
-   a stamp. Protected-tree changes (hooks, tools, config, agents, protocols, skills) get a
-   line-by-line read.
-4. **Merge** into the working branch; apply `needs_main` (index changes, zip rebuilds).
-5. **Suite**: `python3 .claude/tools/tests/run_tests.py -q` on the merged branch.
-6. **Close**: `statectl.py task <id> --status done`. In this mode it refuses without a valid
+2. **Review the diff** (`git -C .claude/worktrees/<name> status` and `diff`; new files show
+   only in status): read it as the owner, not as a stamp. Protected-tree changes (hooks,
+   tools, config, agents, protocols, skills) get a line-by-line read.
+   `checkctl.py handoff <id> --run --root .claude/worktrees/<name>` shows the validation alone.
+3. **Accept**: `statectl.py accept <id>` reruns that handoff check (schema, status done,
+   `files_changed` exist, recorded tests rerun as recorded; `--no-run` skips the rerun) and
+   refuses on any FAIL with nothing committed. It then restores `.claude/dist/` and the
+   derived files (`policy.json` `derived_files`) to HEAD in the worktree, stages the rest, sets
+   the exec bit on `.claude/hooks/*.sh` in the index, commits there (`--message`, default from
+   the task title), merges into the working branch with `--no-ff`, and removes the worktree and
+   its branch. On a conflict it stops: the merge stays in progress, the conflicted paths and
+   the commands to finish or abort are printed, the worktree is kept. It never pushes and
+   never marks the task done. Apply the rest of `needs_main` yourself.
+4. **Suite**: `python3 .claude/tools/tests/run_tests.py -q` on the merged branch.
+5. **Close**: `statectl.py task <id> --status done`. In this mode it refuses without a valid
    envelope whose tests passed; a task the lead did itself closes with
-   `--no-envelope "<why>"`, logged. Then remove the worktree.
+   `--no-envelope "<why>"`, logged.
+
+By hand, the fallback: commit in the worktree, `git merge --no-ff wt/<name>`, then
+`git worktree remove .claude/worktrees/<name>` and `git branch -d wt/<name>`.
+
+- **Never resume a builder whose worktree no longer exists: re-dispatch.** Its brief, stub and
+  context name a checkout that is gone; `accept` refuses such a task and says so.
+- **Builders never stage or commit `.claude/dist/`** (nor rebuild the zips): where a project
+  ships zips, its release step rebuilds and commits them, and `accept` discards any change
+  there, so a merge on the working branch never conflicts on a zip.
 
 ## Waves
 
@@ -92,6 +116,7 @@ Write the waves into the milestone file before the first dispatch.
 | Mechanism | Where | Strength |
 |---|---|---|
 | Envelope schema | `_lib.validate_envelope`, used by `post-write-validate.sh`, `checkctl handoff`, the done guard | blocks a malformed envelope on write |
+| Dispatch and accept | `statectl.py dispatch` / `accept` | refuse with one line, change nothing; a conflict stops the merge |
 | Done guard | `statectl.py task <id> --status done` | hard: refuses without a valid envelope whose tests passed |
 | Stop check | `hooks/handoff-guard.sh` on SubagentStop | best effort, once per stop, fails open |
 | Delegation nudge | `post-write-validate.sh`, knob `orchestration.nudge_after` | advisory, never blocks |
