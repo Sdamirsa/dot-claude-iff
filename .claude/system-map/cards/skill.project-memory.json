@@ -5,7 +5,7 @@
   "package": null,
   "title": "project-memory",
   "path": ".claude/skills/project-memory/SKILL.md",
-  "description": "The one ritual - check, polish, publish, evolve. Invoke at the end of a working session, after a milestone, or when the user says \"update memory\", \"log this session\", \"update the log\", \"curate memory\", \"update status\", \"wrap up\", or \"run the ritual\". Add --hard for a dedicated maturation session that deeply refines the .claude system itself. NOT for planning or resuming work (use /plan-task), and NOT for a cold \"where were we\" (read .claude/STATUS.md).",
+  "description": "The one ritual - check, polish, publish, evolve, then route the next session (phase, mode, optional maturation pass). Only the user opens it, by typing /project-memory at the end of a working session or after a milestone. When the user says \"update memory\", \"log this session\", \"update the log\", \"curate memory\", \"update status\", \"wrap up\", or \"run the ritual\", ask them to type /project-memory. NOT for planning or resuming work (use /plan-task), and NOT for a cold \"where were we\" (read .claude/STATUS.md).",
   "reads": [],
   "writes": [
     "store.project_log",
@@ -21,7 +21,7 @@
   "glyphs": [],
   "auto": {
     "discovered": "2026-08-25",
-    "hash": "07a194abbb9a46ad41323c24800ef79c50cc15c0571e57e16766f3197cd5b0c1",
+    "hash": "102c18314d7f7b282ba3b4e77eb8370d99f666a7e2882d6f0dfab3d989f276c3",
     "suggested_reads": [],
     "suggested_writes": []
   }

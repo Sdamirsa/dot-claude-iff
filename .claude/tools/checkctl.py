@@ -18,6 +18,11 @@ Three things live here and nowhere else.
    run unless POLISH completed for the SAME run id, so a half-built set of derived surfaces can
    never be committed as though it were whole. `--resume` continues a run that died.
 
+4. THE TICKET. The ritual is the user's: `run` and `complete` refuse without a fresh
+   state/ritual-ticket.json, which only the prompt hook writes (when the user types
+   /project-memory or /adopt) and the policy gate denies to every agent. `complete` consumes it.
+   Every other subcommand is read-only and needs none.
+
 Steps report OK / WARN / FAIL. WARN never blocks: incompleteness informs, incorrectness stops.
 """
 
@@ -202,6 +207,94 @@ def start_run(resume: bool = False) -> dict:
     }
     save_run(run)
     return run
+
+
+# --------------------------------------------------------------------------- ritual ticket
+#
+# A tripwire, not cryptography. The prompt hook (hooks/ritual-ticket.sh) writes the ticket when
+# the user's own prompt starts with /project-memory or /adopt; the policy gate denies the file to
+# every agent identity on every lane; this module checks it before opening, continuing or
+# completing a run and deletes it on `complete` (a tool process is not subject to the gate).
+# There is deliberately no flag or environment variable that skips the check.
+
+RITUAL_SKILLS = ("project-memory", "adopt")
+DEFAULT_TICKET_TTL_MINUTES = 360
+TICKET_FUTURE_SLACK_S = 300  # clock skew tolerated before a future-dated ticket is refused
+TICKET_ASK = "ask the user to type /project-memory; only the user can open the ritual"
+
+
+def ritual_ticket_path() -> Path:
+    return _lib.state_dir() / "ritual-ticket.json"
+
+
+def ticket_ttl_minutes() -> float:
+    """memory.json ritual.ticket_ttl_minutes; anything but a positive number reads as the default."""
+    value = _lib.config_get("memory", "ritual.ticket_ttl_minutes", DEFAULT_TICKET_TTL_MINUTES)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        return float(DEFAULT_TICKET_TTL_MINUTES)
+    return float(value)
+
+
+def ticket_state(run: dict | None = None) -> dict:
+    """Read-only verdict on the ticket: {status, reason, ticket, age_s, ttl_s}, where status is
+    fresh | absent | invalid | expired | consumed. Only `fresh` lets a run open or complete."""
+    ttl_s = ticket_ttl_minutes() * 60.0
+    out = {"status": "absent", "reason": "no ritual ticket", "ticket": None, "age_s": None,
+           "ttl_s": ttl_s}
+    path = ritual_ticket_path()
+    if not path.exists():
+        return out
+    data = _lib.read_json(path)
+    if not isinstance(data, dict):
+        return dict(out, status="invalid", reason="ritual-ticket.json does not parse")
+    out["ticket"] = data
+    stamp = _lib.parse_ts(data.get("ts"))
+    if data.get("skill") not in RITUAL_SKILLS or stamp is None:
+        return dict(out, status="invalid", reason="the ticket names no ritual skill or no readable ts")
+    from datetime import datetime, timezone
+    age = (datetime.now(timezone.utc) - stamp).total_seconds()
+    out["age_s"] = age
+    if age < -TICKET_FUTURE_SLACK_S:
+        return dict(out, status="invalid", reason="the ticket is dated in the future")
+    run = load_run() if run is None else run
+    if run.get("ticket_consumed") and run.get("ticket_consumed") == data.get("ts"):
+        return dict(out, status="consumed",
+                    reason=f"the ticket was consumed when ritual {run.get('run_id')} completed")
+    if age > ttl_s:
+        return dict(out, status="expired",
+                    reason=f"the ticket expired ({int(age // 60)} min old, lifetime "
+                           f"{int(ttl_s // 60)} min: memory.json ritual.ticket_ttl_minutes)")
+    return dict(out, status="fresh", reason=f"fresh: /{data['skill']} typed {int(max(age, 0) // 60)} min ago")
+
+
+def refuse_without_ticket(action: str, state: dict) -> int:
+    print(f"refused: {action} needs a fresh ritual ticket - {state['reason']}.")
+    print(f"{TICKET_ASK.capitalize()}. Do not work around this: the ticket is written by the "
+          f"prompt hook when the user's own prompt starts with /project-memory (or /adopt). "
+          f"Nothing was written.")
+    _lib.print_verdict("CHECK", False)
+    return 1
+
+
+def stamp_ticket(run: dict, ticket: dict) -> None:
+    """memory-run.json says who opened the ritual: the user, through their ticket."""
+    run["invoked_by"] = "user-ticket"
+    run["ticket_ts"] = ticket.get("ts")
+    run["ticket_skill"] = ticket.get("skill")
+    run["ticket_session"] = ticket.get("session_id")
+
+
+def consume_ticket(run: dict, ticket: dict) -> str | None:
+    """Delete the ticket; remember its ts so a ticket that cannot be deleted is still spent.
+    Returns an error string when the file could not be removed."""
+    run["ticket_consumed"] = ticket.get("ts")
+    try:
+        ritual_ticket_path().unlink()
+    except FileNotFoundError:
+        pass
+    except OSError as exc:
+        return f"{type(exc).__name__}: {exc}"
+    return None
 
 
 def record_phase(run: dict, phase: str, results: list, status: str) -> None:
@@ -572,6 +665,8 @@ def _deliberately_ignored(rel: str) -> bool:
     if rel.startswith((".claude/reference/private/", ".claude/worktrees/")):
         return True
     if rel == ".claude/state/heartbeat.json":  # rewritten every turn; the Stop hook recreates it
+        return True
+    if rel == ".claude/state/ritual-ticket.json":  # minted per ritual, consumed by `complete`
         return True
     if rel.endswith((".pyc", ".tmp", ".pid", ".log")):
         return True
@@ -1447,6 +1542,7 @@ def probe() -> list:
         ("hook.obs-capture", ".claude/hooks/obs-capture.sh"),
         ("hook.policy-gate", ".claude/hooks/policy-gate.sh"),
         ("hook.post-write-validate", ".claude/hooks/post-write-validate.sh"),
+        ("hook.ritual-ticket", ".claude/hooks/ritual-ticket.sh"),
         ("agent.anatomist", ".claude/agents/anatomist.md"),
         ("agent.retro-analyst", ".claude/agents/retro-analyst.md"),
         ("agent.verifier", ".claude/agents/verifier.md"),
@@ -1491,11 +1587,12 @@ def probe() -> list:
 # `checkctl doctor`: can this machine run the system at all? One row per prerequisite, each
 # non-OK row with a one-line fix. READ-ONLY by contract: no state file, no run record, no
 # record folder is created - a diagnostic that writes is one more thing that can break.
-# Features this install may not have yet (mode, phase, ritual ticket) read as SKIP, not FAIL.
+# Features this install may not have yet (mode, phase) read as SKIP, not FAIL. The ritual
+# ticket row reads the ticket and whether a prompt hook can mint one at all.
 
 MIN_PYTHON = (3, 8)
 EXPECTED_HOOKS = ("session-start.sh", "heartbeat.sh", "obs-capture.sh", "policy-gate.sh",
-                  "post-write-validate.sh")
+                  "post-write-validate.sh", "ritual-ticket.sh")
 DOCTOR_CONFIGS = ("memory", "policy", "observe", "console", "registry", "model-prices", "phases")
 WORK_MODES = _lib.MODES
 LIFECYCLE_PHASES = _lib.LIFECYCLE_PHASES
@@ -1742,25 +1839,42 @@ def _doctor_phase():
             "none needed; `statectl phase` sets one where this install has it")
 
 
+def _ticket_hook_wired() -> bool:
+    """Is hooks/ritual-ticket.sh present and wired on a prompt event in settings.json? Without
+    it no ticket can ever be minted, and every `checkctl run` refuses."""
+    if not (_lib.claude_dir() / "hooks" / "ritual-ticket.sh").is_file():
+        return False
+    data = _lib.read_json(_lib.claude_dir() / "settings.json")
+    hooks = data.get("hooks") if isinstance(data, dict) else None
+    for event in ("UserPromptSubmit", "UserPromptExpansion"):
+        groups = hooks.get(event) if isinstance(hooks, dict) else None
+        for group in groups if isinstance(groups, list) else ():
+            for hook in (group.get("hooks") or []) if isinstance(group, dict) else ():
+                if isinstance(hook, dict) and "hooks/ritual-ticket.sh" in str(hook.get("command", "")):
+                    return True
+    return False
+
+
 def _doctor_ritual_ticket():
-    path = _lib.state_dir() / "ritual-ticket.json"
-    if not path.exists():
-        return (Result("ritual_ticket", SKIP, "no ritual ticket (one is written when you type "
-                                              "/project-memory or /adopt)"), "none needed")
-    data = _lib.read_json(path)
-    if not isinstance(data, dict):
-        return Result("ritual_ticket", WARN, "ritual-ticket.json does not parse"), \
-            "type /project-memory to issue a fresh one"
-    stamp = next((data[k] for k in ("ts", "issued", "issued_at", "created") if data.get(k)), None)
-    age = _lib.age_seconds(stamp) if stamp else None
-    if age is None:
-        import time
-        try:
-            age = max(0.0, time.time() - path.stat().st_mtime)
-        except OSError:
-            age = None
-    when = f"issued {int(age // 60)} min ago" if age is not None else "issue time unreadable"
-    return Result("ritual_ticket", OK, f"present, {when}"), ""
+    state = ticket_state()
+    ttl = int(state["ttl_s"] // 60)
+    fix_wire = ("restore the UserPromptSubmit and UserPromptExpansion entries for "
+                "hooks/ritual-ticket.sh in .claude/settings.json (and the script) from the kit, "
+                "then start a new session")
+    if state["status"] == "fresh":
+        left = int((state["ttl_s"] - max(state["age_s"], 0)) // 60)
+        return Result("ritual_ticket", OK, f"{state['reason']}; valid {left} more min"), ""
+    if state["status"] == "invalid":
+        return (Result("ritual_ticket", WARN, f"{state['reason']}: checkctl run refuses it"),
+                "the user types /project-memory, which mints a fresh one")
+    if not _ticket_hook_wired():
+        return (Result("ritual_ticket", WARN, "no prompt hook can mint a ticket (hooks/ritual-ticket.sh "
+                                              "is missing or not wired), so every checkctl run "
+                                              "refuses the ritual"), fix_wire)
+    if state["status"] == "absent":
+        return Result("ritual_ticket", OK, f"none open; the prompt hook mints one when the user types "
+                                           f"/project-memory or /adopt (valid {ttl} min)"), ""
+    return Result("ritual_ticket", OK, f"{state['reason']}; the next /project-memory replaces it"), ""
 
 
 DOCTOR_ROWS = (
@@ -2046,7 +2160,9 @@ def main(argv=None) -> int:
         "run",
         help="run one ritual phase",
         description="CHECK opens a ritual; POLISH and PUBLISH continue the one it opened. "
-                    "That is what lets PUBLISH verify POLISH ran in the SAME run id.",
+                    "That is what lets PUBLISH verify POLISH ran in the SAME run id. Every run "
+                    "needs a fresh ritual ticket: only the user opens the ritual, by typing "
+                    "/project-memory (or /adopt).",
     )
     run_cmd.add_argument("--phase", required=True, choices=sorted(PHASES))
     run_cmd.add_argument("--resume", action="store_true",
@@ -2069,7 +2185,8 @@ def main(argv=None) -> int:
     exit_cmd.add_argument("--milestone", help="build exit: check this milestone instead of the "
                                               "current one")
     exit_cmd.add_argument("--json", action="store_true")
-    complete = sub.add_parser("complete", help="mark the ritual complete (called at the end of EVOLVE)")
+    complete = sub.add_parser("complete", help="mark the ritual complete (called at the end of "
+                                               "EVOLVE); needs and consumes the ritual ticket")
     complete.add_argument("--note", default="")
 
     args = parser.parse_args(argv)
@@ -2127,23 +2244,41 @@ def main(argv=None) -> int:
             print("no ritual run to complete")
             _lib.print_verdict("CHECK", False)
             return 1
+        ticket = ticket_state(run)
+        if ticket["status"] != "fresh":
+            return refuse_without_ticket("completing the ritual", ticket)
         run["status"] = "done"
         run["last_completed"] = _lib.utc_now()
         run["step"] = None
+        stamp_ticket(run, ticket["ticket"])
+        unspent = consume_ticket(run, ticket["ticket"])
         save_run(run)
         try:
             _lib.journal_append("note", text=f"ritual complete ({run['run_id']}) {args.note}".strip())
         except Exception:
             pass
-        print(f"ritual {run['run_id']} complete")
-        _lib.print_verdict("CHECK", True)
+        print(f"ritual {run['run_id']} complete; the ritual ticket is consumed")
+        if unspent:
+            print(f"WARNING: could not delete {_lib.rel(ritual_ticket_path())} ({unspent}); it is "
+                  f"marked consumed in memory-run.json, so it cannot open another run")
+        _lib.print_verdict("CHECK", True, warn=bool(unspent))
         return 0
 
     # CHECK opens a ritual; the later phases continue it. Without this, every phase invocation
     # would mint a new run id and PUBLISH's same-run-id precondition could never be satisfied
     # in normal use, which would train people to bypass the very check that protects them.
     continues = args.resume or args.phase != "check"
+    current = load_run()
+    opening = args.new or not (continues and current.get("run_id"))
+    # The ticket gate, before anything is written: opening a run and continuing one both need
+    # a fresh ticket, so an agent can neither start the ritual nor carry one on past its life.
+    ticket = ticket_state(current)
+    if ticket["status"] != "fresh":
+        action = "opening a ritual run" if opening else f"continuing ritual {current.get('run_id')}"
+        return refuse_without_ticket(action, ticket)
     run = start_run(resume=continues and not args.new)
+    stamp_ticket(run, ticket["ticket"])
+    save_run(run)
     results = PHASES[args.phase](run)
     failed = [r for r in results if r.status == FAIL]
     warned = [r for r in results if r.status == WARN]

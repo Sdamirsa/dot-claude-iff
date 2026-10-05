@@ -61,6 +61,19 @@
       "default": false
     },
     {
+      "key": "memory.ritual.ticket_ttl_minutes",
+      "title": "Ritual ticket lifetime",
+      "description": "Minutes a ritual ticket stays fresh. The prompt hook (hooks/ritual-ticket.sh) writes .claude/state/ritual-ticket.json when the user's own prompt starts with /project-memory or /adopt; checkctl run opens or continues a ritual only while it is fresh, and checkctl complete needs it and consumes it. Anything but a positive number reads as the default. No flag or environment variable skips the ticket.",
+      "layer": "EVOLVE",
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "ritual.ticket_ttl_minutes"
+      },
+      "type": "int",
+      "default": 360
+    },
+    {
       "key": "memory.push",
       "title": "Push policy",
       "description": "Whether PUBLISH pushes after committing. always: push without asking. ask (default): one question per ritual. never: commit only.",

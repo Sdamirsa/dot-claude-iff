@@ -53,18 +53,19 @@ the user gate, and the knob's card in `.claude/config/registry.json` kept true.
 
 ## Two gears
 
-**Soft (default):** runs inside every ritual's EVOLVE phase. Session digest to
+**Soft (every ritual):** runs inside every ritual's EVOLVE phase. Session digest to
 `.claude/agents/retro-analyst.md` (propose-only) to a main-agent filter against the bar below to
 a BLOCKING user gate to implementation to `.claude/agents/anatomist.md` reconciling
 `.claude/system-map/cards/`.
 
-**Hard (`/project-memory --hard`):** a dedicated maturation session, for deep refinement of
-`.claude` itself or the project's pipeline. Procedure: full anatomist audit (folder health, map
-reconciliation, drift review) plus a usage-evidence pruning sweep plus plan/spec-style task
-cards, each with `description · to-do · satisfaction · pass-test`, plus a decision list for the
-maintainer. Approved cards are implemented one at a time; each lands with a `checkctl` probe.
-Run hard gear when "a session focused on improving the system" is the actual goal, not a
-side-effect of shipping project work.
+**Maturation pass (a ROUTE choice):** the last step of `/project-memory` asks whether to run
+one now; there is no flag for it. For deep refinement of `.claude` itself or the project's
+pipeline. Procedure: full anatomist audit (folder health, map reconciliation, drift review)
+plus a usage-evidence pruning sweep, with surviving proposals turned into task cards
+(Definition of done, one Test command, registered under a milestone) for a plan phase, plus a
+decision list for the maintainer. The cards are implemented in a later build phase, one at a
+time; each lands with a `checkctl` probe. Choose it when "a session focused on improving the
+system" is the actual goal, not a side-effect of shipping project work.
 
 ## Proposal format
 
@@ -103,14 +104,15 @@ Components with zero or low use across sessions become pruning candidates:
   (what · archived · why · replacement).
 
 Always user-gated through the same proposal format and BLOCKING gate as an addition. Logged as
-a `tooling` entry the same way. The hard-gear pruning sweep is the systematic pass; the soft
-gear can still surface an obvious single-component prune when the evidence is already in hand.
+a `tooling` entry the same way. The maturation pass's pruning sweep is the systematic pass; the
+soft gear can still surface an obvious single-component prune when the evidence is already in
+hand.
 
 ## The anatomist
 
 `.claude/agents/anatomist.md` implements approved changes with the primitive chosen above, and
 keeps `.claude/system-map/cards/` truthful. It reconciles cards after every soft-gear
-implementation and runs the full audit at the start of every hard-gear session. **A change that
+implementation and runs the full audit at the start of every maturation pass. **A change that
 adds or removes a component is not done until its card is**: a proposal that lands a new skill
 or archives an old subagent without a matching card add, edit, or archive is incomplete, not
 merely undocumented.

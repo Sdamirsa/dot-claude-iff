@@ -69,18 +69,18 @@ anyone may propose an addition.
   parses, heartbeat is fresh, generators are current, cards lint clean, registry lints clean,
   the price table isn't silently empty, record size is reported, needs-human is synced, and
   task Checkpoints match reality.
-- **evolve (ritual phase)**: The fourth phase of `/project-memory`: soft gear by default, hard
-  gear on demand. See `.claude/protocols/evolution.md`. For the surface-level sense, see
-  **evolve (surface)** under The three surfaces.
+- **evolve (ritual phase)**: The fourth phase of `/project-memory`: the soft gear every time;
+  the deeper maturation pass when ROUTE picks it. See `.claude/protocols/evolution.md`. For the
+  surface-level sense, see **evolve (surface)** under The three surfaces.
 - **freshness**: Whether a generated file matches its current source, decided by content hash
   (never by mtime: git does not preserve mtimes, so an mtime rule fires randomly on every fresh
   clone or branch switch).
 - **generator**: A script that produces a derived file (`map.json`, `console.html`,
   `STATUS.md`, and so on). Every generator is registered by name in `config/memory.json` and
   runs only through the ritual (anti-rot); an unregistered generator rots invisibly.
-- **hard gear**: `/project-memory --hard`, a dedicated maturation session: full anatomist
-  audit, a usage-evidence pruning sweep, plan/spec-style task cards, a decision list for the
-  maintainer.
+- **maturation pass**: The third ROUTE question at the end of `/project-memory` (no flag
+  starts it): full anatomist audit, a usage-evidence pruning sweep, surviving proposals turned
+  into task cards for a plan phase, a decision list for the maintainer.
 - **phase (ritual)**: One of the four steps of `/project-memory`: check, polish, publish, evolve
   (`checkctl.py run --phase ...`). For where the project is in its work, see
   **phase (lifecycle)** under Lifecycle.
@@ -90,6 +90,13 @@ anyone may propose an addition.
   demote (subagent to skill to rule to CLAUDE.md line) or archive, always user-gated.
 - **publish**: The third phase of `/project-memory`. Ingest, seal, rollup, anchor, optional
   vault snapshot, commit always, push per policy.
+- **ritual ticket**: `state/ritual-ticket.json`, `{skill, ts, session_id, event}`, minted by the
+  prompt hook when the user's own prompt starts with `/project-memory` or `/adopt`. `checkctl
+  run` and `complete` refuse without a fresh one (`memory.json` `ritual.ticket_ttl_minutes`);
+  `complete` consumes it. Denied to every agent by the gate. A tripwire, not cryptography.
+- **route**: The step after the ritual's report: one AskUserQuestion setting up the next
+  session (phase: stay or advance through the exit check; mode: keep or switch; maturation
+  pass: now or not).
 - **run id**: The identifier tying one `/project-memory` invocation's phases together in
   `state/memory-run.json`; PUBLISH refuses to run without a POLISH completion recorded under
   the same run id.

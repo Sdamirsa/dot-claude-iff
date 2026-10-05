@@ -1,19 +1,28 @@
 ---
 name: project-memory
-description: The one ritual - check, polish, publish, evolve. Invoke at the end of a working session, after a milestone, or when the user says "update memory", "log this session", "update the log", "curate memory", "update status", "wrap up", or "run the ritual". Add --hard for a dedicated maturation session that deeply refines the .claude system itself. NOT for planning or resuming work (use /plan-task), and NOT for a cold "where were we" (read .claude/STATUS.md).
+description: The one ritual - check, polish, publish, evolve, then route the next session (phase, mode, optional maturation pass). Only the user opens it, by typing /project-memory at the end of a working session or after a milestone. When the user says "update memory", "log this session", "update the log", "curate memory", "update status", "wrap up", or "run the ritual", ask them to type /project-memory. NOT for planning or resuming work (use /plan-task), and NOT for a cold "where were we" (read .claude/STATUS.md).
 disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, AskUserQuestion
 ---
 
 # /project-memory
 
-Four phases, in order: **CHECK, POLISH, PUBLISH, EVOLVE.**
+Five phases, in order: **CHECK, POLISH, PUBLISH, EVOLVE**, then the report, then **ROUTE**.
+
+**This skill runs only because the user typed `/project-memory`.** `checkctl` enforces it: the
+prompt hook (`.claude/hooks/ritual-ticket.sh`) writes a ticket, `.claude/state/ritual-ticket.json`,
+when the user's own prompt starts with `/project-memory` (or `/adopt`); `checkctl run` refuses
+to open or continue a run without a fresh one, and `checkctl complete` needs it and consumes
+it. The policy gate denies the file to every agent identity. The ticket is a tripwire, not
+cryptography: it makes an agent-opened ritual fail loudly and leaves the issue in the record;
+it does not make forging impossible, and it does not have to. If `checkctl` refuses for want of
+a ticket, stop and ask the user to type `/project-memory`. Never work around it.
 
 Run this in the MAIN session, never as a sub-agent. You are the only agent who saw the whole
 conversation, and curation is exactly the part that cannot be reconstructed from disk.
 
-Two gears. **Soft** is the default: evolve incrementally as part of wrapping up. **Hard**
-(`/project-memory --hard`) is a dedicated maturation session, described at the end.
+EVOLVE runs in the soft gear every time: evolve incrementally as part of wrapping up. The
+deeper maturation pass is a choice the user makes at ROUTE, described there.
 
 Every generator in this system runs here and only here. That is not a stylistic preference: in
 the system this one was distilled from, the single regenerator nobody wired into the ritual sat
@@ -204,7 +213,8 @@ python3 .claude/tools/statectl.py tooling --change-type <kind> --what "..." --ev
 you). Dispatch the anatomist; if nothing changed, say so explicitly rather than silently
 skipping.
 
-**4g. Close the ritual:**
+**4g. Close the ritual** (it needs the ticket and consumes it, so this is the last `checkctl`
+write of the ritual):
 
 ```
 python3 .claude/tools/checkctl.py complete --note "<one line>"
@@ -223,19 +233,54 @@ Report skipped and failed steps faithfully. "Done" means verified-done.
 
 ---
 
-## Hard gear - `/project-memory --hard`
+## Phase 5 - ROUTE
 
-A dedicated maturation session for deep refinement of the `.claude` system or the project's
-work-package pipeline. Run the four phases as usual, and additionally:
+The last step: set up the next session. Read the dials first
+(`python3 .claude/tools/statectl.py status` prints Mode and Phase), then ask ONE
+AskUserQuestion with up to three questions. Skip a question that does not apply; when none
+applies, say so in one line and stop.
 
-1. **Full anatomist audit** - not just reconciliation: folder health, drift review, every
-   component's card checked against its source, unclassifiable components surfaced.
-2. **Pruning sweep** - usage evidence from the record (`obsctl.py report --by session`, journal
-   and log greps) against every skill, agent, tool and rule. Unused machinery becomes a demotion
-   or archival proposal. Growth and shrinkage run on the same evidence.
-3. **Task cards** for everything the audit surfaced, each with description, to-do, satisfaction
-   criteria and a pass-test, written into `.claude/tasks/`.
+**1. Phase for the next session.** Skip it in Freestyle: that mode has no phase contract.
+Options: stay in the current phase, or advance to the next one (plan, build, review, deploy,
+then plan again for the next milestone; with no phase set, offer to start in plan). Recommend
+staying unless this session's work met the phase's exit. On advance, run:
+
+```
+python3 .claude/tools/statectl.py phase <next>
+```
+
+It runs the current phase's exit check first. If it refuses, show the failing rows as printed,
+then ask whether to fix them first or leave anyway. Offer `--override "<why>"` only when the
+user chooses to leave anyway, and use their reason, not yours. Leaving `review` needs the
+human's sign-off: ask for it and pass their words verbatim as `--signoff "<text>"`. Never write
+a sign-off yourself.
+
+**2. Mode for the next session.** Keep the current mode, or switch with
+`python3 .claude/tools/statectl.py mode <freestyle|guided-solo|fableous-orchestrated>`. One line
+each on what it costs and what it gives:
+
+- **Freestyle**: costs nothing extra; gives the record, the gates and this ritual, with no
+  phase contract and no exit checks.
+- **Guided Solo**: costs an exit check at every phase change and a contract printed at each
+  session start; gives a lifecycle that cannot quietly skip a test run or a sign-off. One agent.
+- **Fableous Orchestrated**: costs more agent calls and a validated handoff envelope per task;
+  gives Guided Solo plus a lead routing work to a team (`protocols/orchestration.md`).
+
+**3. Maturation pass now?** Default no. It suits a session whose goal is improving the system
+itself, not a side effect of shipping project work. When the user says yes, run it now:
+
+1. **Full anatomist audit**: folder health, drift review, every component's card checked
+   against its source, unclassifiable components surfaced. Not just reconciliation.
+2. **Pruning sweep**: usage evidence from the record (`obsctl.py report --by session`, journal
+   and log greps) against every skill, agent, tool and rule. Unused machinery becomes a
+   demotion or archival proposal. Growth and shrinkage run on the same evidence.
+3. **Proposals become task cards for a plan phase**: each surviving proposal goes through the
+   evolution bar and the user gate, then lands as a `/plan-task` file in `.claude/tasks/`
+   (Definition of done, one Test command, registered under a milestone), so the next plan
+   phase picks it up. Each card's Test includes its `checkctl.py probe` entry, so "it is built"
+   stays a mechanical claim.
 4. **A decision list** for the maintainer: every judgment call the audit could not make alone,
    with a recommendation.
-5. Each implemented card lands with a probe in `checkctl.py probe`, so "it is built" stays a
-   mechanical claim rather than a rhetorical one.
+
+Card and map changes the pass makes are rebuilt by the next ritual, which the user opens by
+typing `/project-memory` again: this one is already complete.

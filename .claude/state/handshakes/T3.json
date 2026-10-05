@@ -1,0 +1,91 @@
+{
+  "task_id": "T3",
+  "agent_id": "builder-T3",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "ok",
+  "RESULT": "A new prompt hook (.claude/hooks/ritual-ticket.sh, wired on UserPromptSubmit and UserPromptExpansion) writes .claude/state/ritual-ticket.json {skill, ts, session_id, event} only when the user's own prompt starts with /project-memory or /adopt. checkctl run (opening or continuing) and complete refuse without a fresh ticket (memory.json ritual.ticket_ttl_minutes, default 360), complete consumes it, memory-run.json records invoked_by user-ticket plus the ticket ts; every read-only subcommand needs none and the doctor row is truthful. Every agent-facing nudge now asks the user, the SessionStart counter counts captured sessions, and /project-memory ends with a ROUTE step that replaces the --hard flag.",
+  "files_changed": [
+    ".claude/hooks/ritual-ticket.sh (new)",
+    ".claude/hooks/session-start.sh",
+    ".claude/settings.json",
+    ".claude/tools/checkctl.py",
+    ".claude/tools/mapctl.py",
+    ".claude/tools/distctl.py",
+    ".claude/tools/tests/_fixture.py",
+    ".claude/tools/tests/test_ritual.py (new)",
+    ".claude/tools/tests/test_contracts.py",
+    ".claude/tools/tests/test_secrets.py",
+    ".claude/config/memory.json",
+    ".claude/config/registry.json",
+    ".claude/system-map/cards/hook.ritual-ticket.json (new)",
+    ".claude/system-map/cards/store.ritual_ticket.json (new)",
+    ".claude/system-map/cards/store.memory_run.json",
+    ".claude/system-map/cards/tool.checkctl.json",
+    ".claude/system-map/cards/hook.session-start.json",
+    ".claude/system-map/cards/skill.project-memory.json",
+    ".claude/skills/project-memory/SKILL.md",
+    ".claude/skills/adopt/SKILL.md",
+    ".claude/skills/adopt/CLAUDE.template.md",
+    ".claude/skills/plan-task/SKILL.md",
+    ".claude/protocols/evolution.md",
+    ".claude/protocols/human-gates.md",
+    ".claude/reference/glossary.md",
+    ".claude/CLAUDE.md",
+    ".claude/README.md",
+    ".github/README.md",
+    "docs/done.html",
+    ".gitignore",
+    ".claude/state/handshakes/T3.json (new)"
+  ],
+  "tests": [
+    {"command": "python3 .claude/tools/tests/run_tests.py test_ritual test_hooks -q", "exit_code": 0, "summary": "113 passed · 0 failed · 0 errored · 0 skipped"},
+    {"command": "python3 .claude/tools/tests/run_tests.py -q", "exit_code": 0, "summary": "556 passed · 0 failed · 0 errored · 2 skipped"}
+  ],
+  "EVIDENCE": [
+    "baseline full suite before any edit -> 523 passed, 1 skipped, TESTS_OK",
+    "test_ritual alone -> 33 tests; the first run failed once (a second grant in the same second reused the consumed ts), fixed in the test by granting an earlier ts; then green",
+    "the extra skip in the full suite is test_dist.TestCommittedZips.test_committed_zips_equal_a_rebuild: 'zips behind ... uncommitted payload edit(s)' (the lead rebuilds zips at merge)",
+    "checkctl run --phase check in the worktree with no ticket -> 'refused: opening a ritual run needs a fresh ritual ticket - no ritual ticket.' + 'Ask the user to type /project-memory; only the user can open the ritual ...', CHECK_FAIL, exit 1",
+    "checkctl doctor in the worktree -> ritual_ticket OK 'none open; the prompt hook mints one when the user types /project-memory or /adopt (valid 360 min)'; hooks OK '14 hook command(s) wired, 6 script(s)'",
+    "checkctl probe in the worktree -> 46 ok, 0 fail (hook.ritual-ticket probed)",
+    "mapctl lint in the worktree -> 0 errors (warnings are stale auto.hash on cards of edited files)",
+    "distctl gitignore in the worktree -> GITIGNORE_OK (.gitignore carries the block with the new ritual-ticket line)",
+    "manual hook run on Windows Git Bash: '  /project-memory' (UserPromptSubmit) and command_name 'adopt' (UserPromptExpansion) minted tickets; 'please run /project-memory now' minted none; every run exit 0, empty stdout, about 0.4-0.5 s",
+    "WebFetch of code.claude.com/docs/en/hooks: UserPromptSubmit carries user_input + user_input_type ('user'|'system'); UserPromptExpansion carries command_name, user_input, expanded_prompt; stdout on exit 0 is injected as context on both"
+  ],
+  "DEVIATIONS": [
+    "Field names: the current Claude Code docs (fetched) give UserPromptSubmit's typed text as `user_input` with `user_input_type`, not `prompt`. The hook accepts user_input first and prompt (older releases) too, and refuses any turn whose user_input_type is not 'user' (Claude Code also fires UserPromptSubmit for turns it starts itself: task notices, scheduled prompts). It never reads `expanded_prompt` (the skill template).",
+    "Payload handoff: the hook stages stdin in a mktemp file (as policy-gate.sh does) instead of an env var (obs-capture.sh style): a prompt can exceed an env var (32K chars on Windows). A grep prefilter skips python for prompts naming neither command.",
+    "Continuing a run also needs the ticket to be fresh (per the lead's note), so every `checkctl run` checks it; the refusal names 'opening a ritual run' or 'continuing ritual <id>'. A consumed ticket's ts is also stored in memory-run.json (ticket_consumed), so a ticket file that survives deletion stays spent. memory-run.json records invoked_by, ticket_ts, ticket_skill and ticket_session.",
+    "Ticket validation beyond the contract: skill must be project-memory|adopt, ts must parse, a ts more than 5 min in the future is refused. Exit code on refusal is 1, like statectl's refusals.",
+    "Doctor ritual_ticket row: fresh -> OK with minutes left; absent with the hook wired -> OK 'none open'; expired/consumed -> OK naming it; unparsable or invalid -> WARN; hook missing or not wired -> WARN (no ticket can ever be minted). ritual-ticket.sh joined EXPECTED_HOOKS. This changed T6's test_secrets.TestDoctor.test_absent_features_skip_then_read_when_present on purpose: the fixture has no hook wired, so the absent row is WARN, and the 'present' half now grants a real ticket (its old {ts} ticket has no skill and is invalid).",
+    "Existing tests changed on purpose: test_contracts (two TestPublishTransaction tests) and test_secrets (TestGitScope run) call self.grant_ticket() before checkctl run; FixtureCase gained grant_ticket().",
+    "Session counter: counts distinct session ids in SessionStart events from the capture lane (spool minus ingest.jsonl, plus segments dated on/after the last ritual) after last_completed, plus the current session from the hook's own payload, minus the ritual's session (memory-run.json ticket_session). With SessionStart capture off the count is None: the nudge says 'sessions not counted' and goes by age alone. The hook still never writes the journal.",
+    "The ticket is gitignored: added to distctl's managed tracked block, the repo's .gitignore block, and checkctl._deliberately_ignored. Without it PUBLISH's `git add -A` would commit a ticket every ritual.",
+    "Adopt skill: the lead's 'it works because the user typed /adopt' holds only when the session runs inside the target with its hooks loaded at session start (the fresh zip). From another project, or on the kit path (hooks installed mid-session load only at the next session start), the target has no ticket: the skill now says so, forbids forging one, verifies with doctor + probe, defers CHECK/POLISH to the user's first /project-memory in a new session, and counts deferred boxes as unchecked. START-HERE now has the user type `/adopt ...` as the prompt; ADOPT.md gains step 5 (new session, type /project-memory).",
+    "The hook also emits an obslog 'ritual.ticket' telemetry event (fails open) so the record shows when and in which session each ticket was minted.",
+    "Envelope: `status` is 'done', not 'ok': post-write-validate.sh rejected 'ok' (it wants done|partial|blocked); STATUS stays 'ok' per the brief.",
+    "tasks/_template.md was not changed: it holds no agent-directed form (the grep test scans it). STATUS.md still says `/project-memory --hard` (line 28) but the brief forbids editing STATUS.md."
+  ],
+  "UNCERTAINTIES": [
+    "Not verified in a live Claude Code session: that typing /project-memory fires the hook and opens `checkctl run`. Human test checklist item: in a NEW session after merge (hooks load at session start), type /project-memory and confirm CHECK opens; also confirm /hooks lists the UserPromptSubmit and UserPromptExpansion entries.",
+    "A Claude Code release older than UserPromptExpansion might reject that unknown key in settings.json; I could not find what Claude Code does with an unknown hook event name. If settings validation drops the whole hooks block, the policy gate would be off too, so the first new session after merge should confirm /hooks shows all of them.",
+    "No matcher on the UserPromptExpansion entry (the docs say it matches command names; regex semantics unverified), so it fires on every expansion and the script filters.",
+    "Forging path not closed: an agent can run `bash .claude/hooks/ritual-ticket.sh` with a crafted payload; the gate denies the ticket file, not running the hook. The obslog event and the transcript record it (tripwire, as specified).",
+    "Exec bit: the new hook was created on Windows; its git mode is whatever the lead's `git add` records."
+  ],
+  "needs_main": [
+    "git add the new files: .claude/hooks/ritual-ticket.sh WITH the exec bit (`git add --chmod=+x .claude/hooks/ritual-ticket.sh`), .claude/tools/tests/test_ritual.py, cards hook.ritual-ticket.json and store.ritual_ticket.json, this envelope.",
+    "After merge, the main session cannot open the ritual until a NEW session loads the hook and the user types /project-memory there: checkctl run refuses in any session that started before the hook was wired.",
+    "Run POLISH (map_scan) to refresh stale auto.hash on cards of edited files (tool.checkctl, tool.mapctl, tool.distctl, config.memory, config.registry, skill.adopt, skill.plan-task, protocol.evolution, protocol.human-gates); rebuild both zips (hook, settings.json, skills, configs changed).",
+    "STATUS.md line 28 still names `/project-memory --hard`: rewrite it at the next ritual (the maturation pass is now a ROUTE choice).",
+    "Merge note: T5 edits checkctl.py too (handoff); test_ritual's read-only test runs `checkctl handoff T-none` when that subcommand exists and asserts it is not ticket-gated."
+  ],
+  "SUGGESTIONS": [
+    "Policy gate: deny executing .claude/hooks/ritual-ticket.sh from Bash/PowerShell for every identity (the hook only needs Claude Code to run it), which closes the cheapest forging path.",
+    "obslog spools a hook's telemetry under CLAUDE_SESSION_ID (unset in hooks, so 'tools.jsonl'); passing the payload's session id to the spool file name would keep a session's events together.",
+    "The adopt skill says replacing settings.json would 'bind this system's six' hooks: a count in prose; there are now six scripts but the sentence will drift again."
+  ]
+}

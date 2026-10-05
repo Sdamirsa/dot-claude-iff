@@ -126,8 +126,9 @@ When every Plan box is checked and each step's done-evidence has been verified (
    already exist for this work.
 4. Update `.claude/STATUS.md`: remove the task from `## Active tasks`, refresh `## Next steps`.
 
-Closing normally happens inside `/project-memory` at session end, but close immediately if the
-task finishes mid-session: a done task lingering as active misleads the next resumer.
+Closing normally happens inside `/project-memory` at session end (the user types it; suggest it
+at a natural boundary), but close immediately if the task finishes mid-session: a done task
+lingering as active misleads the next resumer.
 
 ## Rules
 

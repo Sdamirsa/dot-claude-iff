@@ -281,6 +281,7 @@ class TestGitScope(GitCase):
         self.assertEqual(result.status, checkctl.FAIL)
         self.assertIn("FAIL src/app.py:3 openai_key", result.details)
 
+        self.grant_ticket()  # the user typed /project-memory
         code, out = self.run_main(["run", "--phase", "check", "--new"])
         self.assertEqual(code, 1)
         self.assertIn("secrets_placement", out)
@@ -444,11 +445,14 @@ class TestDoctor(SecretsCase):
 
     def test_absent_features_skip_then_read_when_present(self):
         rows = {r.name: r.status for r, _fix in checkctl.doctor()}
-        for name in ("mode", "phase", "ritual_ticket"):
+        for name in ("mode", "phase"):
             self.assertEqual(rows[name], checkctl.SKIP, name)
+        # The ticket row is no longer a SKIP: the fixture wires no prompt hook, so no ticket
+        # can ever be minted and every ritual would refuse (test_ritual covers the row fully).
+        self.assertEqual(rows["ritual_ticket"], checkctl.WARN)
         _lib.atomic_write_json(_lib.state_dir() / "session.json",
                                {"session": {"mode": "guided", "phase": "build"}})
-        _lib.atomic_write_json(_lib.state_dir() / "ritual-ticket.json", {"ts": _lib.utc_now()})
+        self.grant_ticket()
         rows = {r.name: (r.status, r.message) for r, _fix in checkctl.doctor()}
         self.assertEqual(rows["mode"], (checkctl.OK, "mode: guided"))
         self.assertEqual(rows["phase"], (checkctl.OK, "phase: build"))

@@ -27,6 +27,9 @@ settings.local.json
 # Liveness signal, rewritten every turn by the Stop hook (which creates it when missing)
 .claude/state/heartbeat.json
 
+# Ritual ticket: minted by the prompt hook when the user types /project-memory, consumed at the end
+.claude/state/ritual-ticket.json
+
 # Agent worktrees (build-time scratch copies of the repo)
 .claude/worktrees/
 

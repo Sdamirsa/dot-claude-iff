@@ -31,6 +31,16 @@
     ],
     "enabled": true
   },
+  "ritual": {
+    "_comment": [
+      "The ritual is the user's. The prompt hook (hooks/ritual-ticket.sh) writes",
+      "state/ritual-ticket.json when the user's own prompt starts with /project-memory or",
+      "/adopt; checkctl run (open or continue) and complete refuse without a fresh one, and",
+      "complete consumes it. ticket_ttl_minutes is how long a ticket stays fresh. A tripwire,",
+      "not cryptography: there is no flag or environment variable that skips it."
+    ],
+    "ticket_ttl_minutes": 360
+  },
   "phases": {
     "check": [
       "journal_parses",
