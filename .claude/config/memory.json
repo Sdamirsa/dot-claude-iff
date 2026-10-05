@@ -63,8 +63,16 @@
     "evolve": []
   },
   "project_steps": {
-    "_comment": "Project-registered steps. kind: check|polish|generator. argv is a LIST, run without a shell. Example: {\"name\": \"pytest\", \"kind\": \"check\", \"argv\": [\"uv\", \"run\", \"pytest\", \"-q\"], \"required\": true}",
-    "check": [],
+    "_comment": "Project-registered steps. kind: check|polish|generator. argv is a LIST, run without a shell. Example: {\"name\": \"pytest\", \"kind\": \"check\", \"argv\": [\"uv\", \"run\", \"pytest\", \"-q\"], \"required\": true}. These are THIS repo's own steps: distctl empties every list on the way into the kits.",
+    "check": [
+      {
+        "name": "test_suite",
+        "kind": "check",
+        "argv": ["python3", ".claude/tools/tests/run_tests.py", "-q"],
+        "required": true,
+        "timeout": 600
+      }
+    ],
     "polish": [],
     "generator": []
   },

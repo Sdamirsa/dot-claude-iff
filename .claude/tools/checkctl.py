@@ -549,7 +549,9 @@ def _deliberately_ignored(rel: str) -> bool:
     """The system's own intended ignores: private reference material, console runtime,
     machine-local settings, caches. Everything else in the shippable trees is meant to be
     trackable, so an ignore rule catching it is a shadow, not a choice."""
-    if rel.startswith(".claude/reference/private/"):
+    if rel.startswith((".claude/reference/private/", ".claude/worktrees/")):
+        return True
+    if rel == ".claude/state/heartbeat.json":  # rewritten every turn; the Stop hook recreates it
         return True
     if rel.endswith((".pyc", ".tmp", ".pid", ".log")):
         return True
@@ -663,16 +665,21 @@ def check_changelog_parity() -> Result:
         return Result("changelog_parity", SKIP,
                       "home-repo-only, disabled (memory.json distribution.enabled)")
     root = _lib.project_root()
-    versions = {"v" + _lib.system_version()}
+    stamp = _lib.system_version()
+    if not _lib.parse_version(stamp):
+        return Result("changelog_parity", FAIL,
+                      f"system_version {stamp!r} is not X.Y.Z or X.Y.Z-(alpha|beta|rc).N",
+                      ["fix system_version in .claude/config/registry.json"])
+    versions = {"v" + stamp}
     tags = _lib.git_output(["tag", "-l", "v*"], root=root) or ""
-    versions |= {t for t in tags.split() if re.fullmatch(r"v\d+\.\d+\.\d+", t)}
+    versions |= {t for t in tags.split() if _lib.parse_version(t, tag=True)}
     try:
         text = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     except OSError:
         return Result("changelog_parity", FAIL, "CHANGELOG.md is missing at the repo root",
                       [f"expected sections for: {', '.join(sorted(versions))}"])
-    missing = sorted(v for v in versions
-                     if not re.search(rf"^## {re.escape(v)}\b", text, re.MULTILINE))
+    # Exact heading match (_lib.changelog_section): '## v0.3.0-alpha.1' must not satisfy v0.3.0.
+    missing = sorted(v for v in versions if _lib.changelog_section(text, v) is None)
     if missing:
         return Result("changelog_parity", FAIL,
                       f"{len(missing)} released version(s) lack a CHANGELOG.md section",

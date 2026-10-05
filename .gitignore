@@ -14,6 +14,10 @@ settings.local.json
 .claude/console/*.pid
 .claude/console/*.log
 
+# Liveness signal, rewritten every turn by the Stop hook (which creates it when missing):
+# tracking it put a one-line diff in every commit and a conflict in every merge.
+.claude/state/heartbeat.json
+
 # compiled python
 __pycache__/
 *.pyc

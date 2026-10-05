@@ -1,0 +1,74 @@
+{
+  "task_id": "T2",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "ok",
+  "RESULT": "One version grammar now lives in _lib (parse_version, is_prerelease, changelog_section, plus a --release-kind CLI). changelog_parity, release.yml (--prerelease --latest=false, exact-tag notes, fail on a malformed tag) and the tests all use it, and a new ci.yml runs the suite on push to dev/main and on PRs (ubuntu + windows). The zips now build under one rule: working tree minus gitignored, LF text, pinned headers, worktrees pruned, release-flow.md home-only. test_dist rebuilds them and compares byte for byte. heartbeat.json is gitignored and the Stop hook creates it on a fresh install. The home CHECK runs the suite, and the kits ship project_steps empty.",
+  "files_changed": [
+    ".github/workflows/release.yml",
+    ".github/workflows/ci.yml",
+    ".claude/tools/_lib.py",
+    ".claude/tools/checkctl.py",
+    ".claude/tools/distctl.py",
+    ".claude/config/memory.json",
+    ".gitignore",
+    ".claude/hooks/heartbeat.sh",
+    ".claude/skills/adopt/SKILL.md",
+    ".claude/reference/release-flow.md",
+    ".claude/reference/distribution-boundary.md",
+    ".claude/tools/tests/test_dist.py",
+    ".claude/tools/tests/test_contracts.py",
+    ".claude/dist/dot-claude-iff-fresh.zip",
+    ".claude/dist/dot-claude-iff-adopt-kit.zip",
+    ".claude/state/handshakes/T2.json"
+  ],
+  "tests": [
+    {"command": "python3 .claude/tools/tests/run_tests.py test_dist test_contracts -q", "exit_code": 0, "summary": "98 passed · 0 failed · 0 errored · 0 skipped / TESTS_OK"},
+    {"command": "python3 .claude/tools/tests/run_tests.py -q", "exit_code": 0, "summary": "260 passed · 0 failed · 0 errored · 1 skipped / TESTS_OK (the skip is the pre-existing POSIX-only fsync test)"},
+    {"command": "python3 .claude/tools/distctl.py verify", "exit_code": 0, "summary": "fresh: the committed zips equal a rebuild of this tree / DIST_OK"}
+  ],
+  "EVIDENCE": [
+    "Root cause confirmed: a rebuild under the new rule adds exactly reference/distribution-boundary.md, cards/reference.distribution-boundary.json and cards/store.machine.json, the three files the committed zips lacked",
+    "EOL: 100 of the 109 entries in the committed fresh zip held CRLF (built on Windows); a rebuild has 0",
+    "distctl.py verify on the old committed zips -> DIST_FAIL exit 1; after distctl.py build -> DIST_OK exit 0",
+    "Editing glossary.md without a rebuild -> verify DIST_FAIL; test_committed_zips skips as 'pending' (uncommitted); restored byte for byte -> DIST_OK",
+    "Zips built with CPython 3.10.20, 3.12.13 and 3.13.14 (zlib 1.3.2) are byte-identical to the 3.14.7 build (zlib-ng)",
+    "Mutation check: the original heartbeat.sh on an extracted fresh zip -> no heartbeat.json; the new hook -> created",
+    "TestZipVerdict fixture walks fresh -> pending -> stale (edit committed without rebuild) -> fresh, so the guard can fail",
+    "checkctl probe -> 38 ok, CHECK_OK; changelog_parity/gitignore_shadowing/config_registry_lint called read-only on the worktree -> all OK",
+    "_lib.py --release-kind v0.3.0-alpha.1 -> prerelease exit 0; v0.3.0-alpha1 -> exit 1"
+  ],
+  "DEVIATIONS": [
+    "Payload rule chosen: the working tree decides which files ship (git ls-files --cached --others --exclude-standard), and git only vetoes ignored files. This matches the ledger (it hashes the working tree) and PUBLISH's git add -A. The existing test_untracked_file_does_not_ship_and_is_reported encoded the old rule; it is replaced by test_gitignored_file_does_not_ship_and_is_reported and test_a_file_created_in_session_ships_in_the_same_ritual",
+    "The equality test is strict on a clean tree (CI, after any commit). When the rebuild differs only because payload edits are uncommitted, it SKIPS: the suite is now a CHECK step, CHECK runs before POLISH rebuilds the zips, and a strict test would fail every ritual after a payload edit. The 'red when edited without rebuild' signal comes from the new distctl.py verify (writes nothing) and is proven in fixture TestZipVerdict",
+    "checkctl edited outside check_changelog_parity: _deliberately_ignored now covers .claude/state/heartbeat.json and .claude/worktrees/. Without this, gitignore_shadowing would WARN on heartbeat in every repo once it is untracked. Test added in TestGitignoreShadowing",
+    "adopt SKILL.md: besides the exclusion list (dist/, worktrees/, release-flow.md), Phase 4 step 7 now also empties project_steps for clone adoptions, so a clone does not inherit the home suite step",
+    "heartbeat.sh now creates state/ when missing. Before, it exited when state/ was absent, so a fresh zip install never got a heartbeat",
+    "distribution-boundary.md (not in the file list) updated: mechanism 3 now names project_steps emptying and HOME_ONLY_FILES, and line 1 no longer says git-tracked",
+    "Zip headers pinned: create_system=3 (its default is the building OS, 0 on Windows, which changed the bytes and dropped .sh mode bits on unzip) and explicit ZIP_STORED. Entries were already stored because writestr with a ZipInfo ignores ZIP_DEFLATED; deflate is not enabled because Windows CPython 3.14 uses zlib-ng",
+    "Zips rebuilt in the worktree per the lead's note, although the brief says not to edit .claude/dist/*.zip",
+    "DistCase fixture now sets distribution.enabled true itself instead of inheriting the running repo's memory.json",
+    "Additions: the _lib.py --release-kind CLI; the release job fails on a malformed v-tag and runs git diff --exit-code -- .claude/dist/ after its build; distctl gains a verify subcommand, build(out_dir, quiet) and payload_source()"
+  ],
+  "UNCERTAINTIES": [
+    "Not run on Linux. Cross-OS byte equality rests on LF normalisation, the pinned create_system and STORED, and was verified across 4 CPython versions on Windows only; the first ubuntu CI run is the real proof",
+    "ci.yml and release.yml were not executed. The gh flag syntax --prerelease --latest=false comes from gh docs. Tests check the workflow text and execute the extracted notes heredoc",
+    "The CHECK step argv uses python3: where only python exists the step FAILs with 'could not run'",
+    "The heartbeat fresh-install test assumes python3 resolves inside bash on Windows CI, the same assumption as the existing test_hooks"
+  ],
+  "needs_main": [
+    "git rm --cached .claude/state/heartbeat.json at merge",
+    "After ALL wave merges: python3 .claude/tools/distctl.py build, then distctl.py verify -> DIST_OK, then commit both zips (the worktree zips match T2's tree only; on a clean tree test_committed_zips is strict and goes red otherwise)",
+    "Run POLISH (map_scan) to refresh the stale card hashes: config.memory, hook.heartbeat, skill.adopt, tool._lib, tool.checkctl, tool.distctl",
+    "T11: the heading must be exactly '## v0.3.0-alpha.1 - YYYY-MM-DD'; parity no longer accepts a prefix",
+    "Optional: add release-flow to CLAUDE.md's .claude/reference/ layout row",
+    "Every home CHECK now runs the full suite (about a minute)"
+  ],
+  "SUGGESTIONS": [
+    "checkctl GENERATORS dist_build inputs omit .claude/tasks/_template.md and .claude/research/_template.md, which ship: an edit there leaves the ledger fresh (CI equality catches it)",
+    "check_no_machine_paths and check_gitignore_shadowing rglob .claude/ including .claude/worktrees/ (whole checkouts) in the main checkout: slow, and the shadowing check should currently WARN there; prune worktrees",
+    "The system suite is red inside adopter projects (pre-existing): TestChangelogParity and other fixtures depend on the home knob copied from the real memory.json",
+    "Make manual workflow_dispatch releases pre-releases; today they can move 'latest'",
+    "Consider .gitattributes '*.sh text eol=lf' so Windows checkouts keep the hooks LF; the zips no longer need it"
+  ]
+}

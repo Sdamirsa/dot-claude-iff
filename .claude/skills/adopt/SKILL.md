@@ -126,6 +126,15 @@ tamper-evidence anchor - or another project's live contract:
 Also skip the derived files `.claude/console/console.html` and `.claude/system-map/map.json`
 (both listed under `derived_files` in `policy.json`): Phase 5 regenerates both from scratch.
 
+Also skip, on a clone or any running source, the paths that are the source's own build
+machinery rather than the system (the kits already leave all three out):
+- `.claude/dist/`: the source's release zips. dot-claude-iff tracks them, so its manifest
+  lists them, but they are build output, and a copy inside `<target>` would nest a stale
+  system inside the installed one.
+- `.claude/worktrees/`: build-time scratch checkouts of the whole source repo. Gitignored, so
+  the manifest should never list them; skip the tree even if it does.
+- `.claude/reference/release-flow.md`: dot-claude-iff's own dev/main release flow.
+
 Also create, if `<target>` lacks it:
 - A root `.gitignore` entry for `.claude/tools/__pycache__/` and any stray `*.tmp` atomic-write
   leftovers under `.claude/`, if the target doesn't already ignore them. While there, check the
@@ -214,7 +223,10 @@ Turn the copied scaffold into this project's system:
    `demo_build` and `dist_build`, dot-claude-iff's own release machinery: in `<target>` they
    would zip its private `.claude/` into redistributable archives and render its real session
    state into `docs/`, which many repos publish. checkctl reports them as SKIP with the reason
-   named; that is the correct steady state everywhere except the source repo.
+   named; that is the correct steady state everywhere except the source repo. In the same
+   file, empty the `check`, `polish` and `generator` lists under `project_steps`: a clone
+   carries the source's own steps (dot-claude-iff runs its test suite as a CHECK step), and
+   the kits already ship them empty.
 8. **Console port, decided once.** `config/console.json` ships port 7717, and every adoption
    on one machine inherits it, so the second project's console loses the bind every session.
    Pick a free port ONCE, now - e.g.
