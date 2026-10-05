@@ -76,3 +76,4 @@
 {"ts": "2026-10-05T13:02:33Z", "action": "decision", "text": "modes renamed: freestyle, guided-solo, fableous-orchestrated (short aliases accepted); T12 long-run progress added to M-0.3.0-alpha", "why": "maintainer request 2026-10-05 mid-build"}
 {"ts": "2026-10-05T13:15:57Z", "action": "task", "id": "T2", "status": "done", "note": "merged to dev; suite 279 passed"}
 {"ts": "2026-10-05T13:15:58Z", "action": "task", "id": "T8", "status": "done", "note": "merged to dev; suite 279 passed"}
+{"ts": "2026-10-05T13:18:11Z", "action": "task", "id": "T6", "status": "done", "note": "merged; suite 323 passed; doctor clean on home repo"}

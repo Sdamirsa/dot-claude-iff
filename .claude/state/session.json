@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T13:15:58Z",
-  "last_event_ts": "2026-10-05T13:15:58Z",
+  "generated_at": "2026-10-05T13:18:11Z",
+  "last_event_ts": "2026-10-05T13:18:11Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
@@ -69,9 +69,9 @@
     {
       "id": "T6",
       "title": "030a T6",
-      "status": "doing",
+      "status": "done",
       "deps": [],
-      "ts": "2026-10-05T12:43:53Z"
+      "ts": "2026-10-05T13:18:11Z"
     },
     {
       "id": "T7",
@@ -96,10 +96,10 @@
     }
   ],
   "counts": {
-    "events": 78,
+    "events": 79,
     "tasks_total": 12,
-    "tasks_done": 2,
-    "tasks_open": 10,
+    "tasks_done": 3,
+    "tasks_open": 9,
     "open_loops": 0,
     "milestones": 6,
     "decisions": 3,

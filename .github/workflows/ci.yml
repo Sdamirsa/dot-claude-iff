@@ -30,4 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test
+        # Git Bash, not the runner's default PowerShell: on windows-latest a bare `bash` on
+        # PATH is the WSL launcher with no distro, so every hook test failed there. Under
+        # `shell: bash` Git's own bash comes first, which is also what Claude Code uses.
+        shell: bash
         run: ${{ matrix.py }} .claude/tools/tests/run_tests.py -q
