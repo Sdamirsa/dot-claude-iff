@@ -674,7 +674,7 @@ def find_bash():
     """The bash that can run this system's hooks, as a full path, or None.
 
     On Windows a bare "bash" is not safe to launch: process creation searches System32 before
-    PATH, and System32\bash.exe is the WSL launcher, which fails when no distro is installed
+    PATH, and the bash.exe in System32 is the WSL launcher, which fails when no distro is installed
     (GitHub's Windows runners, many laptops). Claude Code runs hooks under Git Bash, so that is
     the one to find: a PATH hit outside the Windows folders first, then Git's install folders.
     """
