@@ -34,7 +34,7 @@ from pathlib import Path
 JOURNAL_ACTIONS = (
     "session_start",  # a working session opened            {session, phase, note}
     "pointer",        # the next concrete action            {text}
-    "task",           # task state                          {id, title, status, deps, note}
+    "task",           # task state                          {id, title, status, deps, milestone, note}
     "milestone",      # something shipped                   {id, title, note}
     "decision",       # a choice and its reason             {text, why}
     "loop",           # an open/closed thread               {id, text, status}
@@ -43,9 +43,33 @@ JOURNAL_ACTIONS = (
     "config",         # a config value changed              {changes, via}
     "gate",           # a human gate was asked/answered     {question, answer, kind}
     "tooling",        # the .claude system itself changed   {change_type, what, evidence}
+    "mode",           # how organised the work is           {value}
+    "phase",          # what work is allowed (lifecycle)    {value, from, override, signoff}
 )
 
 TASK_STATUSES = ("todo", "doing", "done", "blocked")
+# A task file's status line, `_Created YYYY-MM-DD · Status: todo_`. ONE pattern for the console's
+# task reader and checkctl's phase exits. The status class has no underscore: the line's closing
+# italic `_` used to be captured into the status ("doing_").
+TASK_STATUS_LINE_RE = re.compile(r"^_Created.*?·\s*Status:\s*([A-Za-z0-9-]+)_?\s*$", re.MULTILINE)
+
+# The three dials (milestone contract): phase = what work is allowed, mode = how organised the
+# work is. Stored and displayed values are the full names; the aliases are accepted on input
+# only. An unset mode IS freestyle: record, gates and ritual, no phase contract, no exit checks.
+MODES = ("freestyle", "guided-solo", "fableous-orchestrated")
+DEFAULT_MODE = "freestyle"
+ORGANISED_MODES = ("guided-solo", "fableous-orchestrated")
+MODE_ALIASES = {"guided": "guided-solo", "solo": "guided-solo",
+                "fableous": "fableous-orchestrated", "orchestrated": "fableous-orchestrated"}
+MODE_LABELS = {"freestyle": "Freestyle", "guided-solo": "Guided Solo",
+               "fableous-orchestrated": "Fableous Orchestrated"}
+LIFECYCLE_PHASES = ("plan", "build", "review", "deploy")
+PHASE_CONTRACT_MAX_LINES = 5
+
+# The proposal box (state/proposals.jsonl): ideas that are out of scope right now.
+PROPOSAL_KINDS = ("feature", "fix", "evolve")
+PROPOSAL_RESOLUTIONS = ("planned", "rejected")
+PROPOSAL_SOURCE_RE = re.compile(r"^(?:issue#\d+|human|agent:[A-Za-z0-9._-]+)$")
 LOOP_STATUSES = ("open", "closed")
 SEV_BANDS = ("SEV0", "SEV1", "SEV2", "SEV3")
 
@@ -612,6 +636,137 @@ def journal_append(action: str, **fields) -> dict:
 
 def journal_read(tolerant: bool = True) -> list:
     return read_jsonl(journal_path(), tolerant=tolerant)
+
+
+# --------------------------------------------------------------------------- lifecycle: mode + phase
+#
+# ONE reader of "which mode, which phase", folded from the journal (the truth), shared by the
+# projector, the SessionStart hook, checkctl and the console. A second reader is how the hook
+# and the console would come to disagree about the phase you are in.
+
+def normalize_mode(value) -> str | None:
+    """Full mode name for a stored value or an input alias; None when it is neither."""
+    text = str(value or "").strip().lower()
+    text = MODE_ALIASES.get(text, text)
+    return text if text in MODES else None
+
+
+def normalize_phase(value) -> str | None:
+    """A lifecycle phase, or None. Legacy free text (session_start's old `phase`, such as
+    "implementation") reads as unset rather than as a phase nobody can leave."""
+    text = str(value or "").strip().lower()
+    return text if text in LIFECYCLE_PHASES else None
+
+
+def mode_label(mode) -> str:
+    return MODE_LABELS.get(normalize_mode(mode) or DEFAULT_MODE, "Freestyle")
+
+
+def fold_lifecycle(events: list) -> dict:
+    """{mode, mode_set, phase, phase_since} from journal events, latest wins.
+
+    `phase` events are the source of the phase. A journal that predates them keeps its last
+    session_start phase only when that is a lifecycle phase; once any `phase` event exists,
+    session_start no longer moves the phase (it would be a way round the exit checks)."""
+    mode = None
+    phase = phase_since = None
+    legacy = legacy_since = None
+    for ev in events:
+        action = ev.get("action")
+        if action == "mode":
+            mode = normalize_mode(ev.get("value")) or mode
+        elif action == "phase":
+            value = normalize_phase(ev.get("value"))
+            if value:
+                phase, phase_since = value, ev.get("ts") or None
+        elif action == "session_start":
+            value = normalize_phase(ev.get("phase"))
+            if value:
+                legacy, legacy_since = value, ev.get("ts") or None
+    if phase is None and legacy is not None:
+        phase, phase_since = legacy, legacy_since
+    return {"mode": mode or DEFAULT_MODE, "mode_set": mode is not None,
+            "phase": phase, "phase_since": phase_since}
+
+
+def lifecycle_state() -> dict:
+    return fold_lifecycle(journal_read(tolerant=True))
+
+
+def current_mode() -> str:
+    return lifecycle_state()["mode"]
+
+
+def current_phase() -> str | None:
+    return lifecycle_state()["phase"]
+
+
+def phase_spec(phase) -> dict:
+    """phases.json's entry for one phase ({label, contract, exit}), {} when absent or malformed."""
+    cfg = load_config("phases")
+    phases = cfg.get("phases") if isinstance(cfg, dict) else None
+    spec = phases.get(normalize_phase(phase) or "") if isinstance(phases, dict) else None
+    return spec if isinstance(spec, dict) else {}
+
+
+def phase_label(phase) -> str:
+    value = normalize_phase(phase)
+    if not value:
+        return "unset"
+    return str(phase_spec(value).get("label") or value.capitalize())
+
+
+def phase_contract(phase) -> list:
+    """The phase's contract lines, at most PHASE_CONTRACT_MAX_LINES, from phases.json: the one
+    text the hook, the console and the docs all show."""
+    lines = phase_spec(phase).get("contract") or []
+    if not isinstance(lines, list):
+        return []
+    return [str(x) for x in lines if str(x).strip()][:PHASE_CONTRACT_MAX_LINES]
+
+
+def lifecycle_banner(state: dict | None = None) -> list:
+    """The SessionStart block: one MODE/PHASE line, plus the current phase's contract in the
+    two organised modes. Freestyle gets the one line and nothing else."""
+    state = state or lifecycle_state()
+    mode, phase = state["mode"], state["phase"]
+    head = f"MODE: {mode_label(mode)} · PHASE: {phase or 'unset'}"
+    if mode not in ORGANISED_MODES:
+        return [head]
+    if not phase:
+        return [head + " (set one: python3 .claude/tools/statectl.py phase plan)"]
+    return [head] + [f"  - {line}" for line in phase_contract(phase)]
+
+
+# --------------------------------------------------------------------------- proposal box
+
+def proposals_path() -> Path:
+    return state_dir() / "proposals.jsonl"
+
+
+def proposal_records() -> list:
+    """Fold state/proposals.jsonl ({op: add|resolve}) into one record per id, in the order
+    they were added. Like needs-human it is its own append-only store, not a journal action:
+    an idea parked for later must outlive any one session. A resolve for an unknown id is
+    ignored; a later resolve overwrites an earlier one."""
+    records: dict = {}
+    for ev in read_jsonl(proposals_path(), tolerant=True):
+        pid = ev.get("id")
+        if not pid:
+            continue
+        op = ev.get("op")
+        if op == "add" and pid not in records:
+            records[pid] = {
+                "id": str(pid), "text": str(ev.get("text", "")), "source": str(ev.get("source", "")),
+                "kind": str(ev.get("kind", "")), "status": "open", "added": str(ev.get("ts", "")),
+                "resolved": "", "note": "",
+            }
+        elif op == "resolve" and pid in records:
+            rec = records[pid]
+            rec["status"] = str(ev.get("resolution") or rec["status"])
+            rec["resolved"] = str(ev.get("ts", ""))
+            rec["note"] = str(ev.get("note", ""))
+    return list(records.values())
 
 
 # --------------------------------------------------------------------------- observability

@@ -10,6 +10,8 @@
     "store.heartbeat",
     "store.session",
     "store.needs_human",
+    "store.proposals",
+    "config.phases",
     "store.journal",
     "store.handshakes",
     "store.rollups",

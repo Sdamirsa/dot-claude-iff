@@ -61,6 +61,11 @@ KNOWN_STORES = [
      "description": "Async needs-human queue: SEV0-3 bands, queue-as-view. Bundles the append-only "
                      "source (needs-human.jsonl) and its derived projection (needs-human.json).",
      "glyphs": ["append-only", "derived"]},
+    {"id": "store.proposals", "path": ".claude/state/proposals.jsonl", "title": "Proposal box",
+     "description": "Ideas out of scope right now (statectl proposal add/list/resolve, ids PR-<n>): "
+                     "append-only, its own store like needs-human so a parked idea outlives any "
+                     "session. Open count lands in session.json; listed on the console WORK tab.",
+     "glyphs": ["append-only"]},
     {"id": "store.project_log", "path": ".claude/Project-log.jsonl", "title": "Project log",
      "description": "Append-only decision/deliverable/milestone/mistake/tooling log.",
      "glyphs": ["append-only"]},
@@ -249,6 +254,7 @@ _LITERAL_TO_STORE = {
     "HANDOFF.md": "store.handoff",
     "needs-human.jsonl": "store.needs_human",
     "needs-human.json": "store.needs_human",
+    "proposals.jsonl": "store.proposals",
     "Project-log.jsonl": "store.project_log",
     "LESSONS.jsonl": "store.lessons",
     "map.json": "store.map",

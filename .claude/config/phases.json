@@ -1,0 +1,77 @@
+{
+  "_comment": [
+    "The lifecycle phases (plan -> build -> review -> deploy): what work each phase allows, and",
+    "the check that must pass to leave it. ONE text, read by the SessionStart hook, the console",
+    "badge and the docs through _lib.phase_contract(), so the three can never disagree.",
+    "",
+    "contract: at most five short lines, printed at session start in the guided-solo and",
+    "fableous-orchestrated modes (freestyle prints only the mode line). exit: the NAME of the",
+    "exit check, bound to code in checkctl.PHASE_EXITS; `checkctl phase-exit --from <phase>`",
+    "runs it, and `statectl phase <next>` runs it first in the organised modes, refusing on",
+    "FAIL unless --override \"<why>\" (logged in the journal).",
+    "",
+    "build_test_timeout: seconds each task's Test command may run in the build exit check.",
+    "drift_ignore: paths the ritual's deploy_drift check does not list as new work during",
+    "deploy ('dir/' matches that directory anywhere in a path, other entries are file globs)."
+  ],
+  "version": 1,
+  "phases": {
+    "plan": {
+      "label": "Plan",
+      "contract": [
+        "Lay out the options and research them; record each choice with statectl decision.",
+        "Write the work as task files (/plan-task): a Definition of done and one Test command each.",
+        "Group the tasks under one milestone: statectl task <id> --milestone <mid>.",
+        "No product code yet: decide first, build next.",
+        "Exit check: every open task file is complete and registered under the milestone."
+      ],
+      "exit": "plan_ready"
+    },
+    "build": {
+      "label": "Build",
+      "contract": [
+        "Implement the milestone's tasks, one task file at a time.",
+        "Keep each task's Test green; mark a task done only when its Test passes.",
+        "No scope growth: a new idea goes to statectl proposal add, not into this milestone.",
+        "Exit check: every task of the milestone is done and its Test exits 0 when rerun."
+      ],
+      "exit": "build_green"
+    },
+    "review": {
+      "label": "Review",
+      "contract": [
+        "The human tests what was built and reports what they find.",
+        "Each finding becomes a fix task (back to build) or a proposal (statectl proposal add).",
+        "No new work in review: findings are recorded and routed, not fixed in passing.",
+        "Exit check: the human's sign-off, statectl phase <next> --signoff \"<what was tested>\"."
+      ],
+      "exit": "review_signoff"
+    },
+    "deploy": {
+      "label": "Deploy",
+      "contract": [
+        "Set up and verify the target: checkctl doctor.",
+        "Debug and serve. Fixes only.",
+        "New ideas go to statectl proposal add, never into code (the ritual lists new files).",
+        "Exit check: checkctl doctor has no FAIL."
+      ],
+      "exit": "deploy_doctor"
+    }
+  },
+  "build_test_timeout": 1800,
+  "drift_ignore": [
+    "tests/",
+    "test/",
+    "docs/",
+    "doc/",
+    "test_*",
+    "*_test.*",
+    "*.test.*",
+    "*.spec.*",
+    "*.md",
+    "*.rst",
+    ".claude/state/",
+    ".claude/tasks/",
+    ".claude-iff/"
+  ]
+}

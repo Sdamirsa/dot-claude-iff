@@ -172,6 +172,9 @@ body {
 }
 .badge.badge-static { color: var(--sev1-bg); border-color: var(--sev1-bg); }
 .badge.badge-live { color: var(--live-color); border-color: var(--live-color); }
+/* the work-mode / lifecycle-phase dial; NOT the live/static badge beside it */
+.badge.badge-lifecycle { cursor: help; }
+.badge.badge-lifecycle.is-organised { color: var(--accent); border-color: var(--accent); }
 
 #tabs { display: flex; gap: 2px; margin-left: auto; }
 .tab-btn {
@@ -476,6 +479,9 @@ dialog#node-dialog::backdrop { background: rgba(0,0,0,0.4); }
 .status-pill.status-doing { color: var(--accent); border-color: var(--accent); }
 .status-pill.status-done { color: var(--color-data); border-color: var(--color-data); }
 .status-pill.status-blocked { color: var(--sev0-bg); border-color: var(--sev0-bg); }
+.status-pill.status-open { color: var(--accent); border-color: var(--accent); }
+.status-pill.status-planned { color: var(--color-data); border-color: var(--color-data); }
+.proposal-id { font-family: var(--mono); font-size: 11px; color: var(--text-dim); flex: 0 0 auto; }
 .nh-count { font-size: 11px; font-weight: 700; color: var(--sev1-bg); }
 .next-action { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; }
 .next-action .k { color: var(--text); font-weight: 600; }
@@ -498,6 +504,7 @@ dialog#node-dialog::backdrop { background: rgba(0,0,0,0.4); }
       <span class="pulse-dot" id="pulse-dot" aria-hidden="true"></span>
       <span class="brand-name" id="project-name">console</span>
       <span class="badge" id="mode-badge">snapshot</span>
+      <span class="badge badge-lifecycle" id="lifecycle-badge" title="work mode · lifecycle phase">Freestyle</span>
     </div>
     <nav id="tabs" role="tablist" aria-label="Console sections">
       <button type="button" role="tab" data-tab="now" class="tab-btn active" aria-selected="true">NOW</button>
@@ -1487,6 +1494,33 @@ function renderWork() {
   }
   panel.appendChild(tasksCard);
 
+  // -- proposals: ideas parked for later (state/proposals.jsonl, statectl proposal ...) --------
+  const props = work.proposals || { open: 0, resolved: 0, items: [] };
+  const propCard = el("div", { class: "card" }, [sectionHead("Proposals (" + (props.open || 0) + " open)", "work.proposals")]);
+  if (props.items && props.items.length) {
+    props.items.forEach(function (p) {
+      const row = el("div", { class: "task-row" });
+      row.appendChild(el("div", { class: "head" }, [
+        el("span", { class: "proposal-id" }, [p.id || ""]),
+        el("span", { class: "title" }, [p.text || ""]),
+        el("span", { class: "status-pill status-" + (p.status || "open") }, [p.status || "open"])
+      ]));
+      row.appendChild(el("div", { class: "next-action" }, [
+        el("span", { class: "k" }, ["kind: "]), (p.kind || "-") + " · ",
+        el("span", { class: "k" }, ["source: "]), p.source || "-"
+      ]));
+      if (p.note) row.appendChild(el("div", { class: "next-action" }, [el("span", { class: "k" }, ["Note: "]), p.note]));
+      if (p.status === "open") {
+        row.appendChild(copyBox('python3 .claude/tools/statectl.py proposal resolve ' + JSON.stringify(p.id)
+          + ' --as planned --note "<where it was planned>"', "or --as rejected --note \"<why not>\""));
+      }
+      propCard.appendChild(row);
+    });
+  } else {
+    propCard.appendChild(el("div", { class: "empty-state" }, ["no proposals: park an out-of-scope idea with statectl proposal add"]));
+  }
+  panel.appendChild(propCard);
+
   const logCard = el("div", { class: "card" }, [sectionHead("Project log", "work.log_tail")]);
   if (work.log_tail && work.log_tail.length) {
     work.log_tail.slice().reverse().forEach(function (e) {
@@ -1624,6 +1658,23 @@ function renderChrome() {
     badge.className = "badge badge-static";
     dot.className = "pulse-dot";
   }
+  renderLifecycleBadge();
+}
+
+// The work-mode / lifecycle-phase dial (DATA.now.lifecycle, folded by _lib.lifecycle_state -
+// the same reader the SessionStart hook prints). The hover title carries the phase contract.
+function renderLifecycleBadge() {
+  const lb = document.getElementById("lifecycle-badge");
+  if (!lb) return;
+  const life = (DATA.now && DATA.now.lifecycle) || {};
+  const modeLabel = life.mode_label || "Freestyle";
+  lb.textContent = modeLabel + " · " + (life.phase_label || "no phase");
+  lb.className = "badge badge-lifecycle" + (life.organised ? " is-organised" : "");
+  const tip = ["work mode: " + modeLabel + (life.mode_set ? "" : " (unset = freestyle)"),
+               "phase: " + (life.phase || "unset") + (life.phase_since ? " since " + life.phase_since : "")];
+  (life.contract || []).forEach(function (line) { tip.push("- " + line); });
+  if (!life.organised) tip.push("no phase contract or exit checks in freestyle");
+  lb.title = tip.join("\n");
 }
 
 function renderAll() {

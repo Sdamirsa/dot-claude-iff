@@ -47,7 +47,8 @@
       "gitignore_shadowing",
       "theme_token_parity",
       "changelog_parity",
-      "secrets_placement"
+      "secrets_placement",
+      "deploy_drift"
     ],
     "polish": [
       "map_scan",

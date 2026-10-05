@@ -54,8 +54,9 @@ to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gat
 
 ```
 python3 .claude/tools/statectl.py  start|pointer|task|milestone|decision|loop|note|intent|gate
-                                   tooling|need|device|refresh|resume|status
+                                   tooling|need|device|refresh|resume|status|mode|phase|proposal
 python3 .claude/tools/checkctl.py  run --phase check|polish|publish · probe · generators · status
+                                   phase-exit --from plan|build|review|deploy · doctor
 python3 .claude/tools/obsctl.py    ingest|seal|rollup|anchor|report|story|size|analyze
 python3 .claude/tools/mapctl.py    scan|lint|compile|show|context
 python3 .claude/tools/consolectl.py build|payload|serve
@@ -79,7 +80,7 @@ evolution) · `verifier` (adversarial claim checking).
 | `.claude/state/` | `journal.jsonl` is truth; session/HANDOFF/needs-human/map are projections |
 | `.claude/system-map/` | `layers.json` + one card per component → compiled `map.json` |
 | `.claude/console/` | the single-page console + its stdlib server |
-| `.claude/config/` | memory (ritual registry) · policy · observe · console · registry · prices · brainstorm |
+| `.claude/config/` | memory (ritual registry) · policy · observe · console · registry · prices · brainstorm · phases |
 | `.claude-iff/` | committed record surface: anchor + redacted rollups, write-denied |
 | `<parent>/dot-claude-iff_claude_iff/` | RECORD_ROOT: raw capture, transcripts, analysis, vault |
 

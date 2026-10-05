@@ -1,0 +1,92 @@
+{
+  "task_id": "T4",
+  "agent_id": "builder-T4",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "ok",
+  "RESULT": "Modes (freestyle, guided-solo, fableous-orchestrated; aliases accepted on input) and lifecycle phases (plan, build, review, deploy) are new journal actions folded by one _lib reader shared by the projector, the SessionStart hook, checkctl and the console; `statectl phase` runs `checkctl phase-exit --from <current>` in the two organised modes and refuses on FAIL unless --override (logged). The proposal box (`statectl proposal add|list|resolve`, append-only state/proposals.jsonl, ids PR-<n>) projects into session.json and HANDOFF.md and is listed on the console WORK tab beside a new mode/phase badge in the top bar; config/phases.json carries the contracts, exit-check names and knobs; deploy_drift joins the ritual CHECK; tasks link to milestones; /plan-task and the task template carry the status line, the Test line and the journal registration.",
+  "files_changed": [
+    ".claude/tools/_lib.py",
+    ".claude/tools/statectl.py",
+    ".claude/tools/checkctl.py",
+    ".claude/tools/consolectl.py",
+    ".claude/tools/mapctl.py",
+    ".claude/tools/tests/_fixture.py",
+    ".claude/tools/tests/test_phases.py (new)",
+    ".claude/tools/tests/test_statectl.py",
+    ".claude/tools/tests/test_console.py",
+    ".claude/hooks/session-start.sh",
+    ".claude/console/console.template.html",
+    ".claude/config/phases.json (new)",
+    ".claude/config/memory.json",
+    ".claude/config/registry.json",
+    ".claude/system-map/cards/config.phases.json (new)",
+    ".claude/system-map/cards/store.proposals.json (new)",
+    ".claude/system-map/cards/tool.statectl.json",
+    ".claude/system-map/cards/tool.checkctl.json",
+    ".claude/system-map/cards/tool.consolectl.json",
+    ".claude/system-map/cards/hook.session-start.json",
+    ".claude/skills/plan-task/SKILL.md",
+    ".claude/skills/adopt/CLAUDE.template.md",
+    ".claude/tasks/_template.md",
+    ".claude/reference/glossary.md",
+    ".claude/CLAUDE.md",
+    ".claude/README.md",
+    ".claude/state/handshakes/T4.json (new)",
+    ".claude/state/session.json (accidental refresh, see needs_main)",
+    ".claude/state/HANDOFF.md (accidental refresh, see needs_main)"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_phases test_statectl test_console -q",
+      "exit_code": 0,
+      "summary": "126 passed · 0 failed · 0 errored · 1 skipped / TESTS_OK"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "396 passed · 0 failed · 0 errored · 2 skipped / TESTS_OK"
+    }
+  ],
+  "EVIDENCE": [
+    "baseline before any edit: run_tests.py -q -> 323 passed, 1 skipped, TESTS_OK",
+    "mutation check: 5 deliberate breakages (freestyle prints contract; statectl phase skips the gate; build Test run with shell=True; plan check ignores a missing milestone; legacy free-text phase honoured) each turned its target test class red; files restored byte-identical",
+    "scratch project walk: mode guided -> phase plan (no check) -> phase build refused (FAIL row task_files, STATE_FAIL, exit 1) -> after `statectl task 20261005-widget --milestone M1` phase build passes and prints the build contract; `checkctl phase-exit --from build` -> FAIL 'status todo, not done (Test not run)', CHECK_FAIL, exit 1",
+    "mapctl lint on the worktree: 0 errors; checkctl.check_config_registry(): OK '39 knobs registered, none dead'; config.phases card auto.hash equals sha256 of phases.json",
+    "skips in the full run: test_committed_zips_equal_a_rebuild ('zips behind 25 uncommitted payload edit(s)', expected until the zip rebuild) and the pre-existing POSIX-only fsync test",
+    "`checkctl phase-exit --from plan` on this repo (read-only): 13 FAIL rows, listed in SUGGESTIONS"
+  ],
+  "DEVIATIONS": [
+    "Task file <-> journal task mapping is not in the contract. Implemented: the file stem (the /plan-task id; the template and skill now say so) OR the id leading the title (`# Task: T4 - ...`), compared case-insensitively.",
+    "Current milestone for the build exit = the latest `milestone` event's id, else the latest task event's milestone; `checkctl phase-exit --from build --milestone <mid>` overrides. The build exit also finds a done task's file in tasks/archive/ (plan-task archives done files) and runs each distinct Test command once.",
+    "Legacy session_start.phase: a lifecycle word (e.g. 'build') still counts until the first `phase` event exists; free text such as 'implementation' reads as unset. `statectl start --phase` stays as a legacy label and cannot move the phase once phase events exist.",
+    "Task-file enumeration excludes every `_`-prefixed file (not only _template.md), matching check_task_reality.",
+    "Fixed a pre-existing console bug in scope of 'parses under the console reader': the status regex captured the closing italic underscore ('doing_'). The one regex now lives in _lib.TASK_STATUS_LINE_RE, used by consolectl and checkctl.",
+    "Doctor: WORK_MODES/LIFECYCLE_PHASES now come from _lib; the mode row accepts full names and input aliases, so test_secrets' 'guided' fixture is unchanged and still OK; 'phases' added to DOCTOR_CONFIGS.",
+    "proposal resolve: --note is required (unbracketed in the contract); --kind defaults to feature; resolving an already-resolved proposal records it with STATE_WARN. Store ops: {op:add,id,text,source,kind} and {op:resolve,id,resolution,note}. No proposals.json projection: _lib.proposal_records() folds the jsonl for statectl and the console.",
+    "--override is written to the event only when the exit check failed and was overridden; `statectl phase X` while already in X is a no-op.",
+    "deploy_drift returns SKIP (not OK) outside an organised deploy phase; untracked files count only when their mtime is after the phase began; the ignore list is a knob (phases.drift_ignore).",
+    "Existing tests changed on purpose: test_console's empty-payload freshness expectation (work.proposals is live) and new payload keys; test_statectl MINIMAL_FIELDS gains mode/phase and the verdict-token command list gains the new commands.",
+    "Envelope `status` is 'done' (post-write-validate accepts only done|partial|blocked), STATUS is 'ok', as T8 did."
+  ],
+  "UNCERTAINTIES": [
+    "Ran on Windows under Git Bash only; the Ubuntu CI lane was not run.",
+    "PR-<n> ids are counted from the store (max + 1) as the contract asks; two concurrent `proposal add` calls could mint the same id (needs-human moved to derived ids for exactly that race).",
+    "deploy_drift uses `git log --since` (committer dates): a commit made during deploy but carrying an older committer date would be missed.",
+    "The badge and the proposals list were verified by payload/template tests and a full consolectl build, not visually in a browser.",
+    "Test commands are split with shlex in POSIX mode: a Windows backslash path inside a Test command would be mangled (the skill says to write it for the repo root)."
+  ],
+  "needs_main": [
+    "I ran `statectl.py status` inside the worktree by mistake; it refreshed .claude/state/session.json and .claude/state/HANDOFF.md (new projection shape). Restore them with `git checkout -- .claude/state/session.json .claude/state/HANDOFF.md` in the worktree, or let the merge-time refresh regenerate them. No journal or store was written.",
+    "git add the new files: .claude/config/phases.json, .claude/tools/tests/test_phases.py, .claude/system-map/cards/config.phases.json, .claude/system-map/cards/store.proposals.json, .claude/state/handshakes/T4.json.",
+    "Rebuild the zips (distctl.py build) and the derived console.html / map.json (ritual POLISH) after merge.",
+    "Before using phases on this repo: `statectl task T<n> --milestone M-0.3.0-alpha` for each 030a task, and decide on 030a-00-milestone.md (see SUGGESTIONS)."
+  ],
+  "SUGGESTIONS": [
+    "`checkctl phase-exit --from plan` on this repo today: every 030a task (T1-T12) is registered without a milestone; 030a-00-milestone.md has two backticked spans on its Test line (`...run_tests.py -q` prints `TESTS_OK`) and is not a registered task. Either register it and keep one span, or drop its Status line so it reads as an index rather than a task.",
+    "consolectl _read_tasks lists _template.md on the WORK tab as an active task (pre-existing; it now reads status todo). Skip `_`-prefixed files as check_task_reality does.",
+    "obsctl's story MARKER_ACTIONS could include `phase` so phase transitions appear as STORY markers.",
+    "The SessionStart banner could name the command that leaves the current phase (`statectl phase <next>`) once T3/T5 settle the ROUTE step."
+  ]
+}

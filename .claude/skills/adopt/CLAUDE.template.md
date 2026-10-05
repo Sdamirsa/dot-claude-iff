@@ -59,7 +59,9 @@ System commands:
 
 ```
 python3 .claude/tools/statectl.py  pointer|task|milestone|decision|loop|note|need|refresh|resume
+                                   mode|phase|proposal
 python3 .claude/tools/checkctl.py  run --phase check|polish|publish · probe · generators
+                                   phase-exit --from plan|build|review|deploy · doctor
 python3 .claude/tools/obsctl.py    ingest|seal|rollup|anchor|report|story|size|analyze
 python3 .claude/tools/mapctl.py    scan|lint|compile|show|context
 python3 .claude/tools/consolectl.py build|payload|serve
