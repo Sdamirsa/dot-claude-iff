@@ -20,3 +20,6 @@ __pycache__/
 
 # Private reference material (personal brand guides, drafts) - reusable locally, never published
 .claude/reference/private/
+
+# Agent worktrees (build-time scratch copies of the repo)
+.claude/worktrees/

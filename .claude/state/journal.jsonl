@@ -49,3 +49,19 @@
 {"ts": "2026-08-26T13:23:07Z", "action": "tooling", "change_type": "process", "what": "one release publisher: workflow uses the CHANGELOG section as notes; the skill's recipe now says push the tag and watch the run, never gh release create by hand", "evidence": "pushing v0.2.2 raced the workflow, which failed with 'a release with the same tag name already exists' - a red run behind a correct release"}
 {"ts": "2026-08-26T13:23:08Z", "action": "tooling", "change_type": "doc", "what": "reference/distribution-boundary.md + store.machine declared in mapctl KNOWN_STORES", "evidence": "the home-vs-adopter split was re-derived twice this session across three undocumented mechanisms; the new store card warned UNDECLARED until mapctl learned it"}
 {"ts": "2026-08-26T13:23:35Z", "action": "note", "text": "ritual complete (20260826T125020Z-603d1a) logo, Windows gate fail-open fixed, changelog pinning, derived ports, system monitor + device identity, v0.2.2, three evolution changes"}
+{"ts": "2026-10-05T11:56:28Z", "action": "pointer", "text": "v3.0-alpha planning: read issues 7-14, research options w/ Opus sub-agents, publish planning artifact, await user decisions"}
+{"ts": "2026-10-05T12:09:54Z", "action": "pointer", "text": "0.3-alpha planning artifact published (https://claude.ai/code/artifact/3dd5777d-3072-4f64-8a6b-9e1c9adc1dd2); WAITING on user decisions D1-D11; next: write .claude/tasks T1-T10 + milestone M-0.3.0-alpha, then build with Opus sub-agents"}
+{"ts": "2026-10-05T12:41:56Z", "action": "decision", "text": "0.3.0-alpha scope fixed: modes freestyle/guided/fableous; phases plan/build/review/deploy; ritual user-ticket with ROUTE step; fableous = protocol + builder/scout + validated JSON handoff + delegation nudge; secrets check + doctor; visibility knob + export; adhd skill vendored and tunable; folder context map + lint; Jev gate deferred to proposals; zips stay committed with freshness test; dev branch with main as last stable; v0.3.0-alpha.1 then v0.3.1", "why": "maintainer decisions 2026-10-05 after planning review of issues 7-14"}
+{"ts": "2026-10-05T12:41:56Z", "action": "milestone", "id": "M-0.3.0-alpha", "title": "v0.3.0-alpha.1: phases, modes, fableous, secrets, export, folder context", "note": "planned; tasks 030a-t1..t11"}
+{"ts": "2026-10-05T12:41:56Z", "action": "task", "id": "T1", "title": "030a T1", "status": "todo"}
+{"ts": "2026-10-05T12:41:56Z", "action": "task", "id": "T2", "title": "030a T2", "status": "todo"}
+{"ts": "2026-10-05T12:41:56Z", "action": "task", "id": "T3", "title": "030a T3", "status": "todo"}
+{"ts": "2026-10-05T12:41:57Z", "action": "task", "id": "T4", "title": "030a T4", "status": "todo"}
+{"ts": "2026-10-05T12:41:57Z", "action": "task", "id": "T5", "title": "030a T5", "status": "todo"}
+{"ts": "2026-10-05T12:41:57Z", "action": "task", "id": "T6", "title": "030a T6", "status": "todo"}
+{"ts": "2026-10-05T12:41:57Z", "action": "task", "id": "T7", "title": "030a T7", "status": "todo"}
+{"ts": "2026-10-05T12:41:58Z", "action": "task", "id": "T8", "title": "030a T8", "status": "todo"}
+{"ts": "2026-10-05T12:41:58Z", "action": "task", "id": "T9", "title": "030a T9", "status": "todo"}
+{"ts": "2026-10-05T12:41:58Z", "action": "task", "id": "T10", "title": "030a T10", "status": "todo"}
+{"ts": "2026-10-05T12:41:58Z", "action": "task", "id": "T11", "title": "030a T11", "status": "todo"}
+{"ts": "2026-10-05T12:41:59Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: wave 1 (T1 T2 T6 T8 T9) Opus builders in worktrees; task files .claude/tasks/030a-*.md; main session merges each diff into dev and verifies the Test"}

@@ -1,35 +1,108 @@
 {
-  "generated_at": "2026-08-26T14:26:19Z",
-  "last_event_ts": "2026-08-26T13:23:35Z",
+  "generated_at": "2026-10-05T12:41:59Z",
+  "last_event_ts": "2026-10-05T12:41:59Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "v0.2.2 shipped; next session: restart to arm the PowerShell gate matcher, then /adopt dry-run against a second repo to validate port auto",
+  "resume_pointer": "M-0.3.0-alpha BUILD: wave 1 (T1 T2 T6 T8 T9) Opus builders in worktrees; task files .claude/tasks/030a-*.md; main session merges each diff into dev and verifies the Test",
   "open_loops": [],
   "open_intents": [],
-  "tasks": [],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "030a T1",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:56Z"
+    },
+    {
+      "id": "T10",
+      "title": "030a T10",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:58Z"
+    },
+    {
+      "id": "T11",
+      "title": "030a T11",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:58Z"
+    },
+    {
+      "id": "T2",
+      "title": "030a T2",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:56Z"
+    },
+    {
+      "id": "T3",
+      "title": "030a T3",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:56Z"
+    },
+    {
+      "id": "T4",
+      "title": "030a T4",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:57Z"
+    },
+    {
+      "id": "T5",
+      "title": "030a T5",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:57Z"
+    },
+    {
+      "id": "T6",
+      "title": "030a T6",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:57Z"
+    },
+    {
+      "id": "T7",
+      "title": "030a T7",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:57Z"
+    },
+    {
+      "id": "T8",
+      "title": "030a T8",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:58Z"
+    },
+    {
+      "id": "T9",
+      "title": "030a T9",
+      "status": "todo",
+      "deps": [],
+      "ts": "2026-10-05T12:41:58Z"
+    }
+  ],
   "counts": {
-    "events": 51,
-    "tasks_total": 0,
+    "events": 67,
+    "tasks_total": 11,
     "tasks_done": 0,
-    "tasks_open": 0,
+    "tasks_open": 11,
     "open_loops": 0,
-    "milestones": 5,
-    "decisions": 1,
+    "milestones": 6,
+    "decisions": 2,
     "tooling": 5
   },
   "heartbeat": {
-    "ts": "2026-08-26T14:21:27Z",
+    "ts": "2026-10-05T12:10:06Z",
     "note": "turn ended"
   },
   "recent_milestones": [
-    {
-      "id": "M1",
-      "title": "foundation, hooks and ritual runner landed",
-      "ts": "2026-08-25T08:32:09Z"
-    },
     {
       "id": "M2",
       "title": "Phase 2 complete: system self-hosting, 140 tests green, review triaged",
@@ -49,6 +122,11 @@
       "id": "monitor-device-ports",
       "title": "System monitor, device identity, derived console ports shipped (suite 225/225)",
       "ts": "2026-08-26T12:35:42Z"
+    },
+    {
+      "id": "M-0.3.0-alpha",
+      "title": "v0.3.0-alpha.1: phases, modes, fableous, secrets, export, folder context",
+      "ts": "2026-10-05T12:41:56Z"
     }
   ],
   "recent_decisions": [
@@ -56,6 +134,11 @@
       "text": "console port 7146 for this repo",
       "why": "shipped default 7717 is held by another project's console on this machine; 7146 = 7100 + sha256('dot-claude-iff') % 800 (deterministic, bookmarkable); distctl now normalizes shipped kits back to 7717 so one machine's decision never rides into the zips",
       "ts": "2026-08-26T11:34:01Z"
+    },
+    {
+      "text": "0.3.0-alpha scope fixed: modes freestyle/guided/fableous; phases plan/build/review/deploy; ritual user-ticket with ROUTE step; fableous = protocol + builder/scout + validated JSON handoff + delegation nudge; secrets check + doctor; visibility knob + export; adhd skill vendored and tunable; folder context map + lint; Jev gate deferred to proposals; zips stay committed with freshness test; dev branch with main as last stable; v0.3.0-alpha.1 then v0.3.1",
+      "why": "maintainer decisions 2026-10-05 after planning review of issues 7-14",
+      "ts": "2026-10-05T12:41:56Z"
     }
   ],
   "recent_tooling": [
