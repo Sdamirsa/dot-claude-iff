@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-05T13:18:11Z",
-  "last_event_ts": "2026-10-05T13:18:11Z",
+  "generated_at": "2026-10-05T13:19:58Z",
+  "last_event_ts": "2026-10-05T13:19:58Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "M-0.3.0-alpha BUILD wave 1 re-dispatched: 5 Opus builders in LEAD-MADE worktrees .claude/worktrees/t1 t2 t6 t8 t9 (branches wt/tN from dev; harness isolation branches from origin/main so do not use it). On return: review diff in worktree, commit there, merge wt/tN into dev, run suite, rebuild zips, git rm --cached heartbeat. Then wave 2 (T4 T7), wave 3 (T3 T5), T10, T11 (human gate)",
+  "resume_pointer": "M-0.3.0-alpha BUILD: merged T2 T6 T8 (dev pushed, suite 323 green locally). In flight in lead-made worktrees: T1 t1, T9 t9, T4 t4, T7 t7. After each merge: distctl build + full suite + commit zips + push; watch CI (ci.yml; Windows fixed to shell: bash, verify green). Then T3+T5 (need T1,T4), T12, T10, T11 (human gate before tag/issue replies)",
   "open_loops": [],
   "open_intents": [],
   "tasks": [
@@ -55,9 +55,9 @@
     {
       "id": "T4",
       "title": "030a T4",
-      "status": "todo",
+      "status": "doing",
       "deps": [],
-      "ts": "2026-10-05T12:41:57Z"
+      "ts": "2026-10-05T13:19:57Z"
     },
     {
       "id": "T5",
@@ -76,9 +76,9 @@
     {
       "id": "T7",
       "title": "030a T7",
-      "status": "todo",
+      "status": "doing",
       "deps": [],
-      "ts": "2026-10-05T12:41:57Z"
+      "ts": "2026-10-05T13:19:57Z"
     },
     {
       "id": "T8",
@@ -96,7 +96,7 @@
     }
   ],
   "counts": {
-    "events": 79,
+    "events": 82,
     "tasks_total": 12,
     "tasks_done": 3,
     "tasks_open": 9,

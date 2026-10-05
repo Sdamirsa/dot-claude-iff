@@ -77,3 +77,6 @@
 {"ts": "2026-10-05T13:15:57Z", "action": "task", "id": "T2", "status": "done", "note": "merged to dev; suite 279 passed"}
 {"ts": "2026-10-05T13:15:58Z", "action": "task", "id": "T8", "status": "done", "note": "merged to dev; suite 279 passed"}
 {"ts": "2026-10-05T13:18:11Z", "action": "task", "id": "T6", "status": "done", "note": "merged; suite 323 passed; doctor clean on home repo"}
+{"ts": "2026-10-05T13:19:57Z", "action": "task", "id": "T4", "status": "doing"}
+{"ts": "2026-10-05T13:19:57Z", "action": "task", "id": "T7", "status": "doing"}
+{"ts": "2026-10-05T13:19:58Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: merged T2 T6 T8 (dev pushed, suite 323 green locally). In flight in lead-made worktrees: T1 t1, T9 t9, T4 t4, T7 t7. After each merge: distctl build + full suite + commit zips + push; watch CI (ci.yml; Windows fixed to shell: bash, verify green). Then T3+T5 (need T1,T4), T12, T10, T11 (human gate before tag/issue replies)"}
