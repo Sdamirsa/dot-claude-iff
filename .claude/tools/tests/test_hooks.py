@@ -1033,6 +1033,212 @@ class TestDelegationNudgeHook(HookCase):
         self.assertEqual(self.write("src/b.py", "x\n").stdout.strip(), "")
 
 
+def _iso(offset: float) -> str:
+    import time
+    from datetime import datetime, timezone
+    return datetime.fromtimestamp(time.time() + offset, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+class TestActivityPulseHook(HookCase):
+    """The activity pulse (T12) rides the policy gate AFTER its decision and the capture hook on
+    sub-agent events: a throttled heartbeat refresh that can never change, delay or break a
+    decision. Law 2, telemetry half, with the gate half as the thing being protected."""
+
+    # An allow and a deny, on the Write lane and both shell lanes (one real wrapper run each per
+    # condition below: these are the slow tests, so the matrix is kept to what proves the point).
+    PAYLOADS = (
+        ("allow Write", {"tool_name": "Write", "tool_input": {"file_path": "src/a.py"}}),
+        ("deny Write", {"tool_name": "Write", "tool_input": {"file_path": ".claude/config/policy.json"},
+                        "agent_type": "worker"}),
+        ("allow Bash", {"tool_name": "Bash", "tool_input": {"command": "ls -la src"}}),
+        ("deny PowerShell", {"tool_name": "PowerShell",
+                             "tool_input": {"command": "Remove-Item .claude/hooks/x.sh"},
+                             "agent_type": "worker"}),
+    )
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.state = self.root / ".claude" / "state"
+        self.beat = self.state / "heartbeat.json"
+
+    def knobs(self, progress_value) -> None:
+        cfg = json.loads((CLAUDE_DIR / "config" / "orchestration.json").read_text(encoding="utf-8"))
+        cfg["progress"] = progress_value
+        (self.root / ".claude" / "config" / "orchestration.json").write_text(json.dumps(cfg))
+
+    def gate(self, payload: dict) -> tuple:
+        res = self.run_hook("policy-gate.sh", dict(payload, cwd=str(self.root)))
+        return res.returncode, res.stdout, res.stderr
+
+    def write_beat(self, offset: float, note: str = "working") -> str:
+        text = json.dumps({"ts": _iso(offset), "note": note, "via": "Bash"})
+        self.state.mkdir(parents=True, exist_ok=True)
+        self.beat.write_text(text, encoding="utf-8")
+        return text
+
+    def test_the_heartbeat_refreshes_after_the_window_not_before(self):
+        self.knobs({"pulse_seconds": 60, "report_minutes": 30})
+        fresh = self.write_beat(-10)
+        self.gate(dict(self.PAYLOADS)["allow Bash"])
+        self.assertEqual(self.beat.read_text(encoding="utf-8"), fresh, "inside the window: untouched")
+        self.write_beat(-120)
+        self.gate(dict(self.PAYLOADS)["allow Bash"])
+        text = self.beat.read_text(encoding="utf-8")
+        beat = json.loads(text)
+        self.assertEqual((beat["note"], beat["via"]), ("working", "Bash"))
+        import _lib
+        self.assertLess(_lib.age_seconds(beat["ts"]), 30)
+        self.assertNotIn("ls -la", text, "the tool's name, never its input")
+
+    def test_a_turn_ended_beat_and_a_sub_agent_call_pulse_and_zero_turns_it_off(self):
+        self.knobs({"pulse_seconds": 60, "report_minutes": 30})
+        self.write_beat(-5, note="turn ended")
+        self.gate(dict(self.PAYLOADS)["deny Write"])  # a sub-agent, and a denied call: still activity
+        self.assertEqual(json.loads(self.beat.read_text(encoding="utf-8"))["note"], "working")
+        self.beat.unlink()
+        self.knobs({"pulse_seconds": 0, "report_minutes": 30})
+        self.gate(dict(self.PAYLOADS)["allow Write"])
+        self.assertFalse(self.beat.exists(), "pulse_seconds 0: no pulse")
+
+    def test_a_broken_pulse_leaves_every_decision_byte_identical(self):
+        self.knobs({"pulse_seconds": 0, "report_minutes": 30})
+        baseline = {name: self.gate(p) for name, p in self.PAYLOADS}
+        for name, (code, out, _err) in baseline.items():  # the baseline itself is right
+            self.assertEqual(code, 0, name)
+            self.assertEqual(self.decision(subprocess.CompletedProcess([], 0, out, "")),
+                             "deny" if name.startswith("deny") else None, name)
+        lib = self.root / ".claude" / "tools" / "_lib.py"
+        shipped = lib.read_text(encoding="utf-8")
+
+        def pulse_on():
+            self.knobs({"pulse_seconds": 1, "report_minutes": 30})
+
+        def beat_is_a_directory():
+            pulse_on()
+            self.beat.mkdir(parents=True)
+
+        def corrupt_beat():
+            pulse_on()
+            self.beat.write_bytes(b"\xff{ not json")
+
+        def state_is_a_file():
+            pulse_on()
+            shutil.rmtree(self.state)
+            self.state.write_text("not a directory", encoding="utf-8")
+
+        def pulse_raises():
+            pulse_on()
+            lib.write_text(shipped + "\n\ndef activity_pulse(via):\n    raise RuntimeError('broken')\n",
+                           encoding="utf-8")
+
+        def pulse_prints_and_exits():
+            pulse_on()
+            lib.write_text(shipped + "\n\ndef activity_pulse(via):\n    import sys\n"
+                                     "    print('NOISE')\n    sys.stderr.write('NOISE')\n"
+                                     "    sys.exit(7)\n", encoding="utf-8")
+
+        def reset():
+            lib.write_text(shipped, encoding="utf-8")
+            if self.state.is_file():
+                self.state.unlink()
+            if self.beat.is_dir():
+                shutil.rmtree(self.beat)
+            self.beat.unlink(missing_ok=True)
+            self.state.mkdir(parents=True, exist_ok=True)
+
+        for condition in (pulse_on, beat_is_a_directory, corrupt_beat, state_is_a_file,
+                          pulse_raises, pulse_prints_and_exits):
+            condition()
+            try:
+                for name, payload in self.PAYLOADS:
+                    with self.subTest(condition=condition.__name__, call=name):
+                        self.assertEqual(self.gate(payload), baseline[name])
+            finally:
+                reset()
+
+    def test_the_capture_hook_pulses_on_sub_agent_events_only(self):
+        self.knobs({"pulse_seconds": 60, "report_minutes": 30})
+        res = self.run_hook("obs-capture.sh", {"hook_event_name": "Stop", "session_id": "s1"})
+        self.assertEqual(res.returncode, 0)
+        self.assertFalse(self.beat.exists(), "Stop is the heartbeat hook's, not a pulse")
+        for event in ("SubagentStart", "SubagentStop"):
+            with self.subTest(event=event):
+                self.beat.unlink(missing_ok=True)
+                res = self.run_hook("obs-capture.sh", {"hook_event_name": event, "session_id": "s1",
+                                                       "agent_type": "builder"})
+                self.assertEqual((res.returncode, res.stdout.strip()), (0, ""))
+                beat = json.loads(self.beat.read_text(encoding="utf-8"))
+                self.assertEqual((beat["note"], beat["via"]), ("working", event))
+        spool = (self.record / "spool" / "s1.jsonl").read_text(encoding="utf-8")
+        self.assertIn("SubagentStop", spool, "capture still records the event")
+
+    def test_the_capture_hook_still_captures_when_the_pulse_breaks(self):
+        self.knobs({"pulse_seconds": 60, "report_minutes": 30})
+        self.beat.mkdir(parents=True)  # unwritable heartbeat
+        res = self.run_hook("obs-capture.sh", {"hook_event_name": "SubagentStart", "session_id": "s2"})
+        self.assertEqual(res.returncode, 0)
+        self.assertIn("SubagentStart", (self.record / "spool" / "s2.jsonl").read_text(encoding="utf-8"))
+
+
+class TestProgressReportHook(HookCase):
+    """The periodic progress report rides post-write-validate.sh's advisory channel: additional
+    context on an exit-0 run, for the lead only, in the two organised modes, never blocking."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        for name in ("progress.py", "statectl.py", "checkctl.py"):
+            shutil.copy(CLAUDE_DIR / "tools" / name, self.root / ".claude" / "tools" / name)
+        import _lib
+        self.lib = _lib
+        _lib.journal_append("mode", value="guided-solo")
+        _lib.journal_append("milestone", id="M1", title="the long run")
+        _lib.journal_append("task", id="T1", title="build it", status="doing", milestone="M1")
+
+    def write(self, relative: str, content: str, **extra) -> subprocess.CompletedProcess:
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+        payload = dict({"tool_name": "Write", "tool_input": {"file_path": str(path)},
+                        "cwd": str(self.root)}, **extra)
+        return self.run_hook("post-write-validate.sh", payload)
+
+    def minutes(self, value: int) -> None:
+        cfg = json.loads((CLAUDE_DIR / "config" / "orchestration.json").read_text(encoding="utf-8"))
+        cfg["progress"] = {"pulse_seconds": 60, "report_minutes": value}
+        (self.root / ".claude" / "config" / "orchestration.json").write_text(json.dumps(cfg))
+
+    def test_due_then_not_due(self):
+        res = self.write("src/a.py", "x = 1\n")
+        self.assertEqual(res.returncode, 0, res.stderr)
+        out = json.loads(res.stdout)["hookSpecificOutput"]
+        self.assertEqual(out["hookEventName"], "PostToolUse")
+        self.assertIn("post this progress block to the user as is, then continue", out["additionalContext"])
+        self.assertIn("PROGRESS M1", out["additionalContext"])
+        self.assertIn("report", self.lib.orchestration_state())
+        again = self.write("src/b.py", "x = 2\n")
+        self.assertEqual((again.returncode, again.stdout.strip()), (0, ""), "not due inside the window")
+
+    def test_knob_zero_freestyle_and_a_sub_agent_get_nothing(self):
+        self.minutes(0)
+        self.assertEqual(self.write("src/a.py", "x\n").stdout.strip(), "")
+        self.minutes(30)
+        self.assertEqual(self.write("src/a.py", "x\n", agent_type="builder").stdout.strip(), "")
+        self.lib.journal_append("mode", value="freestyle")
+        self.assertEqual(self.write("src/a.py", "x\n").stdout.strip(), "")
+        self.assertFalse(self.lib.orchestration_state_path().exists())
+
+    def test_a_blocked_write_stays_blocked_when_a_report_is_due(self):
+        res = self.write(".claude/config/x.json", '{"a": ')
+        self.assertEqual(res.returncode, 2)
+        self.assertIn("VALIDATE_FAIL", res.stderr)
+        self.assertEqual(res.stdout.strip(), "")
+
+    def test_a_broken_model_never_breaks_the_hook(self):
+        (self.root / ".claude" / "tools" / "progress.py").write_text("raise ImportError('broken')\n")
+        res = self.write("src/a.py", "x\n")
+        self.assertEqual((res.returncode, res.stdout.strip()), (0, ""))
+
+
 class TestSessionStart(HookCase):
     def setUp(self) -> None:
         super().setUp()

@@ -5,7 +5,7 @@
   "package": null,
   "title": "Heartbeat",
   "path": ".claude/state/heartbeat.json",
-  "description": "Liveness signal, overwritten once per turn by the Stop hook. Not the resume guarantee - the journal pointer is.",
+  "description": "Liveness signal, overwritten once per turn by the Stop hook ('turn ended') and mid-turn by the activity pulse ('working', via the policy gate and the sub-agent capture lane, throttled by progress.pulse_seconds). Not the resume guarantee - the journal pointer is.",
   "reads": [],
   "writes": [],
   "invokes": [],

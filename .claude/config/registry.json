@@ -627,6 +627,32 @@
       "default": 1800
     },
     {
+      "key": "orchestration.progress.pulse_seconds",
+      "title": "Activity pulse throttle",
+      "description": "Every mode: the policy gate (after its decision, on every Write/Edit/Bash/PowerShell call) and the capture hook on SubagentStart/SubagentStop rewrite state/heartbeat.json as 'working' once it is older than this many seconds, so 'last activity' stays true through a multi-hour turn. A Stop hook's 'turn ended' is superseded on the next call. 0 turns it off. Telemetry: a broken pulse never changes a gate decision.",
+      "layer": "OBSERVE",
+      "target": {
+        "kind": "config",
+        "file": "orchestration",
+        "path": "progress.pulse_seconds"
+      },
+      "type": "int",
+      "default": 60
+    },
+    {
+      "key": "orchestration.progress.report_minutes",
+      "title": "Periodic progress report",
+      "description": "guided-solo and fableous-orchestrated only: once this many minutes have passed since the last report, the post-write hook hands the lead the compact `statectl progress` block with one instruction, post it to the user as is. Advisory, main session only, never in freestyle, skipped when there is no milestone or no task. 0 turns it off.",
+      "layer": "CONSOLE",
+      "target": {
+        "kind": "config",
+        "file": "orchestration",
+        "path": "progress.report_minutes"
+      },
+      "type": "int",
+      "default": 30
+    },
+    {
       "key": "brainstorm.branch_count",
       "title": "Brainstorm branch count",
       "description": "How many frames /adhd picks per run, so how many isolated Diverge branches run in parallel. Cost grows linearly with it.",

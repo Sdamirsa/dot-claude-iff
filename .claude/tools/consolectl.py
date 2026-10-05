@@ -140,7 +140,15 @@ def _read_journal_tail() -> list:
     return out
 
 
-def _read_in_flight() -> list:
+def _read_in_flight(progress_model: dict | None = None) -> list:
+    # The progress model's in-flight rule when it computed (a stub whose task is not done and
+    # whose agent delivered no valid envelope since dispatch, worktrees included), so the
+    # Progress panel and this card can never disagree; else the plain stub-without-envelope
+    # reading below.
+    agents = (progress_model or {}).get("agents_in_flight")
+    if isinstance(agents, list):
+        return [{"agent": a["agent"], "task_id": a["task"], "dispatched_at": a["dispatched_at"]}
+                for a in agents]
     hs_dir = _lib.state_dir() / "handshakes"
     out = []
     if not hs_dir.is_dir():
@@ -180,7 +188,7 @@ def _read_lifecycle() -> dict:
     }
 
 
-def _read_now() -> dict:
+def _read_now(progress_model: dict | None = None) -> dict:
     heartbeat, heartbeat_age = _read_heartbeat()
     resume_pointer, phase, session_id, open_loops = _read_session()
     return {
@@ -191,10 +199,26 @@ def _read_now() -> dict:
         "session_id": session_id,
         "lifecycle": _read_lifecycle(),
         "open_loops": open_loops,
-        "in_flight": _read_in_flight(),
+        "in_flight": _read_in_flight(progress_model),
         "needs_human": _read_needs_human(),
         "journal_tail": _read_journal_tail(),
     }
+
+
+def _read_progress() -> dict:
+    """The NOW tab's Progress panel: progress.compute(), the one model `statectl progress` and
+    the periodic report print. Live on every poll. A model that cannot be computed degrades to
+    an honest empty state naming why, never to a missing key."""
+    try:
+        import progress
+        return progress.compute()
+    except Exception as exc:  # noqa: BLE001 - the console renders with or without the model
+        return {"empty": f"progress model unavailable ({type(exc).__name__}: {exc})",
+                "mode": _lib.DEFAULT_MODE, "mode_label": _lib.mode_label(None), "phase": None,
+                "milestone": None, "tasks": [], "totals": None, "needs_human": [],
+                "proposals_open": 0, "agents_in_flight": None,
+                "run": {"started": None, "elapsed": None},
+                "last_activity": {"ts": None, "age": None, "note": None, "source": None}}
 
 
 # --------------------------------------------------------------------------- tokens
@@ -428,7 +452,8 @@ def payload(live: bool = False) -> dict:
     """Build the ONE console payload. Called by `build` (live=False) and by console.py's
     /live/console.json handler (live=True). Never raises on a missing/malformed source
     file - every reader above degrades to nulls, zeros or empty collections instead."""
-    now = _read_now()
+    progress_model = _read_progress()
+    now = _read_now(progress_model)
     tokens = _read_tokens()
     work = _read_work()
     map_data = _read_map()
@@ -471,13 +496,14 @@ def payload(live: bool = False) -> dict:
             **_repo_links(),
         },
         "now": now,
+        "progress": progress_model,
         "tokens": tokens,
         "work": work,
         "map": map_data,
         "context": _read_context(map_data),
         "story": story_data,
         "analysis": analysis,
-        "freshness": {"live": ["now", "analysis", "work.proposals"],
+        "freshness": {"live": ["now", "analysis", "work.proposals", "progress"],
                       "ritual": ["tokens", "work.log_tail", "map", "story"]},
         "warnings": warnings,
     }
@@ -518,8 +544,9 @@ def build(demo: bool = False, out: str | None = None) -> dict:
     rebuild that touches it on every ritual even when nothing happened is exactly the kind
     of noise that makes "did anything actually change" unanswerable from git status - the
     same reasoning behind statectl.py's `_write_gated`, mirrored here for the same reason.
-    Comparison masks only the two wall-clock fields, the top-level `generated_at` and
-    `now.heartbeat_age_seconds` (a nested `generated_at`, e.g. a story-feed rebuild's own,
+    Comparison masks only the wall-clock fields, the top-level `generated_at`,
+    `now.heartbeat_age_seconds` and the progress model's ages (`progress.CLOCK_KEYS`) (a nested
+    `generated_at`, e.g. a story-feed rebuild's own,
     is a genuine content change and is deliberately NOT masked), and compares the full
     RENDERED page, not just the payload - a template edit with an unchanged payload must
     still reach the output, or the ledger marks the generator fresh while the file on disk
@@ -552,6 +579,16 @@ def build(demo: bool = False, out: str | None = None) -> dict:
                 and "heartbeat_age_seconds" in old_data["now"]:
             comparable["now"] = dict(comparable["now"])
             comparable["now"]["heartbeat_age_seconds"] = old_data["now"]["heartbeat_age_seconds"]
+        # The progress model's ages and elapsed times are wall clock too: equal apart from
+        # them is unchanged (progress.CLOCK_KEYS). Every other progress field compares unmasked.
+        old_prog, new_prog = old_data.get("progress"), comparable.get("progress")
+        if isinstance(old_prog, dict) and isinstance(new_prog, dict):
+            try:
+                import progress
+                if progress.without_clock(old_prog) == progress.without_clock(new_prog):
+                    comparable["progress"] = old_prog
+            except Exception:  # noqa: BLE001 - unmasked: at worst one needless rewrite
+                pass
         wrote = render(comparable) != old_text
     if wrote:
         _lib.atomic_write_text(out_path, render(data), durable=False)

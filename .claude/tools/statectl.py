@@ -908,6 +908,24 @@ def cmd_status(args) -> int:
     return 0
 
 
+def cmd_progress(args) -> int:
+    """The progress model (tools/progress.py, the one computation the console and the periodic
+    report share): a compact text block, or --json with the verdict on stderr so stdout stays
+    pure JSON. READ-ONLY: no journal event, no projection rebuilt. Never crashes on a console
+    that cannot encode the block bars or a title: ASCII bars, unencodable characters as '?'."""
+    import json
+    import progress
+    model = progress.compute()
+    if args.json:
+        print(json.dumps(model, indent=2))
+        print("STATE_OK", file=sys.stderr)
+        return 0
+    text = progress.render_text(model, unicode=progress.stream_supports_unicode(sys.stdout))
+    print(progress.safe_text(text, sys.stdout))
+    _lib.print_verdict("STATE", True)
+    return 0
+
+
 # --------------------------------------------------------------------------- argparse
 
 def _mode_arg(text: str) -> str:
@@ -1077,6 +1095,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("status", help="one-screen summary")
     sp.set_defaults(func=cmd_status)
+
+    sp = sub.add_parser("progress", help="the current milestone at a glance: tasks, checklists, "
+                                         "agents in flight, needs-human (read-only)")
+    sp.add_argument("--json", action="store_true", help="the progress model as JSON")
+    sp.set_defaults(func=cmd_progress)
 
     return p
 

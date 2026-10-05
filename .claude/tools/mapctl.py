@@ -92,7 +92,9 @@ KNOWN_STORES = [
                      "sibling folder, out of git.",
      "glyphs": ["read-only"], "external_to_repo": True},
     {"id": "store.heartbeat", "path": ".claude/state/heartbeat.json", "title": "Heartbeat",
-     "description": "Liveness signal, overwritten once per turn by the Stop hook. Not the resume "
+     "description": "Liveness signal, overwritten once per turn by the Stop hook ('turn ended') and "
+                     "mid-turn by the activity pulse ('working', via the policy gate and the "
+                     "sub-agent capture lane, throttled by progress.pulse_seconds). Not the resume "
                      "guarantee - the journal pointer is.",
      "glyphs": []},
     {"id": "store.memory_run", "path": ".claude/state/memory-run.json", "title": "Ritual run checkpoint",
@@ -112,8 +114,9 @@ KNOWN_STORES = [
     {"id": "store.orchestration", "path": ".claude/state/orchestration.json",
      "title": "Orchestration runtime",
      "description": "fableous-orchestrated runtime, per machine and gitignored: when each sub-agent "
-                     "began (the builder stop check's 'since') and the lead's code edits since the "
-                     "last dispatch (the delegation nudge). Written by the hooks only.",
+                     "began (the builder stop check's 'since'), the lead's code edits since the "
+                     "last dispatch (the delegation nudge), and when the periodic progress report "
+                     "last went to the lead (both organised modes). Written by the hooks only.",
      "glyphs": []},
     {"id": "store.generators", "path": ".claude/state/generators.json", "title": "Generator ledger",
      "description": "Law-1 anti-rot ledger: content hash of each generator's inputs/output, stamped "

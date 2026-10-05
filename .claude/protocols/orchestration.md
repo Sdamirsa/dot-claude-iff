@@ -87,6 +87,20 @@ Write the waves into the milestone file before the first dispatch.
 - `freestyle` and `guided-solo`: one agent, none of this applies.
 - Work that is mostly deciding: a builder cannot decide for you.
 
+## Progress: the human sees the run at a glance
+
+A run can last hours; the maintainer must never have to ask how far it is. One progress model
+(`tools/progress.py`): milestone bar, tasks done / in progress / waiting with checklist counts,
+agents in flight, what needs the human, run time, last activity.
+
+- **The console is the always-on view**: the Progress panel at the top of NOW, live.
+- **The lead posts the block at each merge** (`statectl.py progress`), as is, in the chat.
+- **The periodic report**: every `progress.report_minutes` the post-write hook hands the lead
+  the same block with one instruction; post it to the user as is, then continue. Also in
+  `guided-solo`; never for a sub-agent; never in `freestyle`.
+- **Last activity stays true** mid-turn: the activity pulse refreshes the heartbeat from hooks
+  that already run (`progress.pulse_seconds`).
+
 ## The mechanics behind it
 
 | Mechanism | Where | Strength |
@@ -95,4 +109,6 @@ Write the waves into the milestone file before the first dispatch.
 | Done guard | `statectl.py task <id> --status done` | hard: refuses without a valid envelope whose tests passed |
 | Stop check | `hooks/handoff-guard.sh` on SubagentStop | best effort, once per stop, fails open |
 | Delegation nudge | `post-write-validate.sh`, knob `orchestration.nudge_after` | advisory, never blocks |
+| Progress report | `post-write-validate.sh`, knob `progress.report_minutes` | advisory, never blocks |
+| Activity pulse | `policy_gate.py` after its decision, `obs-capture.sh` on sub-agent events | telemetry, fails open |
 | Cost split | `obsctl.py report --by agent` | tokens per agent type; `lead` is the main session |

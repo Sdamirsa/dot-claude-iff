@@ -25,7 +25,8 @@
   ],
   "writes": [],
   "invokes": [
-    "console.server"
+    "console.server",
+    "tool.progress"
   ],
   "flows": [],
   "glyphs": [],

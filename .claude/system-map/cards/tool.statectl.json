@@ -24,7 +24,8 @@
     "store.handshakes"
   ],
   "invokes": [
-    "tool.checkctl"
+    "tool.checkctl",
+    "tool.progress"
   ],
   "flows": [],
   "glyphs": [],

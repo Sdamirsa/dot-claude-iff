@@ -50,7 +50,7 @@ behind your back is a second source of truth.
 
 | Tab | What it answers |
 |-----|-----------------|
-| **NOW** | Is anything running, what is the resume pointer, what needs a human, what did the last turns do, what have we spent |
+| **NOW** | How far the current milestone is (the Progress panel, same model as `statectl.py progress`), is anything running, what is the resume pointer, what needs a human, what did the last turns do, what have we spent |
 | **MAP** | What this system is made of, how the pieces relate, which layer each belongs to |
 | **STORY** | How the project evolved, on a dual clock (wall time, or cumulative output tokens) |
 | **WORK** | Active tasks and their next actions, the decision log, active watch-outs, research index |

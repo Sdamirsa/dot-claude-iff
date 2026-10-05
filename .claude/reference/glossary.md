@@ -142,6 +142,15 @@ The `fableous-orchestrated` mode's vocabulary (`.claude/protocols/orchestration.
 - **lead**: The main session in the `fableous-orchestrated` mode: plans, designs, writes task
   cards, dispatches, reviews, merges, reports to the human, and owns the outcome. Labelled
   `lead` by `obsctl.py report --by agent`.
+- **progress model**: The one at-a-glance view of a long run, computed by
+  `.claude/tools/progress.py` from the journal, the task files, the needs-human and proposal
+  stores, the dispatch stubs and the heartbeat: current milestone, its tasks with Plan-checklist
+  counts, agents in flight, what needs the human, run time and last activity. Rendered three
+  ways: `statectl.py progress [--json]`, the console's Progress panel (top of NOW, live), and
+  the periodic report the lead posts in guided-solo and fableous-orchestrated
+  (`progress.report_minutes`). Its percent counts checked Plan items (a done task counts all of
+  its items). The heartbeat behind "last activity" is kept fresh mid-turn by the activity pulse
+  (`progress.pulse_seconds`).
 - **scout**: The read-only research agent (`.claude/agents/scout.md`, sonnet): surveys,
   lookups and quick checks for the lead, with paths and line numbers; it edits nothing.
 - **task card**: The task file a builder implements, `.claude/tasks/<id>.md`: Goal,

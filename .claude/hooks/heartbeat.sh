@@ -9,6 +9,10 @@
 # Overwrite, not append: the journal stays small and meaningful, and the console gets a
 # freshness number for free.
 #
+# Mid-turn, the activity pulse (_lib.activity_pulse, from the policy gate and the sub-agent
+# capture lane) rewrites the same file as {ts, note: "working", via}. This hook's note stays
+# "turn ended" (_lib.TURN_ENDED_NOTE), so a reader can tell a working turn from a finished one.
+#
 # The file is gitignored (it changes every turn) and the kits ship no state/ at all, so this
 # hook is what makes it exist: on a fresh install it creates state/ the first time a turn ends.
 

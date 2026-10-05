@@ -14,7 +14,9 @@
   "writes": [
     "store.orchestration"
   ],
-  "invokes": [],
+  "invokes": [
+    "tool.progress"
+  ],
   "flows": [],
   "glyphs": [],
   "auto": {
