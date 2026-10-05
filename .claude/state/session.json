@@ -1,9 +1,11 @@
 {
-  "generated_at": "2026-10-05T13:52:37Z",
-  "last_event_ts": "2026-10-05T13:52:37Z",
+  "generated_at": "2026-10-05T13:57:36Z",
+  "last_event_ts": "2026-10-05T13:57:35Z",
   "session": {
     "id": "phase2-build",
-    "phase": "implementation",
+    "mode": "fableous-orchestrated",
+    "phase": "build",
+    "phase_since": "2026-10-05T13:57:35Z",
     "started": "2026-08-25T08:32:09Z"
   },
   "resume_pointer": "M-0.3.0-alpha BUILD: merged T2 T6 T8 (dev pushed, suite 323 green locally). In flight in lead-made worktrees: T1 t1, T9 t9, T4 t4, T7 t7. After each merge: distctl build + full suite + commit zips + push; watch CI (ci.yml; Windows fixed to shell: bash, verify green). Then T3+T5 (need T1,T4), T12, T10, T11 (human gate before tag/issue replies)",
@@ -15,95 +17,108 @@
       "title": "030a T1",
       "status": "done",
       "deps": [],
-      "ts": "2026-10-05T13:52:37Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:32Z"
     },
     {
       "id": "T10",
       "title": "030a T10",
       "status": "todo",
       "deps": [],
-      "ts": "2026-10-05T12:41:58Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:34Z"
     },
     {
       "id": "T11",
       "title": "030a T11",
       "status": "todo",
       "deps": [],
-      "ts": "2026-10-05T12:41:58Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:34Z"
     },
     {
       "id": "T12",
       "title": "030a T12 long-run progress",
       "status": "todo",
       "deps": [],
-      "ts": "2026-10-05T13:02:33Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:35Z"
     },
     {
       "id": "T2",
       "title": "030a T2",
       "status": "done",
       "deps": [],
-      "ts": "2026-10-05T13:15:57Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:32Z"
     },
     {
       "id": "T3",
       "title": "030a T3",
       "status": "todo",
       "deps": [],
-      "ts": "2026-10-05T12:41:56Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:33Z"
     },
     {
       "id": "T4",
       "title": "030a T4",
-      "status": "doing",
+      "status": "done",
       "deps": [],
-      "ts": "2026-10-05T13:19:57Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:35Z"
     },
     {
       "id": "T5",
       "title": "030a T5",
       "status": "todo",
       "deps": [],
-      "ts": "2026-10-05T12:41:57Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:33Z"
     },
     {
       "id": "T6",
       "title": "030a T6",
       "status": "done",
       "deps": [],
-      "ts": "2026-10-05T13:18:11Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:33Z"
     },
     {
       "id": "T7",
       "title": "030a T7",
       "status": "done",
       "deps": [],
-      "ts": "2026-10-05T13:52:37Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:34Z"
     },
     {
       "id": "T8",
       "title": "030a T8",
       "status": "done",
       "deps": [],
-      "ts": "2026-10-05T13:15:58Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:34Z"
     },
     {
       "id": "T9",
       "title": "030a T9",
       "status": "done",
       "deps": [],
-      "ts": "2026-10-05T13:43:53Z"
+      "milestone": "M-0.3.0-alpha",
+      "ts": "2026-10-05T13:57:34Z"
     }
   ],
   "counts": {
-    "events": 86,
+    "events": 101,
     "tasks_total": 12,
-    "tasks_done": 6,
-    "tasks_open": 6,
+    "tasks_done": 7,
+    "tasks_open": 5,
     "open_loops": 0,
     "milestones": 6,
     "decisions": 3,
-    "tooling": 5
+    "tooling": 5,
+    "proposals_open": 1
   },
   "heartbeat": {
     "ts": "2026-10-05T13:43:57Z",

@@ -10,7 +10,7 @@ with `main` and "latest" left on v0.2.2 until the maintainer signs off v0.3.1.
 **Definition of done:** every task file `030a-t*.md` is done with its Test green on Windows
 and (in CI) Ubuntu; the pre-release is visible with both zips; each issue has its reply.
 
-**Test:** `python3 .claude/tools/tests/run_tests.py -q` prints `TESTS_OK`.
+**Test:** `python3 .claude/tools/tests/run_tests.py -q`
 
 ## Context
 

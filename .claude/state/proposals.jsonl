@@ -1,0 +1,1 @@
+{"ts": "2026-10-05T13:57:36Z", "op": "add", "id": "PR-1", "text": "Model-based yes/no gate (Jev-style): add when an open-source variant runs locally, or after two logged incidents the plain checks missed", "source": "issue#12", "kind": "feature"}

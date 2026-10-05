@@ -84,3 +84,18 @@
 {"ts": "2026-10-05T13:43:54Z", "action": "note", "text": "T9 builder found: check_gitignore_shadowing pipes input to git in text mode; on Windows file-level ignore patterns never match. Fix in T10."}
 {"ts": "2026-10-05T13:52:37Z", "action": "task", "id": "T1", "status": "done", "note": "merged to dev"}
 {"ts": "2026-10-05T13:52:37Z", "action": "task", "id": "T7", "status": "done", "note": "merged to dev"}
+{"ts": "2026-10-05T13:57:32Z", "action": "task", "id": "T1", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:32Z", "action": "task", "id": "T2", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:33Z", "action": "task", "id": "T3", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:33Z", "action": "task", "id": "T4", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:33Z", "action": "task", "id": "T5", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:33Z", "action": "task", "id": "T6", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:34Z", "action": "task", "id": "T7", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:34Z", "action": "task", "id": "T8", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:34Z", "action": "task", "id": "T9", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:34Z", "action": "task", "id": "T10", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:34Z", "action": "task", "id": "T11", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:35Z", "action": "task", "id": "T12", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:35Z", "action": "task", "id": "T4", "status": "done"}
+{"ts": "2026-10-05T13:57:35Z", "action": "mode", "value": "fableous-orchestrated"}
+{"ts": "2026-10-05T13:57:35Z", "action": "phase", "value": "build"}
