@@ -7,20 +7,20 @@
   "STATUS": "ok",
   "RESULT": "A new prompt hook (.claude/hooks/ritual-ticket.sh, wired on UserPromptSubmit and UserPromptExpansion) writes .claude/state/ritual-ticket.json {skill, ts, session_id, event} only when the user's own prompt starts with /project-memory or /adopt. checkctl run (opening or continuing) and complete refuse without a fresh ticket (memory.json ritual.ticket_ttl_minutes, default 360), complete consumes it, memory-run.json records invoked_by user-ticket plus the ticket ts; every read-only subcommand needs none and the doctor row is truthful. Every agent-facing nudge now asks the user, the SessionStart counter counts captured sessions, and /project-memory ends with a ROUTE step that replaces the --hard flag.",
   "files_changed": [
-    ".claude/hooks/ritual-ticket.sh (new)",
+    ".claude/hooks/ritual-ticket.sh",
     ".claude/hooks/session-start.sh",
     ".claude/settings.json",
     ".claude/tools/checkctl.py",
     ".claude/tools/mapctl.py",
     ".claude/tools/distctl.py",
     ".claude/tools/tests/_fixture.py",
-    ".claude/tools/tests/test_ritual.py (new)",
+    ".claude/tools/tests/test_ritual.py",
     ".claude/tools/tests/test_contracts.py",
     ".claude/tools/tests/test_secrets.py",
     ".claude/config/memory.json",
     ".claude/config/registry.json",
-    ".claude/system-map/cards/hook.ritual-ticket.json (new)",
-    ".claude/system-map/cards/store.ritual_ticket.json (new)",
+    ".claude/system-map/cards/hook.ritual-ticket.json",
+    ".claude/system-map/cards/store.ritual_ticket.json",
     ".claude/system-map/cards/store.memory_run.json",
     ".claude/system-map/cards/tool.checkctl.json",
     ".claude/system-map/cards/hook.session-start.json",
@@ -37,11 +37,19 @@
     ".github/README.md",
     "docs/done.html",
     ".gitignore",
-    ".claude/state/handshakes/T3.json (new)"
+    ".claude/state/handshakes/T3.json"
   ],
   "tests": [
-    {"command": "python3 .claude/tools/tests/run_tests.py test_ritual test_hooks -q", "exit_code": 0, "summary": "113 passed · 0 failed · 0 errored · 0 skipped"},
-    {"command": "python3 .claude/tools/tests/run_tests.py -q", "exit_code": 0, "summary": "556 passed · 0 failed · 0 errored · 2 skipped"}
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_ritual test_hooks -q",
+      "exit_code": 0,
+      "summary": "113 passed · 0 failed · 0 errored · 0 skipped"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "556 passed · 0 failed · 0 errored · 2 skipped"
+    }
   ],
   "EVIDENCE": [
     "baseline full suite before any edit -> 523 passed, 1 skipped, TESTS_OK",

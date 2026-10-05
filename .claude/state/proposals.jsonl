@@ -9,3 +9,4 @@
 {"ts": "2026-10-05T17:06:41Z", "op": "add", "id": "PR-7", "text": "Secret scan on every file write (post-write hook), if the ritual-time check keeps finding real cases", "source": "issue#7", "kind": "feature"}
 {"ts": "2026-10-05T17:06:41Z", "op": "add", "id": "PR-8", "text": "Analysis engine: explicit consent line and redaction before record text goes to a remote endpoint", "source": "agent:lead", "kind": "fix"}
 {"ts": "2026-10-05T17:06:42Z", "op": "add", "id": "PR-9", "text": "Generator freshness should compare output hashes too, so a hand-edited derived file is detected", "source": "agent:lead", "kind": "fix"}
+{"ts": "2026-10-05T17:40:48Z", "op": "add", "id": "PR-10", "text": "statectl accept should remove the task's stub after a successful merge (T10, T12, T13 stubs were left behind)", "source": "agent:verifier", "kind": "fix"}

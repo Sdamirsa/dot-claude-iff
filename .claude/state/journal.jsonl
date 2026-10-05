@@ -119,3 +119,4 @@
 {"ts": "2026-10-05T17:06:40Z", "action": "task", "id": "T10", "status": "done", "note": "merged; full suite green on dev"}
 {"ts": "2026-10-05T17:06:41Z", "action": "task", "id": "T11", "status": "doing"}
 {"ts": "2026-10-05T17:06:57Z", "action": "task", "id": "T10", "status": "doing", "note": "correction: suite on dev had 1 failure after merge; marked done too early"}
+{"ts": "2026-10-05T17:40:48Z", "action": "task", "id": "T10", "status": "done", "note": "merged; suite 747 green on dev; verifier pass"}

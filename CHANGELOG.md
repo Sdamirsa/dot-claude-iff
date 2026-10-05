@@ -17,7 +17,7 @@ this project's own release history structurally never reaches an adopting repo.
 
 Pre-release for testing. The suite passes on Windows and Ubuntu, but none of the new hooks
 has run in a live session yet: work through `docs/alpha-test-checklist.md` before relying on
-it. "Latest" stays on v0.2.2 until v0.3.1.
+it. "Latest" stays on v0.2.2 until the stable release (planned as v0.3.1).
 
 - Modes: `statectl mode freestyle | guided-solo | fableous-orchestrated`. Freestyle (the
   default) is the record, the gates and the ritual with nothing enforced. Guided Solo adds
