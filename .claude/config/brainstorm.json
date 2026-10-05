@@ -1,0 +1,90 @@
+{
+  "_comment": [
+    "Brainstorm tuning for the /adhd skill: how many isolated branches diverge, which frames",
+    "they pick from, and which model runs each phase. The skill reads this file at the start",
+    "of every run; each knob has a card in registry.json. The /project-memory EVOLVE step may",
+    "propose changes here under the same bar as any evolution change (protocols/evolution.md).",
+    "Models: an Agent-tool alias (sonnet, opus, haiku, ...) or inherit (omit the per-call model).",
+    "Frames are adapted from github.com/UditAkhourii/adhd (MIT); see skills/adhd/UPSTREAM.md."
+  ],
+  "branch_count": 5,
+  "branch_model": "sonnet",
+  "critic_model": "inherit",
+  "frames": [
+    {
+      "name": "hardware engineer",
+      "vantage": "You think in latency, memory layout, and physical constraints. Re-ask this as a hardware/firmware problem. What does the bus topology, cache, timing budget tell you?",
+      "tags": ["code", "wild"]
+    },
+    {
+      "name": "regulator",
+      "vantage": "You audit systems for compliance and failure modes. What must be provable, traceable, or refusable here?",
+      "tags": ["design", "general"]
+    },
+    {
+      "name": "10-year-old",
+      "vantage": "You are a curious 10 year old who has never seen software. Describe naive but unencumbered approaches. Ignore convention.",
+      "tags": ["general", "wild"]
+    },
+    {
+      "name": "competitor trying to break it",
+      "vantage": "You are a hostile competitor or attacker. Generate approaches that exploit, fail, or sabotage the obvious solution. Then invert into ideas.",
+      "tags": ["code", "design"]
+    },
+    {
+      "name": "biology",
+      "vantage": "Transplant a mechanism from biology (immune systems, neural plasticity, cell signaling, evolution, gut flora). Force-fit it onto this engineering problem.",
+      "tags": ["code", "wild"]
+    },
+    {
+      "name": "logistics",
+      "vantage": "Steal mechanisms from logistics: queues, batching, just-in-time, hub-and-spoke, returns, last-mile. Apply them literally.",
+      "tags": ["code", "design"]
+    },
+    {
+      "name": "game design",
+      "vantage": "Approach this as a game designer. What are the loops, rewards, friction, save-states, speedrun tricks? Treat the user as a player.",
+      "tags": ["design", "general"]
+    },
+    {
+      "name": "markets",
+      "vantage": "Treat the problem as a market. Buyers, sellers, market-makers. What does an auction, a futures contract, a clearing house look like here?",
+      "tags": ["design", "wild"]
+    },
+    {
+      "name": "inversion",
+      "vantage": "Ask the OPPOSITE question. If goal is X, brainstorm how to guarantee NOT X. Then negate each answer back.",
+      "tags": ["code", "design", "general"]
+    },
+    {
+      "name": "extreme: $0 budget, 1 hour",
+      "vantage": "No money, no team, one hour. What is the crudest version that still does the load-bearing thing?",
+      "tags": ["code", "general"]
+    },
+    {
+      "name": "extreme: infinite budget, 10 years",
+      "vantage": "Infinite compute, infinite engineers, a decade. What is the maximalist version?",
+      "tags": ["design", "wild"]
+    },
+    {
+      "name": "remove the load-bearing assumption",
+      "vantage": "Name the thing everyone treats as fixed (framework, database, request-response model, network). Imagine it is gone. What is possible?",
+      "tags": ["code", "design", "wild"]
+    },
+    {
+      "name": "speedrunner",
+      "vantage": "You are a speedrunner. Find glitches, skips, out-of-bounds tricks, frame-perfect shortcuts. What is the abusive-but-legal path?",
+      "tags": ["code", "wild"]
+    },
+    {
+      "name": "ant colony",
+      "vantage": "No central planner. Many dumb agents, local rules, pheromone trails. How does the problem solve itself emergently?",
+      "tags": ["code", "wild"]
+    },
+    {
+      "name": "3am on-call",
+      "vantage": "You are the on-call engineer woken at 3am when this breaks. What design would let you not get paged?",
+      "tags": ["code", "design"]
+    }
+  ]
+}
