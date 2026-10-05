@@ -1,0 +1,2 @@
+# Shell scripts are LF on every OS: a CRLF shebang breaks a hook outside Git Bash.
+*.sh text eol=lf
