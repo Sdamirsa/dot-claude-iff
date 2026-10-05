@@ -574,6 +574,14 @@ def path_forms(text: str, cwd: str, deep: bool = True, expand: bool = True) -> l
             except (OSError, ValueError):
                 continue
             if not deep:
+                # A Windows 8.3 short name (RUNNER~1, DOCUME~1) is an alias of the same folder,
+                # not a symlink: resolve it even on the shallow path, or a short spelling of the
+                # project root names the protected tree without matching it.
+                if os.name == "nt" and "~" in joined:
+                    try:
+                        out.append(os.path.realpath(joined))
+                    except (OSError, ValueError):
+                        pass
                 continue
             try:
                 out.append(os.path.realpath(joined))

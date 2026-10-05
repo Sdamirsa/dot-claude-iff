@@ -1361,6 +1361,22 @@ class TestGateFalsePositives(GateCase):
                 self.assertEqual(self.sh(f"python -c \"open('{path}','w')\"", "worker",
                                          "PowerShell"), "deny")
 
+    def test_a_windows_short_name_spelling_of_the_root_is_still_denied(self):
+        """C:/Users/RUNNER~1/... and C:/Users/runneradmin/... are one folder. CI's temp path is
+        spelled the short way, which is how this was found."""
+        if os.name != "nt":
+            self.skipTest("8.3 short names are a Windows thing")
+        import ctypes
+        buf = ctypes.create_unicode_buffer(1024)
+        if not ctypes.windll.kernel32.GetShortPathNameW(str(self.root), buf, 1024):
+            self.skipTest("no short path available")
+        short = buf.value.replace("\\", "/")
+        if os.path.normcase(short) == os.path.normcase(self.root.as_posix()) or "~" not in short:
+            self.skipTest("this volume generates no 8.3 short names")
+        target = f"{short}/.claude/tools/x.py"
+        self.assertEqual(self.sh(f"python3 -c \"open('{target}','w')\"", "worker"), "deny")
+        self.assertEqual(self.sh(f"echo x > {target}", "worker"), "deny")
+
     def test_a_backslash_path_through_a_folder_named_git_is_not_an_invocation(self):
         for lane, command in (
             ("Bash", r"ls C:\Users\x\Documents\GIT\dot-claude-iff\README.md"),
