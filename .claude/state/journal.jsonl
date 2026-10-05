@@ -120,3 +120,4 @@
 {"ts": "2026-10-05T17:06:41Z", "action": "task", "id": "T11", "status": "doing"}
 {"ts": "2026-10-05T17:06:57Z", "action": "task", "id": "T10", "status": "doing", "note": "correction: suite on dev had 1 failure after merge; marked done too early"}
 {"ts": "2026-10-05T17:40:48Z", "action": "task", "id": "T10", "status": "done", "note": "merged; suite 747 green on dev; verifier pass"}
+{"ts": "2026-10-05T17:44:24Z", "action": "pointer", "text": "M-0.3.0-alpha: all build tasks merged; release candidate on dev (0.3.0-alpha.1, changelog, checklist, zips verified, suite 748 green locally, verifier pass). WAITING for the maintainer's yes before: git tag v0.3.0-alpha.1 on dev + push tag (release.yml publishes the pre-release), then post issue replies #7-#14. After: verify gh release view shows prerelease and both zips, latest still v0.2.2; set statectl phase review"}

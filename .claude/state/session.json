@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T17:40:48Z",
-  "last_event_ts": "2026-10-05T17:40:48Z",
+  "generated_at": "2026-10-05T17:44:24Z",
+  "last_event_ts": "2026-10-05T17:44:24Z",
   "session": {
     "id": "phase2-build",
     "mode": "fableous-orchestrated",
@@ -8,7 +8,7 @@
     "phase_since": "2026-10-05T13:57:35Z",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "M-0.3.0-alpha BUILD: 11/13 merged (suite 717 green, dev pushed). In flight: T10 cleanup+hardening (real builder agent, worktree t10, dispatched via statectl dispatch). Then accept T10, then T11 release prep: version 0.3.0-alpha.1, CHANGELOG, alpha test checklist, distctl build+verify, verifier; STOP for user yes before tag and issue replies",
+  "resume_pointer": "M-0.3.0-alpha: all build tasks merged; release candidate on dev (0.3.0-alpha.1, changelog, checklist, zips verified, suite 748 green locally, verifier pass). WAITING for the maintainer's yes before: git tag v0.3.0-alpha.1 on dev + push tag (release.yml publishes the pre-release), then post issue replies #7-#14. After: verify gh release view shows prerelease and both zips, latest still v0.2.2; set statectl phase review",
   "open_loops": [],
   "open_intents": [],
   "tasks": [
@@ -118,7 +118,7 @@
     }
   ],
   "counts": {
-    "events": 122,
+    "events": 123,
     "tasks_total": 13,
     "tasks_done": 12,
     "tasks_open": 1,
@@ -129,7 +129,7 @@
     "proposals_open": 8
   },
   "heartbeat": {
-    "ts": "2026-10-05T17:40:00Z",
+    "ts": "2026-10-05T17:41:02Z",
     "note": "working"
   },
   "recent_milestones": [
