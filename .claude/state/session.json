@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T13:02:33Z",
-  "last_event_ts": "2026-10-05T13:02:33Z",
+  "generated_at": "2026-10-05T13:15:58Z",
+  "last_event_ts": "2026-10-05T13:15:58Z",
   "session": {
     "id": "phase2-build",
     "phase": "implementation",
@@ -41,9 +41,9 @@
     {
       "id": "T2",
       "title": "030a T2",
-      "status": "doing",
+      "status": "done",
       "deps": [],
-      "ts": "2026-10-05T12:43:53Z"
+      "ts": "2026-10-05T13:15:57Z"
     },
     {
       "id": "T3",
@@ -83,9 +83,9 @@
     {
       "id": "T8",
       "title": "030a T8",
-      "status": "doing",
+      "status": "done",
       "deps": [],
-      "ts": "2026-10-05T12:43:53Z"
+      "ts": "2026-10-05T13:15:58Z"
     },
     {
       "id": "T9",
@@ -96,17 +96,17 @@
     }
   ],
   "counts": {
-    "events": 76,
+    "events": 78,
     "tasks_total": 12,
-    "tasks_done": 0,
-    "tasks_open": 12,
+    "tasks_done": 2,
+    "tasks_open": 10,
     "open_loops": 0,
     "milestones": 6,
     "decisions": 3,
     "tooling": 5
   },
   "heartbeat": {
-    "ts": "2026-10-05T13:01:10Z",
+    "ts": "2026-10-05T13:02:45Z",
     "note": "turn ended"
   },
   "recent_milestones": [
