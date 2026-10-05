@@ -17,7 +17,8 @@ to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gat
   fires the Stop hook, so the pointer on disk is the only thing that actually survives.
 - **During:** follow `.claude/protocols/` - `handshake.md` (agent to agent), `human-gates.md`
   (wait vs proceed), `honesty.md` (how to report), `evolution.md` (how this folder changes).
-- **End:** run `/project-memory`.
+- **End:** the user types `/project-memory`; you suggest it at a natural boundary. Only the
+  user can open the ritual: `checkctl` refuses a run without the ticket their prompt mints.
 
 ## Working agreement
 
@@ -68,9 +69,10 @@ python3 .claude/tools/consolectl.py build|payload|serve
 python3 .claude/tools/tests/run_tests.py
 ```
 
-Skills: `/project-memory` (check · polish · publish · evolve; `--hard` for a maturation
-session) · `/plan-task` · `/adopt` · `/adhd` (user-invoked brainstorm, about ten agent calls:
-suggest it in one line for an open, divergent question; the user decides).
+Skills: `/project-memory` (user-typed only; check · polish · publish · evolve · route, where
+route sets the next phase and mode and offers a maturation pass) · `/plan-task` · `/adopt` ·
+`/adhd` (user-invoked brainstorm, about ten agent calls: suggest it in one line for an open,
+divergent question; the user decides).
 Agents: `anatomist` (anatomy, cards, placement, pruning) · `retro-analyst` (propose-only
 evolution) · `verifier` (adversarial claim checking).
 

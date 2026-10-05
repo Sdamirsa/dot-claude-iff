@@ -225,7 +225,8 @@ class TestPublishTransaction(FixtureCase):
         """
         # The exit code is beside the point here (a fixture project has configs but no agent
         # files, so its CHECK legitimately fails); what matters is which run id the next phase
-        # writes into.
+        # writes into. The ticket stands in for the user typing /project-memory.
+        self.grant_ticket()
         checkctl.main(["run", "--phase", "check", "--new"])
         opened = checkctl.load_run()["run_id"]
         checkctl.main(["run", "--phase", "polish"])
@@ -233,6 +234,7 @@ class TestPublishTransaction(FixtureCase):
                          "POLISH started a new run instead of continuing the one CHECK opened")
 
     def test_new_forces_a_fresh_run(self):
+        self.grant_ticket()
         checkctl.main(["run", "--phase", "check", "--new"])
         first = checkctl.load_run()["run_id"]
         checkctl.main(["run", "--phase", "check", "--new"])

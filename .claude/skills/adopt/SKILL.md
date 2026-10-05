@@ -159,8 +159,8 @@ It renders one block between two marker lines and appends it to `<target>/.gitig
 (creating the file when absent), or rewrites it in place on a rerun; the target's own lines are
 never touched. Both values carry the secrets safety net (`.env`, `*.env`, `.env*.local`,
 `settings.local.json`) and the python caches; `tracked` adds the console runtime, the
-heartbeat, `.claude/worktrees/` and atomic-write leftovers, `ignored` ignores `.claude/` and
-`.claude-iff/` whole. This command is the one writer: never copy a source's `.gitignore` (the
+heartbeat, the ritual ticket, `.claude/worktrees/` and atomic-write leftovers, `ignored`
+ignores `.claude/` and `.claude-iff/` whole. This command is the one writer: never copy a source's `.gitignore` (the
 kit's `dot-claude-iff-kit/.gitignore`, a clone's root file) by hand. If the answer is `ignored`
 and the target already tracks files under `.claude/`, tell the user that untracking them is
 their git step (`git rm -r --cached .claude .claude-iff`, which keeps the files on disk); do not
@@ -271,6 +271,19 @@ appears, not before. An unused skill is negative value.
 Run the checklist against reality, not against your memory of what you did. Every command below
 runs with `<target>` as the working directory (or `CLAUDE_PROJECT_DIR=<target>` set):
 
+**The ritual ticket.** `checkctl run` (the CHECK and POLISH boxes below) refuses without a
+fresh ticket in `<target>/.claude/state/ritual-ticket.json`. It works here because the user
+typed `/adopt`: the target's prompt hook (`hooks/ritual-ticket.sh`) minted the ticket from
+that prompt, and it counts for this adoption's runs the same way a typed `/project-memory`
+would. That holds only when this session runs INSIDE `<target>` with its hooks trusted since
+the session started (the fresh zip; START-HERE has the user type `/adopt`). When the user
+typed `/adopt` in another project, or the hooks were installed during this session (the kit
+path: hooks load at session start), the target has no ticket and `checkctl run` refuses. Never
+write, copy or forge a ticket: the policy gate denies the file to you on purpose. Instead,
+verify read-only with `python3 .claude/tools/checkctl.py doctor` and `checkctl.py probe` (no
+ticket needed), mark the CHECK and POLISH boxes deferred to the first ritual, and in Phase 6
+ask the user to open a new session in `<target>`, trust the hooks, and type `/project-memory`.
+
 - [ ] Every file in the Phase 3 copy manifest (git-tracked under `<source>/.claude/`, minus the
       Phase 3 exclusions) exists at its matching path under `<target>/.claude/`, or was
       reported as a conflict and resolved with the user.
@@ -316,7 +329,9 @@ runs with `<target>` as the working directory (or `CLAUDE_PROJECT_DIR=<target>` 
 Report to the user in Structured Return form: `STATUS` (done | partial | blocked), `RESULT`
 (what was installed, what was merged, what was skipped and why), `EVIDENCE` (file listing, grep
 output, the checkctl/mapctl/consolectl/test_hooks output), plus `DEVIATIONS` and `QUESTIONS` if
-any. Any unchecked box means STATUS is partial: say so plainly.
+any. Any unchecked box means STATUS is partial: say so plainly. Boxes deferred for want of a
+ticket count as unchecked: name them, and name the one step that closes them (the user types
+`/project-memory` in a new session in `<target>`).
 
 ## Phase 6: first ritual
 
@@ -329,8 +344,10 @@ Close by putting the system into motion:
    Recommend the half-screen layout: console in one half of the screen, Claude Code in the
    other, so state is visible while you work, per `.claude/README.md`.
 3. Offer to run `/plan-task` on the project's first real task, right now.
-4. Remind the user of the session ritual: start by reading `.claude/STATUS.md`, the active task
-   file, and Watch-outs; end every session with `/project-memory`.
+4. Remind the user of the session ritual: the agent starts by reading `.claude/STATUS.md`, the
+   active task file, and Watch-outs; the user ends each session by typing `/project-memory`
+   (the agent suggests it; only the user can open it). If Phase 5 deferred CHECK and POLISH
+   for want of a ticket, ask the user to do that now, in a new session in `<target>`.
 5. Set expectations for the first retro: it will likely return `NO-CHANGES`, that is correct
    behavior, not a failure. The system grows from evidence the project hasn't generated yet.
 

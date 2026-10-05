@@ -107,8 +107,10 @@ traceback usually costs none.
 lesson". It becomes a row in `LESSONS.jsonl` with a mechanical prevention rule, and the agent
 will cite it back before repeating the mistake. That is the system learning; feed it.
 
-**5 · Close your blocks.** Run `/project-memory` at the end of a session, and answer gates when
-asked; silence is not approval. An unclosed block is the one thing this system cannot protect.
+**5 · Close your blocks.** Type `/project-memory` at the end of a session, and answer gates when
+asked; silence is not approval. Only you can open the ritual (the agent suggests it, and
+`checkctl` refuses a run your own prompt did not open). An unclosed block is the one thing this
+system cannot protect.
 
 ## Get it into your own project
 
@@ -125,7 +127,11 @@ they can never go stale:
 
 ## The one command
 
-`/project-memory` runs four phases and is the only place derived surfaces are rebuilt.
+`/project-memory` runs four phases, then ROUTE, and is the only place derived surfaces are
+rebuilt. You type
+it; the agent cannot. Your prompt mints a short-lived ritual ticket (the prompt hook writes
+`.claude/state/ritual-ticket.json`, which the gate denies to every agent), and `checkctl`
+refuses to open or complete a ritual without one. A tripwire, not cryptography.
 
 - **CHECK** - does reality match the record? Journal parses, heartbeat present, generators
   fresh, cards lint, knobs registered, prices present, record size, queue synced, task
@@ -135,9 +141,10 @@ they can never go stale:
   commit, and push per policy (default: ask once).
 - **EVOLVE** - a session digest goes to the retro-analyst, which proposes at most three
   evidence-backed changes; you confirm; the anatomist implements and updates the cards.
-
-`--hard` turns it into a maturation session: full anatomy audit, a pruning sweep against actual
-usage, task cards with pass-tests, and a decision list for you.
+- **ROUTE** - one question set the next session starts from: stay in the lifecycle phase or
+  advance (the exit check runs; review asks for your sign-off), keep or switch the mode, and
+  whether to run a maturation pass now: full anatomy audit, a pruning sweep against actual
+  usage, proposals turned into task cards for a plan phase, and a decision list for you.
 
 Why one command: in the system this was distilled from, the single regenerator that nobody
 wired into the ritual sat frozen for two and a half months while everything downstream quietly

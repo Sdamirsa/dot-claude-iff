@@ -87,3 +87,13 @@ class FixtureCase(unittest.TestCase):
 
     def journal(self, action: str, **fields) -> dict:
         return _lib.journal_append(action, **fields)
+
+    def grant_ticket(self, skill: str = "project-memory", ts: str | None = None,
+                     session_id: str = "test-session") -> dict:
+        """Write the ritual ticket exactly as hooks/ritual-ticket.sh does when the user types
+        /project-memory: `checkctl run` and `complete` refuse without a fresh one. Tests grant
+        it here; there is deliberately no flag or env var that skips the check."""
+        ticket = {"skill": skill, "ts": ts or _lib.utc_now(), "session_id": session_id,
+                  "event": "UserPromptSubmit"}
+        _lib.atomic_write_json(_lib.state_dir() / "ritual-ticket.json", ticket, durable=True)
+        return ticket

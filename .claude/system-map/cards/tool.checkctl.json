@@ -18,11 +18,13 @@
     "store.heartbeat",
     "store.memory_run",
     "store.needs_human",
-    "store.session"
+    "store.session",
+    "store.ritual_ticket"
   ],
   "writes": [
     "store.memory_run",
-    "store.generators"
+    "store.generators",
+    "store.ritual_ticket"
   ],
   "invokes": [
     "tool.mapctl",

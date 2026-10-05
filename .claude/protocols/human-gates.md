@@ -32,6 +32,11 @@ otherwise pick the careful-colleague reading and CHECKPOINT.
 the work. Reserve BLOCKING for decisions that meet the table's criteria, and let CHECKPOINT
 carry everything that has a defensible default.
 
+**The ritual is the user's own.** `/project-memory` and `/adopt` open only when the user types
+them: `checkctl run` and `complete` refuse without the ticket that prompt mints. When the
+ritual is due, ask the user to type it (FYI, one line at a natural boundary); never try to run
+it yourself.
+
 ## The async rule (workflows must not break)
 
 Background agents, subagents, and parallel workflow stages NEVER block on a human. A subagent
@@ -63,7 +68,8 @@ running in the background hits a BLOCKING-grade decision:
    `.claude/protocols/handshake.md`), pointing at the `NH-<n>` id.
 
 The MAIN session surfaces open queue items to the user at the next natural boundary (a phase
-end, or the CHECK step of `/project-memory`), not mid-stream. Skills that script
+end, or the CHECK step of `/project-memory` once the user has typed it), not mid-stream. Skills
+that script
 `AskUserQuestion` gates place them at phase boundaries in the main session only, never inside
 fan-out or background stages.
 

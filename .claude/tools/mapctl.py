@@ -96,8 +96,15 @@ KNOWN_STORES = [
                      "guarantee - the journal pointer is.",
      "glyphs": []},
     {"id": "store.memory_run", "path": ".claude/state/memory-run.json", "title": "Ritual run checkpoint",
-     "description": "The /project-memory transaction: run id, phase, step. PUBLISH refuses unless "
+     "description": "The /project-memory transaction: run id, phase, step, and who opened it "
+                     "(invoked_by: user-ticket, with the ticket's ts). PUBLISH refuses unless "
                      "POLISH completed in the same run id.",
+     "glyphs": []},
+    {"id": "store.ritual_ticket", "path": ".claude/state/ritual-ticket.json", "title": "Ritual ticket",
+     "description": "Proof the USER typed /project-memory or /adopt: {skill, ts, session_id, event}. "
+                     "Written only by the prompt hook (the gate denies it to every agent), checked "
+                     "by checkctl run and complete, consumed by complete. A tripwire, not "
+                     "cryptography; gitignored.",
      "glyphs": []},
     {"id": "store.handshakes", "path": ".claude/state/handshakes", "title": "Handshake envelopes",
      "description": "Agent-to-agent Structured Return envelopes (stub at dispatch, envelope at delivery).",
@@ -263,6 +270,7 @@ _LITERAL_TO_STORE = {
     "rollups": "store.rollups",
     "heartbeat.json": "store.heartbeat",
     "memory-run.json": "store.memory_run",
+    "ritual-ticket.json": "store.ritual_ticket",
     "handshakes": "store.handshakes",
     "generators.json": "store.generators",
 }

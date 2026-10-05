@@ -54,8 +54,10 @@ so `git push` structurally cannot publish a prompt, a file body, or a secret.
 **4 · One command stops, publishes, learns, and evolves.** `/project-memory` runs four phases
 under one transaction: **check** reality against the record, **polish** memory and rebuild
 every derived surface, **publish** (seal, commit, ask before pushing), **evolve** - propose at
-most three evidence-backed changes, which land only with your approval. Every generator runs
-inside this ritual and nowhere else, so nothing can silently rot.
+most three evidence-backed changes, which land only with your approval - then **route** the
+next session (phase, mode, an optional maturation pass). Every generator runs inside this
+ritual and nowhere else, so nothing can silently rot. Only you open it: the agent suggests it,
+and the tools refuse a ritual your own prompt did not start.
 
 **5 · The system explains itself.** Every component has a card with curated relations,
 compiled into a clickable map (click to trace connections, click again for details). An
@@ -146,8 +148,8 @@ examples live in [the Partner Guide](../.claude/README.md#for-humans-how-to-coll
    expected versus observed.
 4. **Correct once, then make it stick.** Say "log this as a lesson" and the mistake becomes a
    mechanical prevention rule the agent cites before repeating it.
-5. **Close your blocks.** Run `/project-memory` at the end of a session; answer gates when
-   asked - silence is not approval.
+5. **Close your blocks.** Type `/project-memory` at the end of a session (only you can open
+   it; the agent will suggest it); answer gates when asked - silence is not approval.
 
 </details>
 

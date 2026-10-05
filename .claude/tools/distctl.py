@@ -87,7 +87,7 @@ project yet. Follow START-HERE.md, then delete this sentence during the first ri
 
 1. Open Claude Code here and finish the adoption (see START-HERE.md).
 2. Fill CLAUDE.md's placeholders from this repo's reality.
-3. Run the first /project-memory.
+3. First ritual: the user types /project-memory (only the user can open it; the agent asks).
 
 ## Blockers / open decisions
 
@@ -104,16 +104,16 @@ You unzipped the dot-claude-iff system into a fresh repo. One session sets it up
 
 1. `git init` if you have not already (the system assumes a git repo).
 2. Open Claude Code in this directory. When it asks whether to trust this project's hooks,
-   say yes: the hooks are the heartbeat, the capture lane and the policy gate, and without
-   trust they silently do not run.
-3. Paste this to the agent:
+   say yes: the hooks are the heartbeat, the capture lane, the policy gate and the ritual
+   ticket, and without trust they silently do not run.
+3. Type this as your prompt, starting with /adopt (typing the command yourself is what lets
+   the system's ritual run: the agent cannot open it on its own):
 
-   > Finish adopting the dot-claude-iff system into this repo. The files are already
-   > installed, so skip the copy phase: read .claude/skills/adopt/SKILL.md and run its
-   > phases 2 (frame questions), the visibility step at the end of 3 (record the answer,
-   > apply the .gitignore block), 4 (adapt: fill CLAUDE.md's placeholders from this repo,
-   > reset STATUS to reality), 5 (verify, including the hooks-fire probe) and 6 (first
-   > ritual) against this repo.
+   > /adopt Finish adopting the dot-claude-iff system into this repo. The files are already
+   > installed, so skip the copy phase: run phases 2 (frame questions), the visibility step
+   > at the end of 3 (record the answer, apply the .gitignore block), 4 (adapt: fill
+   > CLAUDE.md's placeholders from this repo, reset STATUS to reality), 5 (verify, including
+   > the hooks-fire probe) and 6 (first ritual) against this repo.
 
 4. Open the console beside your terminal: `python3 .claude/console/console.py` prints your
    URL (http://<your-folder-name>.localhost:<derived-port>/console.html - the port derives
@@ -141,6 +141,8 @@ merged, never overwritten; an existing .claude/ is the designed case, not a prob
 
 4. When Claude Code asks whether to trust the newly installed hooks, say yes; the adopt
    skill's verify phase probes that they actually fire.
+5. Hooks installed mid-session start working in the next session. Open a new one in your
+   repo and type /project-memory: that is the first ritual, and only you can open it.
 
 The kit is a complete, self-seeding copy of the system; after adoption, your repo can itself
 be the source for the next adoption. The manual ships at .claude/README.md.
@@ -179,6 +181,9 @@ _VISIBILITY_BODY = {
 
 # Liveness signal, rewritten every turn by the Stop hook (which creates it when missing)
 .claude/state/heartbeat.json
+
+# Ritual ticket: minted by the prompt hook when the user types /project-memory, consumed at the end
+.claude/state/ritual-ticket.json
 
 # Agent worktrees (build-time scratch copies of the repo)
 .claude/worktrees/

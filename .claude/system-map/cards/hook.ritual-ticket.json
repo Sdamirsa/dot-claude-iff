@@ -1,0 +1,25 @@
+{
+  "id": "hook.ritual-ticket",
+  "kind": "code",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Ritual Ticket",
+  "path": ".claude/hooks/ritual-ticket.sh",
+  "description": "ritual-ticket.sh - UserPromptSubmit + UserPromptExpansion hook. Mints the ritual ticket. The ritual (/project-memory) and the installer (/adopt) are the USER's to open. checkctl refuses to open, continue or complete a ritual run without a fresh ticket in .claude/state/ritual-ticket.json, and the policy gate denies that file to every agent identity on every write lane. This hook is its one writer: when the user's own prompt starts with /project-memory or /adopt (UserPromptSubmit `user_input`, `prompt` in older releases), or Claude Code expands one of those two commands (UserPromptExpansion `command_name`), it writes {skill, ts, session_id, event}. A prompt that merely mentions the command mid-sentence writes nothing, and neither does a turn Claude Code starts on its own. A tripwire, not cryptography: an agent-opened ritual fails loudly, and every issue lands in the record. It does not make forging impossible. NEVER blocks or alters the prompt: every path exits 0 and prints nothing (stdout on these two events would be injected into the context). If it breaks, no ticket is written and checkctl refuses the ritual: fail closed overall, through checkctl, never by blocking the user here. The payload goes to a temp FILE, as in policy-gate.sh: a prompt can be far larger than an environment variable may hold.",
+  "reads": [
+    "config.observe"
+  ],
+  "writes": [
+    "store.ritual_ticket",
+    "store.record"
+  ],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "19b7d6cee1b060b9884459a37f16dc7886a4c90044bd60fb4cf76348dc3daca6",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

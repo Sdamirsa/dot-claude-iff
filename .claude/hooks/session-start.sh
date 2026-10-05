@@ -6,14 +6,20 @@
 #   1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts),
 #      then one MODE/PHASE line; in the guided-solo and fableous-orchestrated modes also the
 #      current phase's contract (at most five lines, from config/phases.json).
-#   2. Nudge if the ritual has not run in a while. The nudge lives HERE rather than on
-#      SessionEnd because SessionStart's stdout->context path is the one we can prove works.
+#   2. Nudge the agent to ASK THE USER for the ritual when it has not run in a while (only the
+#      user can open it). The nudge lives HERE rather than on SessionEnd because SessionStart's
+#      stdout->context path is the one we can prove works. Sessions are counted from the
+#      capture lane's SessionStart events (spool + sealed segments), plus this one; with that
+#      capture off the count is unknown and the nudge says so and goes by age alone.
 #   3. Optionally start the console server, guarded by a pidfile so N sessions start one server.
 #
 # Read-only with respect to project state: it never writes to the journal.
 
 set -u
-cat >/dev/null 2>&1 || true
+# The payload is small here (ids and paths, no prompt), so an env var carries it, as in
+# obs-capture.sh. Only its session id is read: the nudge counts this session too.
+SS_INPUT="$(cat 2>/dev/null || true)"
+export SS_INPUT
 export CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 
 python3 - <<'PY' 2>/dev/null || true
@@ -61,24 +67,76 @@ try:
 except Exception:
     pass
 
-# 2. the ritual nudge
+# 2. the ritual nudge. Only the user can open the ritual (checkctl refuses without the ticket
+# their own /project-memory mints), so the nudge tells the agent to ASK, never to run it.
+ASK = ("Ask the user to run /project-memory at the next natural boundary (only the user can "
+       "open it): every derived surface in this system is rebuilt there, and only there.")
+
+
+def sessions_since(last: str, exclude, current):
+    """Distinct sessions started after `last`: SessionStart events from the capture lane
+    (obs-capture.sh spools them; seal moves them into dated segments), plus this session.
+    The ritual's own session is excluded. None when SessionStart capture is off: the count is
+    then unknown, not zero. (No hook writes a `session_start` journal event, so the journal
+    cannot answer this.)"""
+    cfg = _lib.load_config("observe")
+    captured = cfg.get("capture_all_events") or "SessionStart" in (cfg.get("capture_events") or ())
+    if not cfg.get("enabled", True) or not captured:
+        return None
+    stamp = _lib.parse_ts(last)
+    if stamp is None:
+        return None
+    floor = stamp.strftime("%Y-%m-%dT%H:%M:%SZ")
+    paths = _lib.record_paths()
+    files = []
+    if paths["spool"].is_dir():  # ingest.jsonl holds token metadata only, never SessionStart
+        files += [f for f in sorted(paths["spool"].glob("*.jsonl")) if f.name != "ingest.jsonl"]
+    if paths["segments"].is_dir():
+        files += [f for f in sorted(paths["segments"].glob("*.jsonl")) if f.stem >= floor[:10]]
+    seen = set()
+    for f in files:
+        try:
+            text = f.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            if '"SessionStart"' not in line:
+                continue
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(ev, dict) or ev.get("hook_event_name") != "SessionStart":
+                continue
+            if str(ev.get("_obs_ts") or "") > floor and ev.get("session_id"):
+                seen.add(str(ev["session_id"]))
+    if current:
+        seen.add(current)
+    seen.discard(str(exclude or ""))
+    seen.discard("")
+    return len(seen)
+
+
 try:
     run = _lib.read_json(_lib.state_dir() / "memory-run.json", {}) or {}
     last = run.get("last_completed")
     if last:
         age_days = (_lib.age_seconds(last) or 0) / 86400.0
-        since = sum(
-            1 for e in _lib.journal_read()
-            if e.get("action") == "session_start" and str(e.get("ts", "")) > str(last)
-        )
-        if age_days >= 3 or since >= 3:
-            lines.append(
-                f"RITUAL: last /project-memory was {age_days:.1f} days and {since} session(s) ago. "
-                f"Run it at the next natural boundary - every derived surface in this system is "
-                f"rebuilt there, and only there."
-            )
+        try:
+            current = str((json.loads(os.environ.get("SS_INPUT") or "{}") or {}).get("session_id") or "")
+        except Exception:
+            current = ""
+        since = sessions_since(str(last), run.get("ticket_session"), current)
+        if since is None:
+            if age_days >= 3:
+                lines.append(
+                    f"RITUAL: last /project-memory was {age_days:.1f} days ago (sessions not "
+                    f"counted: SessionStart capture is off in observe.json). {ASK}")
+        elif age_days >= 3 or since >= 3:
+            lines.append(f"RITUAL: last /project-memory was {age_days:.1f} days and {since} "
+                         f"session(s) ago, this one included. {ASK}")
     elif journal.exists():
-        lines.append("RITUAL: /project-memory has not run yet in this project.")
+        lines.append(f"RITUAL: /project-memory has not run yet in this project. {ASK}")
 except Exception:
     pass
 
