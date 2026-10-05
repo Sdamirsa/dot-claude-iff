@@ -32,6 +32,14 @@ to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gat
    user confirms their path, align fully and log it with tag `user-confirmed-over-pushback`.
 5. **No volatile numbers in docs.** Point at the source data file instead.
 
+## Communication
+
+- Answer or verdict first. At most four options, exactly one marked as the pick with a
+  one-line reason; rejected options listed apart, one line each.
+- An ask with "quick" or "just" gets three lines or fewer.
+- "Not enough evidence, missing X" is a valid pick.
+- Brevity never trims failure output or the list of skipped steps: `honesty.md` wins.
+
 ## Three laws
 
 1. **Anti-rot.** Every generator is registered in `.claude/config/memory.json` and runs only
@@ -56,7 +64,8 @@ python3 .claude/tools/tests/run_tests.py          # the whole suite
 ```
 
 Skills: `/project-memory` (check · polish · publish · evolve; `--hard` for a maturation
-session) · `/plan-task` · `/adopt`.
+session) · `/plan-task` · `/adopt` · `/adhd` (user-invoked brainstorm, about ten agent calls:
+suggest it in one line for an open, divergent question; the user decides).
 Agents: `anatomist` (anatomy expert, cards, placement, pruning) · `retro-analyst` (propose-only
 evolution) · `verifier` (adversarial claim checking).
 
@@ -70,7 +79,7 @@ evolution) · `verifier` (adversarial claim checking).
 | `.claude/state/` | `journal.jsonl` is truth; session/HANDOFF/needs-human/map are projections |
 | `.claude/system-map/` | `layers.json` + one card per component → compiled `map.json` |
 | `.claude/console/` | the single-page console + its stdlib server |
-| `.claude/config/` | memory (ritual registry) · policy · observe · console · registry · prices |
+| `.claude/config/` | memory (ritual registry) · policy · observe · console · registry · prices · brainstorm |
 | `.claude-iff/` | committed record surface: anchor + redacted rollups, write-denied |
 | `<parent>/dot-claude-iff_claude_iff/` | RECORD_ROOT: raw capture, transcripts, analysis, vault |
 

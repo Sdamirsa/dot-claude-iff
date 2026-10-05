@@ -37,6 +37,12 @@ Prefer the smallest intervention: a CLAUDE.md line beats a rule beats a skill be
 The same ordering runs backwards for pruning: demote a subagent to a skill before archiving it
 outright, if a smaller form still covers the need.
 
+Smaller still is a tunable: when a component already reads its knobs from `.claude/config/`,
+retuning a value beats changing the component. EVOLVE may propose changes to
+`.claude/config/brainstorm.json` (the `/adhd` frames, branch count, branch and critic models)
+under the same bar as any other change: evidence from real runs, the proposal format below,
+the user gate, and the knob's card in `.claude/config/registry.json` kept true.
+
 ## Two gears
 
 **Soft (default):** runs inside every ritual's EVOLVE phase. Session digest to

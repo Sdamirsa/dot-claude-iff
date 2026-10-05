@@ -15,7 +15,8 @@
       "policy",
       "observe",
       "console",
-      "model-prices"
+      "model-prices",
+      "brainstorm"
     ],
     "exempt_keys": [
       "version",
@@ -458,6 +459,58 @@
         "kind": "agent-frontmatter",
         "file": "verifier",
         "path": "model"
+      },
+      "type": "string",
+      "default": "inherit"
+    },
+    {
+      "key": "brainstorm.branch_count",
+      "title": "Brainstorm branch count",
+      "description": "How many frames /adhd picks per run, so how many isolated Diverge branches run in parallel. Cost grows linearly with it.",
+      "layer": null,
+      "target": {
+        "kind": "config",
+        "file": "brainstorm",
+        "path": "branch_count"
+      },
+      "type": "int",
+      "default": 5
+    },
+    {
+      "key": "brainstorm.frames",
+      "title": "Brainstorm frames",
+      "description": "The cognitive-frame catalogue /adhd picks from: each frame has a name, a vantage prompt and tags (code, design, general, wild). Must hold at least branch_count frames, at least one tagged wild.",
+      "layer": null,
+      "target": {
+        "kind": "config",
+        "file": "brainstorm",
+        "path": "frames"
+      },
+      "type": "list",
+      "default": "upstream catalogue (see skills/adhd/UPSTREAM.md)"
+    },
+    {
+      "key": "brainstorm.branch_model",
+      "title": "Brainstorm branch model",
+      "description": "Agent-tool model for every Diverge branch: a model alias (sonnet, opus, haiku, ...) or inherit (omit the per-call model, run on the session's model).",
+      "layer": null,
+      "target": {
+        "kind": "config",
+        "file": "brainstorm",
+        "path": "branch_model"
+      },
+      "type": "string",
+      "default": "sonnet"
+    },
+    {
+      "key": "brainstorm.critic_model",
+      "title": "Brainstorm critic model",
+      "description": "Agent-tool model for the critic pass and the deepen calls: a model alias (sonnet, opus, haiku, ...) or inherit (the default, so the judge is never weaker than the session).",
+      "layer": null,
+      "target": {
+        "kind": "config",
+        "file": "brainstorm",
+        "path": "critic_model"
       },
       "type": "string",
       "default": "inherit"
