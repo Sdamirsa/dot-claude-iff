@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-05T13:57:36Z",
-  "last_event_ts": "2026-10-05T13:57:35Z",
+  "generated_at": "2026-10-05T13:57:44Z",
+  "last_event_ts": "2026-10-05T13:57:44Z",
   "session": {
     "id": "phase2-build",
     "mode": "fableous-orchestrated",
@@ -8,7 +8,7 @@
     "phase_since": "2026-10-05T13:57:35Z",
     "started": "2026-08-25T08:32:09Z"
   },
-  "resume_pointer": "M-0.3.0-alpha BUILD: merged T2 T6 T8 (dev pushed, suite 323 green locally). In flight in lead-made worktrees: T1 t1, T9 t9, T4 t4, T7 t7. After each merge: distctl build + full suite + commit zips + push; watch CI (ci.yml; Windows fixed to shell: bash, verify green). Then T3+T5 (need T1,T4), T12, T10, T11 (human gate before tag/issue replies)",
+  "resume_pointer": "M-0.3.0-alpha BUILD: merged T1 T2 T4 T6 T7 T8 T9 (7/12; dev pushed, suite 523 green, CI green on both OS). Wave 3 in flight: T3 (worktree t3), T5 (t5). Then T12, T10, T11 (human gate before tag/issue replies). Method: lead-made worktrees from dev, merge, distctl build, full suite, push",
   "open_loops": [],
   "open_intents": [],
   "tasks": [
@@ -110,7 +110,7 @@
     }
   ],
   "counts": {
-    "events": 101,
+    "events": 102,
     "tasks_total": 12,
     "tasks_done": 7,
     "tasks_open": 5,

@@ -16,6 +16,8 @@ What ships matches what the docs say, with no dead knobs and a truthful map.
 
 - Runs after every other build task is merged.
 - `CLAUDE.md` still describes `temp-to-analyse/` as present; the folder is gone from this machine. Keep the gitignore line, reword the section.
+- Gate false positives found by the verifier (envelope `.claude/state/handshakes/verify-T1-policy-gate.json`), both to fix with a test each and without loosening any existing deny test: (1) a sub-agent's interpreter heredoc that writes to an allowed path (e.g. its own envelope under `.claude/state/handshakes/`) is denied when its TEXT merely names a protected path; (2) a backslash Windows path through a folder named `GIT` trips the sub-agent git word match (the lookbehind excludes `/` and `.` but not a backslash).
+- `check_gitignore_shadowing` feeds git paths in text mode on Windows (trailing CR), so file-level patterns like `*.zip` never match: fix with a test.
 - Tool count wording ('six core tools') must match reality without a volatile number.
 
 ## Plan
@@ -23,6 +25,7 @@ What ships matches what the docs say, with no dead knobs and a truthful map.
 - [ ] Adopt skill fixes, done when: text tests pass
 - [ ] Dead knobs gone, done when: `test_contracts` green and grep finds no reference
 - [ ] Brand file home-only, done when: `test_dist` asserts absence from both zips
+- [ ] Two gate false positives + shadowing CR bug, done when: one new test each and `test_hooks` green
 - [ ] Docs pass, done when: a docs test greps each new command name in CLAUDE.md or README
 - [ ] Anatomist reconciliation, done when: `mapctl lint` clean
 - [ ] Zips rebuilt, done when: freshness test green
