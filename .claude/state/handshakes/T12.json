@@ -1,0 +1,88 @@
+{
+  "task_id": "T12",
+  "agent_id": "builder-T12",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "done",
+  "RESULT": "One progress model (.claude/tools/progress.py, compute()) now renders three ways: `statectl progress` (compact ASCII/Unicode block), `statectl progress --json`, and a live Progress panel at the top of the console's NOW tab (payload key `progress`, freshness live). The policy gate refreshes heartbeat.json as 'working' after its decision (throttled by progress.pulse_seconds, fail-open, decision byte-identical), the capture hook does the same on SubagentStart/SubagentStop, and in guided-solo/fableous-orchestrated the post-write advisory channel hands the lead the block every progress.report_minutes with the instruction to post it as is.",
+  "files_changed": [
+    ".claude/tools/progress.py",
+    ".claude/tools/_lib.py",
+    ".claude/tools/statectl.py",
+    ".claude/tools/consolectl.py",
+    ".claude/tools/checkctl.py",
+    ".claude/tools/mapctl.py",
+    ".claude/hooks/policy_gate.py",
+    ".claude/hooks/obs-capture.sh",
+    ".claude/hooks/heartbeat.sh",
+    ".claude/hooks/post-write-validate.sh",
+    ".claude/console/console.template.html",
+    ".claude/config/orchestration.json",
+    ".claude/config/registry.json",
+    ".claude/system-map/cards/tool.progress.json",
+    ".claude/system-map/cards/store.heartbeat.json",
+    ".claude/system-map/cards/store.orchestration.json",
+    ".claude/system-map/cards/hook.policy-gate.json",
+    ".claude/system-map/cards/hook.obs-capture.json",
+    ".claude/system-map/cards/hook.post-write-validate.json",
+    ".claude/system-map/cards/tool.statectl.json",
+    ".claude/system-map/cards/tool.consolectl.json",
+    ".claude/reference/glossary.md",
+    ".claude/protocols/orchestration.md",
+    ".claude/skills/project-memory/SKILL.md",
+    ".claude/CLAUDE.md",
+    ".claude/README.md",
+    ".claude/tasks/030a-t12-long-run-progress.md",
+    ".claude/tools/tests/test_progress.py",
+    ".claude/tools/tests/test_console.py",
+    ".claude/tools/tests/test_hooks.py"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_progress test_console test_hooks -q",
+      "exit_code": 0,
+      "summary": "177 passed · 0 failed · 0 errored · 0 skipped (TESTS_OK)"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "693 passed · 0 failed · 0 errored · 2 skipped (TESTS_OK); the new skip is test_committed_zips_equal_a_rebuild: zips pending this diff"
+    }
+  ],
+  "EVIDENCE": [
+    "python3 .claude/tools/tests/run_tests.py test_progress test_console test_hooks -q -> 177 passed, TESTS_OK",
+    "python3 .claude/tools/tests/run_tests.py -q -> 693 passed, 2 skipped, TESTS_OK (baseline before the change: 635 passed, 1 skipped)",
+    "mutation check (scratch script, files restored byte for byte): 11 mutants, all killed - pulse catching only Exception, pulse stdout not redirected, pulse call removed, throttle removed, report mode gate removed, report sub-agent gate removed, done-task-counts-all rule removed, in-flight rule forced true, build-gate progress masking removed, ASCII bars forced to blocks, capture-lane pulse removed",
+    "CLAUDE_PROJECT_DIR=<main checkout> statectl.py progress (read-only) -> 8-10 line block: 74% of plan items (53/71), done/in progress/waiting groups, builder T12 in flight, last activity line; PYTHONIOENCODING=ascii -> same block with [####----] bars, exit 0",
+    "console rendered from fixtures and the main checkout's state, viewed in the browser pane: panel at the top of NOW, milestone bar, per-task mini bars and status pills, handoff-ready copy box, Needs you list with the shared needs-human renderer, agents line; empty and no-task milestones show one line; light palette verified by computed styles; mobile width checked",
+    "checkctl.py probe -> 52 ok, 0 fail (tool.progress included); mapctl.py lint -> no ERROR (MAP_WARN: pre-existing stale hashes and unplaced cards); config_registry_lint OK 52 knobs; theme_token_parity OK"
+  ],
+  "DEVIATIONS": [
+    "Pulse throttle: a heartbeat whose note is not 'working' (the Stop hook's 'turn ended', a missing or corrupt file) is due at once; the pulse_seconds window applies between working pulses only. Without this a new turn right after a Stop showed 'turn ended' for up to a minute while working.",
+    "The sub-agent pulse lives in obs-capture.sh (the capture lane already wired to SubagentStart/SubagentStop), not handoff-guard.sh: it runs in every mode before the capture filter, and the guard's block output stays untouched.",
+    "Percent rule for tasks the formula did not cover: a task with no Plan checklist (or no task file) counts as one item, checked when done. Per-task checklist_done/checklist_total stay the file's own ticks; totals carry the effective counts (done task = all items) and totals.basis states the rule.",
+    "Periodic report: no recorded report counts as due (the first lead write in an organised mode posts a block); a model with no milestone or no tasks is never reported and records nothing.",
+    "consolectl now.in_flight (the existing In-flight card) now comes from the progress model's rule (task not done and no valid envelope since dispatch, worktrees included; a scout/verifier stub is answered by any valid envelope) so the card and the panel cannot disagree; the old stub-without-envelope reading stays as the fallback when the model cannot compute. Existing in_flight tests pass unchanged. _lib._delivered_at gained builder= (default True: unchanged behaviour).",
+    "test_console's empty-project test now expects 'progress' in freshness.live and the honest empty progress state (deliberate payload change).",
+    "statectl progress --json prints STATE_OK on stderr so stdout stays pure JSON (as consolectl payload does).",
+    "Beyond the CLAUDE.md command line: one phrase in .claude/README.md's NOW row, my own task file's Plan ticks and Checkpoint, and checkctl's heartbeat_present message now says 'working, last activity N min ago' for a pulse (and tolerates a non-object heartbeat)."
+  ],
+  "UNCERTAINTIES": [
+    "Not exercised in a live Claude Code session: hooks load in a new session; the harness rendering of the report's fenced block as additionalContext was not observed.",
+    "Run on Windows only; Linux CI not run here.",
+    "The report rides PostToolUse Write|Edit|MultiEdit (the existing advisory channel, as specified): a lead that only runs Bash or dispatches agents for a long stretch gets no report until its next write.",
+    "The model is recomputed on every live poll (journal, task files, stubs, worktree envelopes); fine at this repo's size, not profiled on a large journal or many worktrees."
+  ],
+  "needs_main": [
+    "POLISH (via /project-memory) to rebuild derived surfaces: console_build and demo_build (console.html, docs/demo/console.html carry the new panel), map_scan + map_compile (stale card hashes for every touched source; tool.progress card is new), dist_build (test_committed_zips skips as pending until then).",
+    "Merge with T13: statectl.py gets a separate cmd_progress hunk plus a parser entry after 'status'; .claude/CLAUDE.md's statectl command line ('dispatch|progress') will meet T13's 'accept' on the same line.",
+    "Journal: statectl task T12 --status done (the worktree journal is untouched).",
+    "Start a new session for the changed hooks (policy_gate.py pulse, obs-capture.sh pulse, post-write report) to load."
+  ],
+  "SUGGESTIONS": [
+    "T10: the old 'In-flight subagents' card now repeats the Progress panel's agents line; consider dropping it.",
+    "T10: .claude/README.md's statectl command list (Commands section) predates mode/phase/proposal/dispatch/progress.",
+    "If reports must reach a Bash-only lead, widening post-write-validate's matcher to Bash would do it at the cost of one process per Bash call; not done here."
+  ]
+}

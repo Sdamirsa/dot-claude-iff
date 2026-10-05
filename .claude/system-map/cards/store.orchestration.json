@@ -5,7 +5,7 @@
   "package": null,
   "title": "Orchestration runtime",
   "path": ".claude/state/orchestration.json",
-  "description": "fableous-orchestrated runtime, per machine and gitignored: when each sub-agent began (the builder stop check's 'since') and the lead's code edits since the last dispatch (the delegation nudge). Written by the hooks only.",
+  "description": "fableous-orchestrated runtime, per machine and gitignored: when each sub-agent began (the builder stop check's 'since'), the lead's code edits since the last dispatch (the delegation nudge), and when the periodic progress report last went to the lead (both organised modes). Written by the hooks only.",
   "reads": [],
   "writes": [],
   "invokes": [],

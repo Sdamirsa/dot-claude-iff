@@ -99,8 +99,11 @@ class PayloadEmptyProjectTests(FixtureCase):
         self.assertEqual(data["context"]["findings"], {"fail": 0, "warn": 0})
         self.assertEqual(data["context"]["always_on_lines"], 0)
 
-        self.assertEqual(data["freshness"], {"live": ["now", "analysis", "work.proposals"],
+        self.assertEqual(data["freshness"], {"live": ["now", "analysis", "work.proposals", "progress"],
                                              "ritual": ["tokens", "work.log_tail", "map", "story"]})
+        # The Progress panel's model: no milestone is an honest one-line empty state.
+        self.assertIn("no milestone yet", data["progress"]["empty"])
+        self.assertEqual((data["progress"]["tasks"], data["progress"]["agents_in_flight"]), ([], []))
 
         self.assertIn("no heartbeat yet", data["warnings"])
         # The shipped default is billing "subscription", under which an empty price table is
@@ -275,6 +278,116 @@ class LifecycleAndProposalsTests(FixtureCase):
         self.run_statectl("proposal", "add", "an idea", "--source", "human")
         result = consolectl.build()  # renders end to end with the new keys present
         self.assertIn("lifecycle-badge", result["path"].read_text(encoding="utf-8"))
+
+
+class ProgressPanelTests(FixtureCase):
+    """The NOW tab's Progress panel (T12): payload key `progress` IS progress.compute(), the model
+    `statectl progress` prints, live on the existing poll, honest when empty, a snapshot when
+    static, and never a reason to rewrite console.html when only the clock moved."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        _install_template(self)
+
+    def populate(self) -> None:
+        self.journal("mode", value="fableous-orchestrated")
+        self.journal("milestone", id="M1", title="the long run")
+        self.journal("phase", value="build")
+        self.journal("task", id="T1", title="first", status="done", milestone="M1")
+        self.journal("task", id="T2", title="second", status="doing", milestone="M1")
+        (self.root / ".claude" / "tasks" / "t2.md").write_text(
+            "# Task: T2 - second\n\n_Created 2026-10-05 · Status: doing_\n\n## Plan\n\n"
+            "- [x] one\n- [ ] two\n", encoding="utf-8")
+        _lib.atomic_write_json(_lib.stub_path("T2"), {"task_id": "T2", "agent": "builder",
+                                                      "dispatched_at": _lib.utc_now(),
+                                                      "worktree": ".claude/worktrees/t2"})
+
+    def test_the_payload_key_is_the_one_model(self):
+        import progress
+        self.populate()
+        data = consolectl.payload()
+        self.assertIn("progress", data["freshness"]["live"])
+        self.assertEqual(progress.without_clock(data["progress"]),
+                         progress.without_clock(progress.compute()))
+        pg = data["progress"]
+        self.assertEqual(pg["milestone"]["id"], "M1")
+        self.assertEqual([(t["id"], t["group"]) for t in pg["tasks"]],
+                         [("T1", "done"), ("T2", "in progress")])
+        self.assertEqual(pg["totals"]["percent"], 66, "T1 done = 1 of 1, T2 1 of 2: 2 of 3")
+        self.assertEqual([a["task"] for a in pg["agents_in_flight"]], ["T2"])
+
+    def test_a_milestone_with_no_tasks_is_one_line(self):
+        self.journal("milestone", id="M9", title="nine")
+        pg = consolectl.payload()["progress"]
+        self.assertIn("milestone M9 has no tasks yet", pg["empty"])
+        self.assertEqual(pg["tasks"], [])
+
+    def test_the_in_flight_card_and_the_panel_agree(self):
+        self.populate()
+        self.assertEqual([f["task_id"] for f in consolectl.payload()["now"]["in_flight"]], ["T2"])
+        envelope = {"agent_id": "builder-T2", "task_id": "T2", "status": "done", "agent": "builder",
+                    "model": "opus", "files_changed": [], "needs_main": [],
+                    "tests": [{"command": "x", "exit_code": 0, "summary": "ok"}]}
+        _lib.atomic_write_json(_lib.envelope_path("T2", self.root / ".claude" / "worktrees" / "t2"), envelope)
+        data = consolectl.payload()
+        self.assertEqual(data["now"]["in_flight"], [], "a valid envelope in the worktree lands it")
+        self.assertEqual(data["progress"]["agents_in_flight"], [])
+        self.assertTrue(data["progress"]["tasks"][1]["has_valid_envelope"])
+
+    def test_a_model_that_cannot_compute_degrades_honestly(self):
+        import progress
+        original = progress.compute
+        progress.compute = lambda: (_ for _ in ()).throw(RuntimeError("boom"))
+        try:
+            data = consolectl.payload()  # must not raise
+        finally:
+            progress.compute = original
+        self.assertIn("progress model unavailable", data["progress"]["empty"])
+        self.assertEqual(data["now"]["in_flight"], [], "the in-flight card falls back to the stubs")
+
+    def test_only_the_clock_moving_does_not_rewrite_the_page(self):
+        import progress
+        self.populate()
+        later = progress._now
+        try:
+            progress._now = lambda: 2_000_000_000.0
+            first = consolectl.build()
+            progress._now = lambda: 2_000_000_000.0 + 3600
+            second = consolectl.build()
+            self.assertFalse(second["wrote"], "ages moved, nothing else: console.html stays put")
+            self.journal("task", id="T2", status="blocked")
+            third = consolectl.build()
+        finally:
+            progress._now = later
+        self.assertTrue(first["wrote"])
+        self.assertTrue(third["wrote"], "a real change still rewrites")
+
+    def test_static_and_demo_builds_carry_the_snapshot(self):
+        self.populate()
+        for kwargs in ({}, {"demo": True, "out": "docs/demo/console.html"}):
+            with self.subTest(build=kwargs):
+                result = consolectl.build(**kwargs)
+                embedded = consolectl._extract_embedded_data(result["path"].read_text(encoding="utf-8"))
+                self.assertEqual(embedded["progress"]["milestone"]["id"], "M1")
+                self.assertEqual(embedded["progress"]["tasks"][1]["in_flight"]["agent"], "builder")
+
+    def test_the_template_renders_the_panel_from_the_model(self):
+        template = (CONSOLE_DIR / "console.template.html").read_text(encoding="utf-8")
+        for needle in ("function renderProgress", 'id: "progress-panel"', "DATA.progress",
+                       'sectionHead("Progress", "progress")', "renderProgress(panel);",
+                       ".checklist_done", ".checklist_total", ".has_valid_envelope", ".in_flight",
+                       ".agents_in_flight", ".needs_human", ".last_activity", ".percent", ".basis",
+                       ".tasks_done", ".tasks_total", ".milestone", ".group", ".empty", ".elapsed",
+                       ".proposals_open", ".mode_label"):
+            self.assertIn(needle, template, needle)
+        body = template[template.index("function renderProgress"):template.index("function renderNow")]
+        for timer in ("setTimeout", "setInterval", "fetch("):
+            self.assertNotIn(timer, body, "the panel rides the existing poll: no timer of its own")
+        self.assertEqual(template.count("appendNeedItem("), 3,
+                         "one needs-human renderer, used by the Needs human card and the panel")
+        self.assertIn('beat.note === "working"', template, "working pulse versus turn ended")
+        self.assertLess(template.index("renderProgress(panel);"), template.index('sectionHead("Heartbeat"'),
+                        "the panel sits at the top of NOW")
 
 
 class BuildWriteGatingTests(FixtureCase):

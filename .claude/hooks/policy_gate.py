@@ -12,6 +12,11 @@ Exit codes are the contract with the wrapper:
     0  decision emitted (or explicitly allowed)
     3  this script could not do its job; the wrapper must fail closed on protected paths
 
+After the decision is out, and only then, the activity pulse refreshes state/heartbeat.json
+(throttled, telemetry, fails open): this gate already runs on every write and shell call, so a
+multi-hour turn keeps a true "last activity" without a new process per call. The pulse cannot
+reach the decision: same stdout, same exit code, every failure swallowed (activity_pulse below).
+
 Three rings, enforced on EVERY write lane (Write/Edit/MultiEdit/NotebookEdit by the target path,
 Bash and PowerShell by reading the command):
   1. The record (RECORD_ROOT and .claude-iff/) is write-denied to EVERY identity, main session
@@ -1213,6 +1218,38 @@ def explain(zone: Zone, form: str, root: Path, identity: str, how: str, degraded
     return reason
 
 
+# What the activity pulse needs once the decision is out: the project root and the tool NAME
+# (never its input). Filled by main(), read only by activity_pulse().
+_ACTIVITY: dict = {}
+
+
+def activity_pulse() -> None:
+    """Telemetry, run strictly AFTER the decision is computed and emitted: refresh
+    state/heartbeat.json (throttled by progress.pulse_seconds, _lib.activity_pulse) so "last
+    activity" stays true through a multi-hour turn, for the main session and sub-agents alike.
+    It can never change the decision: stdout is flushed first, anything it prints is swallowed,
+    every exception is swallowed, and the caller exits with the code main() produced."""
+    try:
+        sys.stdout.flush()
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        root = _ACTIVITY.get("root")
+        if not root:
+            return
+        import contextlib
+        import io
+        sink = io.StringIO()
+        with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
+            tools = str(Path(root) / ".claude" / "tools")
+            if tools not in sys.path:
+                sys.path.insert(0, tools)
+            import _lib  # noqa: E402
+            _lib.activity_pulse(_ACTIVITY.get("tool") or "tool")
+    except BaseException:  # noqa: BLE001 - a broken pulse loses a beat, never a decision
+        pass
+
+
 def main(argv: list) -> int:
     if len(argv) < 1:
         return 3
@@ -1221,6 +1258,7 @@ def main(argv: list) -> int:
     root_env = payload.get("_project_root") or ""
     root = Path(root_env).resolve() if root_env else Path.cwd().resolve()
     tool = str(payload.get("tool_name") or "")
+    _ACTIVITY.update(root=str(root), tool=tool)
     raw_input = payload.get("tool_input")
     cwd = os.path.realpath(str(payload.get("cwd") or root))
 
@@ -1342,9 +1380,11 @@ def main(argv: list) -> int:
 
 if __name__ == "__main__":
     try:
-        sys.exit(main(sys.argv[1:]))
-    except SystemExit:
-        raise
+        code = main(sys.argv[1:])
+    except SystemExit as exc:  # allow() and emit_deny() exit here, the decision already printed
+        code = exc.code
     except Exception:
         # Any unhandled failure means this gate did not judge the call. Tell the wrapper.
-        sys.exit(3)
+        code = 3
+    activity_pulse()
+    sys.exit(code)

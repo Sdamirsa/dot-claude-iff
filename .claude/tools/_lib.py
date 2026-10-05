@@ -907,7 +907,8 @@ def write_stub(task_id: str, agent: str, worktree: str | None = None) -> Path:
 # fableous-orchestrated's runtime state (state/orchestration.json): when each sub-agent began
 # (the builder stop check's "since") and how many code edits the lead made since the last
 # dispatch (the delegation nudge). Nothing here acts in freestyle or guided-solo, and the hooks
-# that call it fail open: a broken counter costs a reminder, never a tool call.
+# that call it fail open: a broken counter costs a reminder, never a tool call. The same store
+# keeps the periodic progress report's last time (`report`, both organised modes; see below).
 
 ORCHESTRATION_DEFAULTS = {"nudge_after": 8, "handoff_test_timeout": 1800}
 AGENT_STARTS_KEPT = 64
@@ -1058,9 +1059,10 @@ def agent_started_at(payload: dict):
     return None
 
 
-def _delivered_at(task_id: str, worktree: str = ""):
+def _delivered_at(task_id: str, worktree: str = "", builder: bool = True):
     """mtime of the newest VALID builder envelope for task_id, in the project or any of its
-    worktrees (a builder writes its envelope inside its worktree); None when there is none."""
+    worktrees (a builder writes its envelope inside its worktree); None when there is none.
+    builder=False accepts any valid envelope (a scout's or a verifier's)."""
     root = project_root()
     candidates = [envelope_path(task_id, root)]
     if worktree:
@@ -1075,7 +1077,7 @@ def _delivered_at(task_id: str, worktree: str = ""):
         except OSError:
             continue
         obj = read_json(path, None)
-        if obj is None or validate_envelope(obj, builder=True):
+        if obj is None or validate_envelope(obj, builder=True if builder else None):
             continue
         best = mtime if best is None else max(best, mtime)
     return best
@@ -1128,17 +1130,110 @@ def builder_stop_reason(payload: dict):
             f"valid handoff: say so with status partial or blocked. This reminder comes once.")
 
 
+# --------------------------------------------------------------------------- long-run progress
+#
+# Two telemetry halves of the progress model (tools/progress.py), both fail open.
+#
+# The ACTIVITY PULSE: heartbeat.json was written only by the Stop hook, so through a multi-hour
+# turn "last activity" went stale. Hooks that already run on every tool call (the policy gate,
+# after its decision) and on sub-agent start/stop (the capture hook) call activity_pulse(),
+# which rewrites the heartbeat as {ts, note: "working", via} once it is older than
+# progress.pulse_seconds. The Stop hook's "turn ended" note is superseded on the next call, so
+# the two stay distinguishable: working, last activity 40s ago versus turn ended 13 min ago.
+#
+# The PERIODIC REPORT: no hook fires on a timer, so progress_report() rides the advisory
+# channel below. In guided-solo and fableous-orchestrated, on the lead's hook call after
+# progress.report_minutes have passed since the last one, it hands the lead the compact text
+# block with one instruction: post it to the user as is. The last report time lives in the
+# orchestration runtime store.
+
+PROGRESS_DEFAULTS = {"pulse_seconds": 60, "report_minutes": 30}
+PULSE_NOTE = "working"
+TURN_ENDED_NOTE = "turn ended"
+# Sub-agent events the capture hook pulses on (it already runs there; no new process).
+PULSE_EVENTS = ("SubagentStart", "SubagentStop")
+
+
+def heartbeat_path() -> Path:
+    return state_dir() / "heartbeat.json"
+
+
+def progress_knob(name: str) -> int:
+    """An integer from orchestration.json's `progress` object, the shipped default when absent
+    or bad. 0 (or less) turns the feature off."""
+    default = PROGRESS_DEFAULTS[name]
+    cfg = load_config("orchestration")
+    node = cfg.get("progress") if isinstance(cfg, dict) else None
+    if not isinstance(node, dict):
+        return default
+    try:
+        return int(node.get(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def activity_pulse(via: str) -> bool:
+    """Refresh heartbeat.json mid-turn: True when it wrote. Not due while the last working pulse
+    is younger than progress.pulse_seconds (0 = off); a heartbeat that is missing, unreadable or
+    a Stop hook's "turn ended" is due at once. `via` is a tool or event NAME, never its input.
+    Callers swallow every exception: a broken pulse loses a beat, never a tool call."""
+    seconds = progress_knob("pulse_seconds")
+    if seconds <= 0 or not claude_dir().is_dir():
+        return False
+    path = heartbeat_path()
+    beat = read_json(path, None)
+    if isinstance(beat, dict) and beat.get("note") == PULSE_NOTE:
+        age = age_seconds(beat.get("ts"))
+        if age is not None and age < seconds:
+            return False
+    atomic_write_json(path, {"ts": utc_now(), "note": PULSE_NOTE,
+                             "via": slugify(via or "tool", 48)})
+    return True
+
+
+def progress_report(payload: dict):
+    """PostToolUse on the lead's call, guided-solo and fableous-orchestrated only: the compact
+    progress block with an instruction to post it, when progress.report_minutes (0 = off) have
+    passed since the last report (none yet counts as due); None otherwise. Never for a
+    sub-agent, never in freestyle, never for an empty model (no milestone or no tasks)."""
+    if not isinstance(payload, dict) or _is_subagent(payload):
+        return None
+    minutes = progress_knob("report_minutes")
+    if minutes <= 0:
+        return None
+    mode = current_mode()
+    if mode not in ORGANISED_MODES:
+        return None
+    report = orchestration_state().get("report")
+    last = _epoch(report.get("last_at")) if isinstance(report, dict) else None
+    import time  # local: only this check needs the wall clock as a float
+    if last is not None and time.time() - last < minutes * 60:
+        return None
+    import progress  # local: only a due report pays for the model
+    model = progress.compute()
+    if model.get("empty"):
+        return None
+    block = progress.render_text(model, unicode=True)
+    state = orchestration_state()
+    state["report"] = {"last_at": utc_now()}
+    atomic_write_json(orchestration_state_path(), state)
+    return (f"PROGRESS REPORT (advisory, every {minutes} min in {mode_label(mode)}): post this "
+            f"progress block to the user as is, then continue.\n```\n{block}\n```\n"
+            f"(On demand: `python3 .claude/tools/statectl.py progress`. Tune or silence it: "
+            f"progress.report_minutes in .claude/config/orchestration.json, 0 = off.)")
+
+
 # --------------------------------------------------------------------------- advisory channel
 #
 # How a hook hands the lead a note WITHOUT deciding anything: the note rides
 # hookSpecificOutput.additionalContext on an exit-0 run, so it can never block, deny or undo
-# what a gate decided. lead_advisories() collects every note due on this hook call (today the
-# delegation nudge; a periodic progress report can join it as one more source), each source
-# isolated so a broken one costs only its own note.
+# what a gate decided. lead_advisories() collects every note due on this hook call (the
+# delegation nudge and the periodic progress report), each source isolated so a broken one
+# costs only its own note.
 
 def lead_advisories(payload: dict) -> list:
     notes = []
-    for source in (delegation_nudge,):
+    for source in (delegation_nudge, progress_report):
         try:
             note = source(payload)
         except Exception:  # noqa: BLE001 - advisory: a broken source loses its note, nothing else

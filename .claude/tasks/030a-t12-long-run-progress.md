@@ -49,17 +49,17 @@ empty state when there is no milestone or no tasks.
 
 ## Plan
 
-- [ ] Progress model + `statectl progress` text/JSON, done when: fixture with a milestone, mixed task states and checklists gives the expected numbers
-- [ ] Console Progress panel on NOW, done when: console tests incl. empty project and a no-milestone project
-- [ ] Activity pulse in the gate (throttled, fail-open) and on subagent events, done when: hook tests show the heartbeat refreshes after the throttle window, not before, and a broken pulse never changes the gate decision
-- [ ] Periodic report channel, done when: hook tests cover due / not due / knob 0 / freestyle off
-- [ ] Orchestration protocol and project-memory skill mention it; cards, registry knobs, probe, done when: `test_contracts` green
+- [x] Progress model + `statectl progress` text/JSON, done when: fixture with a milestone, mixed task states and checklists gives the expected numbers
+- [x] Console Progress panel on NOW, done when: console tests incl. empty project and a no-milestone project
+- [x] Activity pulse in the gate (throttled, fail-open) and on subagent events, done when: hook tests show the heartbeat refreshes after the throttle window, not before, and a broken pulse never changes the gate decision
+- [x] Periodic report channel, done when: hook tests cover due / not due / knob 0 / freestyle off
+- [x] Orchestration protocol and project-memory skill mention it; cards, registry knobs, probe, done when: `test_contracts` green
 
 ## Checkpoint
 
-- **Last completed:** none
-- **Next action:** dispatch builder after T4 and T5 merge
-- **State files:** `.claude/state/handshakes/T12.json`
+- **Last completed:** builder handoff: all five Plan items, Test and full suite green in worktree t12
+- **Next action:** lead reviews the diff, merges, rebuilds console.html / demo / zips through POLISH
+- **State files:** `.claude/state/handshakes/T12.json`, `.claude/tools/progress.py`
 - **Updated:** 2026-10-05
 
 ## NEEDS-HUMAN

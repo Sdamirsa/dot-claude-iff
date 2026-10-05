@@ -232,6 +232,8 @@ what changed in STATUS, generators rebuilt, what PUBLISH did (commit, and whethe
 retro outcome (proposals confirmed, dropped, or NO-CHANGES), map reconciled or skipped and why,
 and open questions for the maintainer.
 
+When a milestone is in flight, end the block with `python3 .claude/tools/statectl.py progress`, pasted as is.
+
 Report skipped and failed steps faithfully. "Done" means verified-done.
 
 ---

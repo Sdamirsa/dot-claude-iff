@@ -1,0 +1,32 @@
+{
+  "id": "tool.progress",
+  "kind": "code",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Progress",
+  "path": ".claude/tools/progress.py",
+  "description": "progress.py - the progress model: one computation, three renderings.",
+  "reads": [
+    "store.journal",
+    "store.handshakes",
+    "store.heartbeat",
+    "store.needs_human",
+    "store.proposals"
+  ],
+  "writes": [],
+  "invokes": [
+    "tool._lib",
+    "tool.checkctl",
+    "tool.statectl"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "109d0ff1d1ac6879e717f58e57ff86490e05518b027a240d1a658fdb9f89a691",
+    "suggested_reads": [
+      "store.journal"
+    ],
+    "suggested_writes": []
+  }
+}

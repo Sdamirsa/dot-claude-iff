@@ -56,7 +56,7 @@ to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gat
 ```
 python3 .claude/tools/statectl.py  start|pointer|task|milestone|decision|loop|note|intent|gate
                                    tooling|need|device|refresh|resume|status|mode|phase|proposal
-                                   dispatch|accept
+                                   dispatch|accept|progress
 python3 .claude/tools/checkctl.py  run --phase check|polish|publish · probe · generators · status
                                    phase-exit --from plan|build|review|deploy · doctor
                                    handoff <task_id> [--run] [--root <worktree>]

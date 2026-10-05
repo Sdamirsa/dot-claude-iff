@@ -402,12 +402,14 @@ def check_journal_parses() -> Result:
 
 def check_heartbeat() -> Result:
     hb = _lib.read_json(_lib.state_dir() / "heartbeat.json")
-    if not hb:
+    if not hb or not isinstance(hb, dict):
         return Result("heartbeat_present", WARN,
                       "no heartbeat yet: the Stop hook may not be firing (project hooks need trust)")
     age = _lib.age_seconds(hb.get("ts", ""))
     if age is None:
         return Result("heartbeat_present", WARN, "heartbeat has no readable timestamp")
+    if hb.get("note") == _lib.PULSE_NOTE:  # the activity pulse, mid-turn (hooks fire: fine)
+        return Result("heartbeat_present", OK, f"working, last activity {int(age // 60)} min ago")
     return Result("heartbeat_present", OK, f"last turn ended {int(age // 60)} min ago")
 
 
@@ -1546,6 +1548,7 @@ def probe() -> list:
         ("tool.checkctl", ".claude/tools/checkctl.py"),
         ("tool.distctl", ".claude/tools/distctl.py"),
         ("tool.ctxmap", ".claude/tools/ctxmap.py"),
+        ("tool.progress", ".claude/tools/progress.py"),
         ("hook.session-start", ".claude/hooks/session-start.sh"),
         ("hook.heartbeat", ".claude/hooks/heartbeat.sh"),
         ("hook.obs-capture", ".claude/hooks/obs-capture.sh"),

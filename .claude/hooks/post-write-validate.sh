@@ -14,8 +14,9 @@
 #
 # Second, separate job: the advisory channel. Only AFTER the validation has passed, it asks
 # _lib.lead_advisories() for any note due for the lead (the delegation nudge in
-# fableous-orchestrated) and prints it as additionalContext on exit 0. That half fails OPEN:
-# it can add a note, never block a write and never unblock one.
+# fableous-orchestrated; the periodic progress report in guided-solo and fableous-orchestrated)
+# and prints it as additionalContext on exit 0. That half fails OPEN: it can add a note, never
+# block a write and never unblock one.
 # UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
 # hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
 export PYTHONUTF8=1
