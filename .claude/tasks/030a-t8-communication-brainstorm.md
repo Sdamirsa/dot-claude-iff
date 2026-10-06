@@ -1,6 +1,6 @@
 # Task: T8 - communication block and the brainstorm skill
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: #8 · Shared contracts: `030a-00-milestone.md`
 
@@ -21,17 +21,17 @@ Replies follow a short, checkable communication discipline, and divergent brains
 
 ## Plan
 
-- [ ] Communication block in both guides, done when: test passes and CLAUDE.md stays under its line target
-- [ ] Vendored + adapted skill with licence, done when: test passes
-- [ ] `brainstorm.json` + registry cards + system-map card + probe, done when: `test_contracts` still green
-- [ ] evolution.md wording, done when: present in the diff
+- [x] Communication block in both guides, done when: test passes and CLAUDE.md stays under its line target
+- [x] Vendored + adapted skill with licence, done when: test passes
+- [x] `brainstorm.json` + registry cards + system-map card + probe, done when: `test_contracts` still green
+- [x] evolution.md wording, done when: present in the diff
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T8.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 

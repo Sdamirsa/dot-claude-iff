@@ -1,6 +1,6 @@
 # Task: T10 - drift, dead knobs, docs and the map
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: debt · P3 P4 · Shared contracts: `030a-00-milestone.md`
 
@@ -30,21 +30,21 @@ What ships matches what the docs say, with no dead knobs and a truthful map.
 
 ## Plan
 
-- [ ] Adopt skill fixes, done when: text tests pass
-- [ ] Dead knobs gone, done when: `test_contracts` green and grep finds no reference
-- [ ] Brand file home-only, done when: `test_dist` asserts absence from both zips
-- [ ] Two gate false positives + shadowing CR bug, done when: one new test each and `test_hooks` green
-- [ ] Ticket escape hatch, doctor rows, kit self-test, done when: new tests green and CI runs the kit self-test on both OS
-- [ ] Docs pass, done when: a docs test greps each new command name in CLAUDE.md or README
-- [ ] Anatomist reconciliation, done when: `mapctl lint` clean
-- [ ] Zips rebuilt, done when: freshness test green
+- [x] Adopt skill fixes, done when: text tests pass
+- [x] Dead knobs gone, done when: `test_contracts` green and grep finds no reference
+- [x] Brand file home-only, done when: `test_dist` asserts absence from both zips
+- [x] Two gate false positives + shadowing CR bug, done when: one new test each and `test_hooks` green
+- [x] Ticket escape hatch, doctor rows, kit self-test, done when: new tests green and CI runs the kit self-test on both OS
+- [x] Docs pass, done when: a docs test greps each new command name in CLAUDE.md or README
+- [x] Anatomist reconciliation, done when: `mapctl lint` clean
+- [x] Zips rebuilt, done when: freshness test green
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T10.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 

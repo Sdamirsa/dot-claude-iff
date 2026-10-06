@@ -1,6 +1,6 @@
 # Task: T4 - phases, modes, proposal box, tasks under milestones
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: #13 · Shared contracts: `030a-00-milestone.md`
 
@@ -22,19 +22,19 @@ The project always knows its phase and mode, prints the matching contract, check
 
 ## Plan
 
-- [ ] `statectl mode|phase|proposal` + `task --milestone` + projections, done when: statectl tests pass
-- [ ] `phases.json` + `checkctl phase-exit` (4 checks) + `deploy_drift`, done when: pass/fail fixtures per phase
-- [ ] SessionStart block, done when: hook tests cover freestyle/guided-solo/fableous-orchestrated output
-- [ ] Console badge + proposals list, done when: console tests incl. empty project
-- [ ] plan-task skill + template, done when: template parses under `check_task_reality` and the console reader
-- [ ] Cards, registry, probe, glossary entries, done when: `test_contracts` and `test_mapctl` green
+- [x] `statectl mode|phase|proposal` + `task --milestone` + projections, done when: statectl tests pass
+- [x] `phases.json` + `checkctl phase-exit` (4 checks) + `deploy_drift`, done when: pass/fail fixtures per phase
+- [x] SessionStart block, done when: hook tests cover freestyle/guided-solo/fableous-orchestrated output
+- [x] Console badge + proposals list, done when: console tests incl. empty project
+- [x] plan-task skill + template, done when: template parses under `check_task_reality` and the console reader
+- [x] Cards, registry, probe, glossary entries, done when: `test_contracts` and `test_mapctl` green
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T4.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 

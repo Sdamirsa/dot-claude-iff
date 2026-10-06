@@ -1,6 +1,6 @@
 # Task: T12 - long-run progress: live bars in the console, periodic report in chat
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: maintainer request 2026-10-05 · Shared contracts: `030a-00-milestone.md`
 
@@ -60,7 +60,7 @@ empty state when there is no milestone or no tasks.
 - **Last completed:** builder handoff: all five Plan items, Test and full suite green in worktree t12
 - **Next action:** lead reviews the diff, merges, rebuilds console.html / demo / zips through POLISH
 - **State files:** `.claude/state/handshakes/T12.json`, `.claude/tools/progress.py`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 

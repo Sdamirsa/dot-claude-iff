@@ -1,6 +1,6 @@
 # Task: T1 - protected tree on the Bash and PowerShell lanes
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: debt (security) · Shared contracts: `030a-00-milestone.md`
 
@@ -23,18 +23,18 @@ A sub-agent cannot write into the protected tree through any shell lane, the sam
 
 ## Plan
 
-- [ ] Shell-lane protected-tree check with per-agent grants, done when: new tests pass
-- [ ] One test per lane per mutator family (L-10), incl. Windows path forms (backslash, drive letter, mixed case) (L-9), done when: tests pass on Windows
-- [ ] Ticket-file deny for all identities, done when: test asserts main session is denied too
-- [ ] Record-ring false positive narrowed, done when: prose-mention test passes and every existing record-ring deny test still passes
-- [ ] `policy.json` comment and CLAUDE.md protected-tree list corrected, done when: grep shows tools/, skills/, console/ listed
+- [x] Shell-lane protected-tree check with per-agent grants, done when: new tests pass
+- [x] One test per lane per mutator family (L-10), incl. Windows path forms (backslash, drive letter, mixed case) (L-9), done when: tests pass on Windows
+- [x] Ticket-file deny for all identities, done when: test asserts main session is denied too
+- [x] Record-ring false positive narrowed, done when: prose-mention test passes and every existing record-ring deny test still passes
+- [x] `policy.json` comment and CLAUDE.md protected-tree list corrected, done when: grep shows tools/, skills/, console/ listed
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T1.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 

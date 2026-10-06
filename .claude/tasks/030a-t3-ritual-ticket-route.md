@@ -1,6 +1,6 @@
 # Task: T3 - the ritual is the user's: ticket, nudges, one command with ROUTE
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: #9 · P5 · Shared contracts: `030a-00-milestone.md`
 
@@ -24,18 +24,18 @@ Only a user-typed `/project-memory` (or `/adopt`) can open or complete a ritual 
 
 ## Plan
 
-- [ ] Prompt hook + settings.json wiring, done when: hook tests feed both payload shapes and a non-matching prompt
-- [ ] Ticket check in checkctl, done when: refuse/accept/expire/consume tests pass
-- [ ] Reworded nudges + fixed session counter, done when: a grep test finds no agent-directed 'run /project-memory' and the counter test passes
-- [ ] ROUTE step + `--hard` folded, done when: skill text test passes and glossary/evolution references are updated
-- [ ] Cards, registry knob, probe, done when: `test_contracts` green
+- [x] Prompt hook + settings.json wiring, done when: hook tests feed both payload shapes and a non-matching prompt
+- [x] Ticket check in checkctl, done when: refuse/accept/expire/consume tests pass
+- [x] Reworded nudges + fixed session counter, done when: a grep test finds no agent-directed 'run /project-memory' and the counter test passes
+- [x] ROUTE step + `--hard` folded, done when: skill text test passes and glossary/evolution references are updated
+- [x] Cards, registry knob, probe, done when: `test_contracts` green
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T3.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 

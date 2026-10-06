@@ -1,6 +1,6 @@
 # Task: T5 - fableous mode: lead, builders, scouts, validated handoff
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: #11 · Shared contracts: `030a-00-milestone.md`
 
@@ -22,20 +22,20 @@ With mode `fableous-orchestrated`, the top model plans, designs and stays accoun
 
 ## Plan
 
-- [ ] Protocol + two agents + registry pins + value-comparing lint, done when: lint test fails on a deliberate mismatch
-- [ ] `checkctl handoff` validator, done when: valid/invalid fixture envelopes behave, `--run` executes
-- [ ] `statectl task --status done` guard in fableous-orchestrated, done when: test passes in all three modes
-- [ ] SubagentStop check, done when: hook tests cover block, loop guard, other agent types untouched
-- [ ] Delegation nudge, done when: counter test passes and it never blocks
-- [ ] `obsctl report --by agent`, done when: fixture record test passes
-- [ ] Adopt + ROUTE mention the mode, cards, probe, done when: `test_contracts` green
+- [x] Protocol + two agents + registry pins + value-comparing lint, done when: lint test fails on a deliberate mismatch
+- [x] `checkctl handoff` validator, done when: valid/invalid fixture envelopes behave, `--run` executes
+- [x] `statectl task --status done` guard in fableous-orchestrated, done when: test passes in all three modes
+- [x] SubagentStop check, done when: hook tests cover block, loop guard, other agent types untouched
+- [x] Delegation nudge, done when: counter test passes and it never blocks
+- [x] `obsctl report --by agent`, done when: fixture record test passes
+- [x] Adopt + ROUTE mention the mode, cards, probe, done when: `test_contracts` green
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T5.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 

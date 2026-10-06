@@ -1,6 +1,6 @@
 # Task: Milestone M-0.3.0-alpha - index and shared contracts
 
-_Created 2026-10-05 · Status: doing_
+_Created 2026-10-05 · Status: done_
 
 ## Goal
 
@@ -67,19 +67,19 @@ and (in CI) Ubuntu; the pre-release is visible with both zips; each issue has it
 
 ## Plan
 
-- [ ] T1 gate shell lanes, done when: `run_tests.py test_hooks` green with the new lane tests
-- [ ] T2 release engineering, done when: `run_tests.py test_dist test_contracts` green
-- [ ] T6 secrets + doctor, done when: `run_tests.py test_secrets` green
-- [ ] T8 communication + brainstorm skill, done when: `run_tests.py test_brainstorm` green
-- [ ] T9 folder context, done when: `run_tests.py test_context` green
-- [ ] T4 phases, modes, proposals, done when: `run_tests.py test_phases test_statectl` green
-- [ ] T7 visibility + export, done when: `run_tests.py test_export` green
-- [ ] T3 ritual ticket + ROUTE, done when: `run_tests.py test_ritual` green
-- [ ] T5 fableous mode, done when: `run_tests.py test_orchestration` green
-- [ ] T12 long-run progress, done when: `run_tests.py test_progress test_console` green
-- [ ] T13 dispatch + zip flow, done when: `run_tests.py test_orchestration test_dist` green
-- [ ] T10 drift and cleanup, done when: full suite green, `checkctl probe` all green
-- [ ] T11 release, done when: pre-release published, issues answered (human-gated)
+- [x] T1 gate shell lanes, done when: `run_tests.py test_hooks` green with the new lane tests
+- [x] T2 release engineering, done when: `run_tests.py test_dist test_contracts` green
+- [x] T6 secrets + doctor, done when: `run_tests.py test_secrets` green
+- [x] T8 communication + brainstorm skill, done when: `run_tests.py test_brainstorm` green
+- [x] T9 folder context, done when: `run_tests.py test_context` green
+- [x] T4 phases, modes, proposals, done when: `run_tests.py test_phases test_statectl` green
+- [x] T7 visibility + export, done when: `run_tests.py test_export` green
+- [x] T3 ritual ticket + ROUTE, done when: `run_tests.py test_ritual` green
+- [x] T5 fableous mode, done when: `run_tests.py test_orchestration` green
+- [x] T12 long-run progress, done when: `run_tests.py test_progress test_console` green
+- [x] T13 dispatch + zip flow, done when: `run_tests.py test_orchestration test_dist` green
+- [x] T10 drift and cleanup, done when: full suite green, `checkctl probe` all green
+- [x] T11 release, done when: pre-release published, issues answered (human-gated)
 
 Waves (by file overlap): 1 = T1 T2 T6 T8 T9 · 2 = T4 T7 · 3 = T3 T5 · 4 = T12 T13 · 5 = T10 · 6 = T11.
 
@@ -88,7 +88,7 @@ Waves (by file overlap): 1 = T1 T2 T6 T8 T9 · 2 = T4 T7 · 3 = T3 T5 · 4 = T12
 - **Last completed:** task files written, dev branch created
 - **Next action:** dispatch wave 1 builders in worktrees
 - **State files:** `.claude/tasks/030a-*.md`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 
@@ -97,3 +97,11 @@ Waves (by file overlap): 1 = T1 T2 T6 T8 T9 · 2 = T4 T7 · 3 = T3 T5 · 4 = T12
 
 ## Outcome
 
+Published 2026-10-06 as pre-release v0.3.0-alpha.1 from `dev`; `main` stays at v0.2.2 until
+the maintainer signs off the stable release after `docs/alpha-test-checklist.md`. Thirteen
+tasks (T13 was added mid-build for one-command dispatch and conflict-free zips; T12 for the
+long-run progress view). Deviations from the plan: the builder write grant was dropped (the
+tools folder holds the gate's own library); harness worktree isolation branches from
+origin/main, so the lead creates worktrees (`statectl dispatch`). Open proposals carry what
+was deferred (PR-1 Jev-style gate, PR-4 maturation pass, PR-5 hard layer under the gate, and
+the fixes found at close-out).

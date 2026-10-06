@@ -1,6 +1,6 @@
 # Task: T11 - release v0.3.0-alpha.1 and answer the issues
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: #7 to #14 · Shared contracts: `030a-00-milestone.md`
 
@@ -20,18 +20,18 @@ The alpha is published as a pre-release from `dev` and every issue has an accura
 
 ## Plan
 
-- [ ] Version, changelog, proposals, checklist, done when: `changelog_parity` OK
-- [ ] Verifier verdict on the whole milestone, done when: envelope STATUS ok
-- [ ] Maintainer approval, done when: explicit yes in chat
-- [ ] Tag + watch workflow + verify release, done when: `gh release view` shows prerelease true and both assets
-- [ ] Issue replies, done when: posted and listed in Outcome
+- [x] Version, changelog, proposals, checklist, done when: `changelog_parity` OK
+- [x] Verifier verdict on the whole milestone, done when: envelope STATUS ok
+- [x] Maintainer approval, done when: explicit yes in chat
+- [x] Tag + watch workflow + verify release, done when: `gh release view` shows prerelease true and both assets
+- [x] Issue replies, done when: posted and listed in Outcome
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T11.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 
@@ -40,3 +40,8 @@ The alpha is published as a pre-release from `dev` and every issue has an accura
 
 ## Outcome
 
+Shipped 2026-10-06: tag `v0.3.0-alpha.1` on `dev`, workflow run 37426017192 green on both
+OS, GitHub pre-release with both zips, "latest" still v0.2.2. Replies posted on issues #7, #8,
+#9, #10, #11, #12, #13, #14; all kept open until the stable release. Verifier envelope:
+`.claude/state/handshakes/verify-M-030-alpha.json`. Phase moved to review with a logged
+override (the build exit check exceeded ten minutes; proposal filed).

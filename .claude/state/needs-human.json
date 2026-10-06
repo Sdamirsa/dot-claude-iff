@@ -1,30 +1,16 @@
 {
-  "generated_at": "2026-10-05T17:44:35Z",
+  "generated_at": "2026-10-06T06:57:33Z",
   "counts": {
-    "open": 1,
-    "resolved": 4,
+    "open": 0,
+    "resolved": 5,
     "by_band": {
       "SEV0": 0,
-      "SEV1": 1,
+      "SEV1": 0,
       "SEV2": 0,
       "SEV3": 0
     }
   },
-  "tasks": [
-    {
-      "id": "NH-20261005174435-a6a6",
-      "title": "Approve tagging v0.3.0-alpha.1 and posting the issue replies",
-      "category": "approve-release",
-      "band": "SEV1",
-      "blocks": 0,
-      "note": "blocks T11",
-      "context": "All twelve build tasks of M-0.3.0-alpha are merged on dev; the suite passes locally and in CI on both OS; an independent verifier found the payload ready. Tagging publishes a public GitHub pre-release and the replies are public comments, so both wait for the maintainer.",
-      "action": "Reply yes (or changes) in chat to the release question",
-      "opened": "2026-10-05T17:44:35Z",
-      "age_days": 0,
-      "status": "open"
-    }
-  ],
+  "tasks": [],
   "resolved_recent": [
     {
       "id": "NH-1",
@@ -49,6 +35,12 @@
       "title": "Approve derived console ports + folder-name URLs",
       "answer": "approved and implemented: port 'auto' derives from folder name (7100-7899, walk-on-collision), explicit int stays decided-once, *.localhost Host accepted, kits ship auto+monitor-off; suite 225/225",
       "resolved": "2026-08-26T12:35:42Z"
+    },
+    {
+      "id": "NH-20261005174435-a6a6",
+      "title": "Approve tagging v0.3.0-alpha.1 and posting the issue replies",
+      "answer": "yes after CI; tagged v0.3.0-alpha.1, pre-release published, replies posted, issues kept open until stable",
+      "resolved": "2026-10-06T06:57:33Z"
     }
   ]
 }

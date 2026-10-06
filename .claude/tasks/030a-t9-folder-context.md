@@ -1,6 +1,6 @@
 # Task: T9 - folder context: discovery, resolution and lint
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: #14 · Shared contracts: `030a-00-milestone.md`
 
@@ -21,19 +21,19 @@ Nested guides and path-scoped rules are first-class, mapped and linted, and anyo
 
 ## Plan
 
-- [ ] Discovery + component kinds `guide` and `rule` + `map_scan` inputs, done when: fixture with nested guides and rules is fully mapped
-- [ ] Frontmatter reader + glob matcher, done when: unit tests incl. brace and `**` cases pass
-- [ ] `mapctl context <path>` resolution, done when: chain order test passes for a 3-level fixture
-- [ ] `context_health` check with all listed findings, done when: one test per finding
-- [ ] `--suggest` from LESSONS/Project-log evidence, done when: fixture with two lessons in one subtree yields exactly one suggestion
-- [ ] Console MAP listing + cards + probe, done when: `test_console` green incl. empty-project degrade
+- [x] Discovery + component kinds `guide` and `rule` + `map_scan` inputs, done when: fixture with nested guides and rules is fully mapped
+- [x] Frontmatter reader + glob matcher, done when: unit tests incl. brace and `**` cases pass
+- [x] `mapctl context <path>` resolution, done when: chain order test passes for a 3-level fixture
+- [x] `context_health` check with all listed findings, done when: one test per finding
+- [x] `--suggest` from LESSONS/Project-log evidence, done when: fixture with two lessons in one subtree yields exactly one suggestion
+- [x] Console MAP listing + cards + probe, done when: `test_console` green incl. empty-project degrade
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T9.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 

@@ -1,6 +1,6 @@
 # Task: T7 - visibility setting and public export
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: #10 · Shared contracts: `030a-00-milestone.md`
 
@@ -21,19 +21,19 @@ An adopter decides whether `.claude/` is public, the system acts on it, and publ
 
 ## Plan
 
-- [ ] `visibility` knob + adopt question + gitignore writer for all install paths, done when: tests for both values and for the kit path
-- [ ] Shadowing check respects the knob, done when: test passes
-- [ ] `distctl export` with manifest, mirror-drop, dry-run, refusals, done when: one test each
-- [ ] Hard exclude list test (try to include `state/` via publish.json -> still excluded), done when: passes
-- [ ] Secrets gate on output, done when: planted key in a publishable file makes export refuse
-- [ ] Doc + cards + registry + probe, done when: `test_contracts` green
+- [x] `visibility` knob + adopt question + gitignore writer for all install paths, done when: tests for both values and for the kit path
+- [x] Shadowing check respects the knob, done when: test passes
+- [x] `distctl export` with manifest, mirror-drop, dry-run, refusals, done when: one test each
+- [x] Hard exclude list test (try to include `state/` via publish.json -> still excluded), done when: passes
+- [x] Secrets gate on output, done when: planted key in a publishable file makes export refuse
+- [x] Doc + cards + registry + probe, done when: `test_contracts` green
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T7.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 

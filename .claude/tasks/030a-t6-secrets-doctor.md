@@ -1,6 +1,6 @@
 # Task: T6 - secret placement check and doctor
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: #7 · Shared contracts: `030a-00-milestone.md`
 
@@ -21,17 +21,17 @@ A key in the wrong place is caught by the ritual and by `checkctl doctor`, and t
 
 ## Plan
 
-- [ ] `secrets_placement` check + registry/memory wiring, done when: tests for each pattern family, pragma, and redaction pass
-- [ ] gitignore assertions via `git check-ignore`, done when: fixture tests pass
-- [ ] `checkctl doctor`, done when: a test runs it on a fixture project and reads the table
-- [ ] `reference/secrets.md` + doc corrections + probe + card, done when: `checkctl probe` green in fixture
+- [x] `secrets_placement` check + registry/memory wiring, done when: tests for each pattern family, pragma, and redaction pass
+- [x] gitignore assertions via `git check-ignore`, done when: fixture tests pass
+- [x] `checkctl doctor`, done when: a test runs it on a fixture project and reads the table
+- [x] `reference/secrets.md` + doc corrections + probe + card, done when: `checkctl probe` green in fixture
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T6.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 

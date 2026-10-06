@@ -1,6 +1,6 @@
 # Task: T13 - one-command dispatch and conflict-free zips
 
-_Created 2026-10-05 · Status: todo_
+_Created 2026-10-05 · Status: done_
 
 Milestone: M-0.3.0-alpha · Closes: maintainer request 2026-10-05 (proposals PR-2, PR-3) · Shared contracts: `030a-00-milestone.md`
 
@@ -48,17 +48,17 @@ and `release-flow.md` describe all of this.
 
 ## Plan
 
-- [ ] `statectl dispatch` creates worktree + stub + prints brief, done when: fixture-repo tests for success and each refusal
-- [ ] `statectl accept` validates, restores dist/derived files, commits, merges, cleans up, done when: fixture-repo tests for success, invalid envelope, and a merge conflict
-- [ ] Zip equality scoped to main/tags/PRs-to-main + release step, done when: tests for each environment case and `distctl verify` still red on a stale zip
-- [ ] Protocol, brief template, release-flow doc, cards, done when: `test_contracts` green
+- [x] `statectl dispatch` creates worktree + stub + prints brief, done when: fixture-repo tests for success and each refusal
+- [x] `statectl accept` validates, restores dist/derived files, commits, merges, cleans up, done when: fixture-repo tests for success, invalid envelope, and a merge conflict
+- [x] Zip equality scoped to main/tags/PRs-to-main + release step, done when: tests for each environment case and `distctl verify` still red on a stale zip
+- [x] Protocol, brief template, release-flow doc, cards, done when: `test_contracts` green
 
 ## Checkpoint
 
 - **Last completed:** none
 - **Next action:** dispatch builder
 - **State files:** `.claude/state/handshakes/T13.json`
-- **Updated:** 2026-10-05
+- **Updated:** 2026-10-06
 
 ## NEEDS-HUMAN
 
