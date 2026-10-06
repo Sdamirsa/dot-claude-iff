@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-10-06T07:21:42Z",
-  "last_event_ts": "2026-10-06T06:57:34Z",
+  "generated_at": "2026-10-06T07:39:29Z",
+  "last_event_ts": "2026-10-06T07:39:06Z",
   "session": {
     "id": "phase2-build",
     "mode": "fableous-orchestrated",
-    "phase": "build",
-    "phase_since": "2026-10-05T13:57:35Z",
+    "phase": "review",
+    "phase_since": "2026-10-06T07:39:06Z",
     "started": "2026-08-25T08:32:09Z"
   },
   "resume_pointer": "M-0.3.0-alpha: all build tasks merged; release candidate on dev (0.3.0-alpha.1, changelog, checklist, zips verified, suite 748 green locally, verifier pass). WAITING for the maintainer's yes before: git tag v0.3.0-alpha.1 on dev + push tag (release.yml publishes the pre-release), then post issue replies #7-#14. After: verify gh release view shows prerelease and both zips, latest still v0.2.2; set statectl phase review",
@@ -118,7 +118,7 @@
     }
   ],
   "counts": {
-    "events": 125,
+    "events": 126,
     "tasks_total": 13,
     "tasks_done": 13,
     "tasks_open": 0,
@@ -126,10 +126,10 @@
     "milestones": 7,
     "decisions": 3,
     "tooling": 5,
-    "proposals_open": 8
+    "proposals_open": 9
   },
   "heartbeat": {
-    "ts": "2026-10-06T07:14:41Z",
+    "ts": "2026-10-06T07:39:29Z",
     "note": "working"
   },
   "recent_milestones": [
