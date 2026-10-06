@@ -1,0 +1,97 @@
+{
+  "agent_id": "builder-T9",
+  "task_id": "T9",
+  "status": "done",
+  "artifacts": [
+    ".claude/tools/ctxmap.py",
+    ".claude/tools/tests/test_context.py",
+    ".claude/tools/mapctl.py",
+    ".claude/tools/checkctl.py",
+    ".claude/tools/consolectl.py",
+    ".claude/tools/tests/test_console.py",
+    ".claude/console/console.template.html",
+    ".claude/config/memory.json",
+    ".claude/config/registry.json",
+    ".claude/system-map/cards/tool.ctxmap.json",
+    ".claude/skills/adopt/SKILL.md",
+    ".claude/skills/adopt/CLAUDE.template.md",
+    ".claude/agents/anatomist.md",
+    ".claude/protocols/evolution.md",
+    ".claude/CLAUDE.md",
+    ".claude/README.md",
+    ".claude/state/handshakes/T9.json"
+  ],
+  "notes": "Builder envelope per .claude/tasks/030a-builder-brief.md; see the upper-case keys. agent_id/status/artifacts/notes are present only because the post-write validator still enforces the older {agent_id, task_id, status, artifacts[], notes} contract.",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "ok",
+  "RESULT": "A new stdlib engine, .claude/tools/ctxmap.py, models the context Claude Code loads: root and folder guides, @imports up to 4 hops, and .claude/rules/ with paths: frontmatter. It has its own glob matcher and frontmatter reader. mapctl uses it for `context <path>`, the listing, `--suggest`, a scan summary and a map.json `context` section; checkctl uses it for the context_health check and generator freshness; consolectl uses it for the payload's `context` key, which the MAP tab shows as a Context list. The adopt skill, the anatomist agent and evolution.md now say one root guide, that nested guides are mapped, and when a folder guide beats a scoped rule.",
+  "files_changed": [
+    ".claude/tools/ctxmap.py",
+    ".claude/tools/tests/test_context.py",
+    ".claude/tools/mapctl.py",
+    ".claude/tools/checkctl.py",
+    ".claude/tools/consolectl.py",
+    ".claude/tools/tests/test_console.py",
+    ".claude/console/console.template.html",
+    ".claude/config/memory.json",
+    ".claude/config/registry.json",
+    ".claude/system-map/cards/tool.ctxmap.json",
+    ".claude/skills/adopt/SKILL.md",
+    ".claude/skills/adopt/CLAUDE.template.md",
+    ".claude/agents/anatomist.md",
+    ".claude/protocols/evolution.md",
+    ".claude/CLAUDE.md",
+    ".claude/README.md",
+    ".claude/state/handshakes/T9.json"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_context test_mapctl -q",
+      "exit_code": 0,
+      "summary": "72 passed · 0 failed · 0 errored · 0 skipped / TESTS_OK"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "280 passed · 0 failed · 0 errored · 1 skipped / TESTS_OK (the skip is the existing POSIX-only fsync test)"
+    }
+  ],
+  "EVIDENCE": [
+    "python3 .claude/tools/mapctl.py context -> 1 guide (.claude/CLAUDE.md, 93 lines), 0 rules, always-on 93 of 400, findings 0 fail 0 warn, MAP_OK",
+    "checkctl.check_context_health() on this worktree -> OK '1 guide(s), 0 rule(s), always-on 93/400 lines', no details (the real root guide is not noisy; test_the_real_root_guide_is_not_noisy pins it)",
+    "mapctl context --suggest on this repo -> 3 scoped-rule proposals (.claude/hooks, .claude/tools, .claude/tools/tests) from Project-log mistakes and lessons L-1/L-4; nothing created",
+    "checkctl probe -> tool.ctxmap ok; 39 ok, 0 fail. checkctl.check_config_registry() -> OK, 33 knobs registered, none dead",
+    "mapctl lint on the worktree -> 0 errors (tool.ctxmap card present, no missing-card errors for guides/rules)",
+    "Mutation check: disabling the gitignore filter, MAX_IMPORT_HOPS=5, counting guides inside .claude/, SUGGEST_MIN_ENTRIES=1, and disabling duplicate-line detection each made its test fail",
+    "Rendered a demo console (scratchpad fixture with root guide + import, 2 folder guides, scoped and unparseable rules) over http and checked the MAP tab Context card at desktop and 400px widths; no JS errors (only the expected 404s for /live/* under a plain http.server)"
+  ],
+  "DEVIATIONS": [
+    "Discovery runs ONE `git ls-files -z --cached --others --exclude-standard` call instead of two separate calls. Same set, one process, no shell.",
+    "Context inputs (`context_inputs: True`, discovered at hash time) are attached to map_compile as well as map_scan. map_compile is the generator whose output (map.json `context`) depends on them. map_scan only reports them, in one CONTEXT summary line.",
+    "The payload gets a top-level `context` key, copied from map.json's `context` section through ctxmap.section_from_map, instead of having the template read DATA.map.context. This keeps one degraded shape for the empty project. PayloadEmptyProjectTests gained 3 assertions; none were removed.",
+    "Guides inside .claude/ other than the root guide are not discovered, per the DoD's 'outside .claude/'. So for a subtree inside .claude/, --suggest proposes a scoped rule (.claude/rules/<slug>.md, paths <folder>/**) instead of a folder guide. evolution.md says so.",
+    "Following the docs page fetched this session (code.claude.com/docs/en/memory), the frontmatter reader also accepts `paths:` as a comma-separated string (split brace-aware), and the glob matcher supports [..] bracket expressions, the \\ escape and the 1000-pattern brace budget. Anything YAML would reject is reported as unparseable: an unquoted leading *, unquoted braces in an inline item, tab indents, ': ' in another key's plain value.",
+    "Knob defaults: size_target_lines 200 (docs guidance), always_on_budget_lines 400 (my choice: two full-size files' worth). Both are in memory.json `context` with MEMORY-layer registry cards.",
+    "The round-trip contract test (CONTEXT_CONTRACT and template fields) lives in test_context.py, not test_contracts.py, to keep the shared file free of hunks.",
+    "The envelope also carries agent_id, status, artifacts and notes: the post-write-validate hook in this branch enforces the older handshake contract and rejected the brief's exact key set. The brief's keys are all present and unchanged."
+  ],
+  "UNCERTAINTIES": [
+    "Ordering between ./CLAUDE.md and ./.claude/CLAUDE.md, when both exist, is not documented. I list CLAUDE.md first, and two root guides FAIL anyway.",
+    "Whether `*` and `**` match dotfiles in Claude Code's matcher. I match them, so 'rule matches nothing' never fires because of a hidden-file convention.",
+    "Imports inside rule files are not expanded (the docs describe @imports for CLAUDE.md files). HTML-comment stripping is not modelled: line counts are raw file lines.",
+    "Gitignored CLAUDE.local.md files are kept out of discovery and map.json, so the committed surfaces do not differ per machine. `mapctl context <path>` still lists them, flagged personal. The CI (Ubuntu) run has not been observed; Windows only.",
+    "The second compile in a fresh project still rewrites map.json because store.map's own `exists` flips once map.json exists. This was there before this task; my test compiles three times to avoid it."
+  ],
+  "needs_main": [
+    "Run /project-memory POLISH (or mapctl scan + compile, consolectl build, demo_build, dist_build) after merge. Cards for edited sources (tool.mapctl, tool.checkctl, tool.consolectl, console.template, skill.adopt, agent.anatomist, protocol.evolution, config.memory, config.registry) now have stale auto.hash (WARN only). map.json, console.html and the docs demo do not yet carry the `context` section. The dist zips need a rebuild.",
+    "git add the new files: .claude/tools/ctxmap.py, .claude/tools/tests/test_context.py, .claude/system-map/cards/tool.ctxmap.json.",
+    "memory.json, registry.json, checkctl.py and test_console.py are shared with other wave tasks. The hunks are small and local: context_health goes after cards_lint in phases.check, the `context` block goes before `snapshot`, and the two registry entries go before policy.record_root.",
+    "Reconcile the two handshake envelope contracts (builder brief vs post-write-validate.sh / protocols/handshake.md) - presumably part of T5's handoff validation."
+  ],
+  "SUGGESTIONS": [
+    "Pre-existing Windows bug in checkctl.check_gitignore_shadowing: it sends `git check-ignore --stdin` input in text mode, so on Windows each query reaches git as 'path\\r'. File-level patterns such as *.zip then never match, and only directory patterns (the existing dist/ test) are caught. The fix is the NUL-separated bytes approach used in ctxmap._git_ignored (`-z`, encoded input).",
+    "Pre-existing: _lib.sha256_paths hashes absolute path strings, so the generator ledger differs per checkout or machine, and a fresh clone or worktree always reports every generator as 'inputs changed'.",
+    "The anatomist's folder-health line '.claude/CLAUDE.md over ~80 lines' and the new size_target_lines knob (200) are two different thresholds. Consider stating the relationship (80 = map-not-dump heuristic for the root guide; 200 = per-file context cost)."
+  ]
+}

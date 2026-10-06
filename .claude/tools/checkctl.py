@@ -18,6 +18,13 @@ Three things live here and nowhere else.
    run unless POLISH completed for the SAME run id, so a half-built set of derived surfaces can
    never be committed as though it were whole. `--resume` continues a run that died.
 
+4. THE TICKET. The ritual is the user's: `run` and `complete` refuse without a fresh
+   state/ritual-ticket.json, which only the prompt hook writes (when the user types
+   /project-memory or /adopt) and the policy gate denies to every agent. `complete` consumes it.
+   `ticket --grant` is the human's escape hatch when the prompt hook never fires, typed in their
+   own terminal; the gate refuses that subcommand to every agent. Every other subcommand is
+   read-only and needs none.
+
 Steps report OK / WARN / FAIL. WARN never blocks: incompleteness informs, incorrectness stops.
 """
 
@@ -55,18 +62,22 @@ class Result:
 # --------------------------------------------------------------------------- generators
 
 # name -> (argv builder, input paths, output path). Inputs may be files or directories.
+# `context_inputs` adds the guides, rules and imports ctxmap discovers: a folder guide can live
+# in any folder, so those inputs cannot be declared here, only found.
 GENERATORS = {
     "map_scan": {
         "tool": "mapctl.py",
         "args": ["scan"],
         "inputs": [".claude/agents", ".claude/skills", ".claude/hooks", ".claude/tools",
                    ".claude/protocols", ".claude/config"],
+        "context_inputs": True,
         "output": ".claude/system-map/cards",
     },
     "map_compile": {
         "tool": "mapctl.py",
         "args": ["compile"],
         "inputs": [".claude/system-map/cards", ".claude/system-map/layers.json"],
+        "context_inputs": True,
         "output": ".claude/system-map/map.json",
     },
     "story_build": {
@@ -200,6 +211,117 @@ def start_run(resume: bool = False) -> dict:
     return run
 
 
+# --------------------------------------------------------------------------- ritual ticket
+#
+# A tripwire, not cryptography. The prompt hook (hooks/ritual-ticket.sh) writes the ticket when
+# the user's own prompt starts with /project-memory or /adopt; the policy gate denies the file to
+# every agent identity on every lane; this module checks it before opening, continuing or
+# completing a run and deletes it on `complete` (a tool process is not subject to the gate).
+# There is deliberately no flag or environment variable that skips the check.
+
+RITUAL_SKILLS = ("project-memory", "adopt")
+DEFAULT_TICKET_TTL_MINUTES = 360
+TICKET_FUTURE_SLACK_S = 300  # clock skew tolerated before a future-dated ticket is refused
+TICKET_ASK = "ask the user to type /project-memory; only the user can open the ritual"
+
+
+def ritual_ticket_path() -> Path:
+    return _lib.state_dir() / "ritual-ticket.json"
+
+
+def ticket_ttl_minutes() -> float:
+    """memory.json ritual.ticket_ttl_minutes; anything but a positive number reads as the default."""
+    value = _lib.config_get("memory", "ritual.ticket_ttl_minutes", DEFAULT_TICKET_TTL_MINUTES)
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+        return float(DEFAULT_TICKET_TTL_MINUTES)
+    return float(value)
+
+
+def ticket_state(run: dict | None = None) -> dict:
+    """Read-only verdict on the ticket: {status, reason, ticket, age_s, ttl_s}, where status is
+    fresh | absent | invalid | expired | consumed. Only `fresh` lets a run open or complete."""
+    ttl_s = ticket_ttl_minutes() * 60.0
+    out = {"status": "absent", "reason": "no ritual ticket", "ticket": None, "age_s": None,
+           "ttl_s": ttl_s}
+    path = ritual_ticket_path()
+    if not path.exists():
+        return out
+    data = _lib.read_json(path)
+    if not isinstance(data, dict):
+        return dict(out, status="invalid", reason="ritual-ticket.json does not parse")
+    out["ticket"] = data
+    stamp = _lib.parse_ts(data.get("ts"))
+    if data.get("skill") not in RITUAL_SKILLS or stamp is None:
+        return dict(out, status="invalid", reason="the ticket names no ritual skill or no readable ts")
+    from datetime import datetime, timezone
+    age = (datetime.now(timezone.utc) - stamp).total_seconds()
+    out["age_s"] = age
+    if age < -TICKET_FUTURE_SLACK_S:
+        return dict(out, status="invalid", reason="the ticket is dated in the future")
+    run = load_run() if run is None else run
+    if run.get("ticket_consumed") and run.get("ticket_consumed") == data.get("ts"):
+        return dict(out, status="consumed",
+                    reason=f"the ticket was consumed when ritual {run.get('run_id')} completed")
+    if age > ttl_s:
+        return dict(out, status="expired",
+                    reason=f"the ticket expired ({int(age // 60)} min old, lifetime "
+                           f"{int(ttl_s // 60)} min: memory.json ritual.ticket_ttl_minutes)")
+    return dict(out, status="fresh", reason=f"fresh: /{data['skill']} typed {int(max(age, 0) // 60)} min ago")
+
+
+# The human escape hatch, for when the prompt hook never fires (an older Claude Code, hooks not
+# trusted yet): the USER types this in their own terminal. The policy gate refuses `checkctl
+# ticket` to every identity on every shell lane, so no agent tool call can run it.
+GRANT_COMMAND = "python3 .claude/tools/checkctl.py ticket --grant"
+HUMAN_TERMINAL_EVENT = "human-terminal"
+
+
+def refuse_without_ticket(action: str, state: dict) -> int:
+    print(f"refused: {action} needs a fresh ritual ticket - {state['reason']}.")
+    print(f"{TICKET_ASK.capitalize()}. Do not work around this: the ticket is written by the "
+          f"prompt hook when the user's own prompt starts with /project-memory (or /adopt). "
+          f"Nothing was written.")
+    print(f"If the prompt hook never fires, the USER (never an agent) runs `{GRANT_COMMAND}` in "
+          f"their own terminal.")
+    _lib.print_verdict("CHECK", False)
+    return 1
+
+
+def grant_ticket(skill: str) -> dict:
+    """The human-terminal ticket: same shape as the prompt hook's, marked by its event."""
+    ticket = {"skill": skill, "ts": _lib.utc_now(),
+              "session_id": os.environ.get("CLAUDE_SESSION_ID") or None,
+              "event": HUMAN_TERMINAL_EVENT}
+    _lib.atomic_write_json(ritual_ticket_path(), ticket, durable=True)
+    try:  # telemetry, fails open: the record keeps that a human granted this one
+        _lib.obslog("ritual.ticket", skill=skill, trigger=HUMAN_TERMINAL_EVENT,
+                    session_id=ticket["session_id"] or "unknown")
+    except Exception:  # noqa: BLE001
+        pass
+    return ticket
+
+
+def stamp_ticket(run: dict, ticket: dict) -> None:
+    """memory-run.json says who opened the ritual: the user, through their ticket."""
+    run["invoked_by"] = "user-ticket"
+    run["ticket_ts"] = ticket.get("ts")
+    run["ticket_skill"] = ticket.get("skill")
+    run["ticket_session"] = ticket.get("session_id")
+
+
+def consume_ticket(run: dict, ticket: dict) -> str | None:
+    """Delete the ticket; remember its ts so a ticket that cannot be deleted is still spent.
+    Returns an error string when the file could not be removed."""
+    run["ticket_consumed"] = ticket.get("ts")
+    try:
+        ritual_ticket_path().unlink()
+    except FileNotFoundError:
+        pass
+    except OSError as exc:
+        return f"{type(exc).__name__}: {exc}"
+    return None
+
+
 def record_phase(run: dict, phase: str, results: list, status: str) -> None:
     run["phases"][phase] = {
         "status": status,
@@ -218,7 +340,14 @@ def generators_path() -> Path:
 
 def generator_inputs_hash(spec: dict) -> str:
     root = _lib.project_root()
-    return _lib.sha256_paths([root / p for p in spec["inputs"]])
+    paths = [root / p for p in spec["inputs"]]
+    if spec.get("context_inputs"):
+        try:
+            import ctxmap
+            paths += [root / p for p in ctxmap.context_input_paths()]
+        except Exception:  # noqa: BLE001 - the ledger informs; a discovery bug must not stop POLISH
+            pass
+    return _lib.sha256_paths(paths)
 
 
 def generator_output_hash(spec: dict) -> str:
@@ -298,12 +427,14 @@ def check_journal_parses() -> Result:
 
 def check_heartbeat() -> Result:
     hb = _lib.read_json(_lib.state_dir() / "heartbeat.json")
-    if not hb:
+    if not hb or not isinstance(hb, dict):
         return Result("heartbeat_present", WARN,
                       "no heartbeat yet: the Stop hook may not be firing (project hooks need trust)")
     age = _lib.age_seconds(hb.get("ts", ""))
     if age is None:
         return Result("heartbeat_present", WARN, "heartbeat has no readable timestamp")
+    if hb.get("note") == _lib.PULSE_NOTE:  # the activity pulse, mid-turn (hooks fire: fine)
+        return Result("heartbeat_present", OK, f"working, last activity {int(age // 60)} min ago")
     return Result("heartbeat_present", OK, f"last turn ended {int(age // 60)} min ago")
 
 
@@ -326,6 +457,15 @@ def check_cards_lint() -> Result:
         return Result("cards_lint", FAIL, "mapctl lint printed no verdict token", out.splitlines()[-5:])
     detail = [line for line in out.splitlines() if line.strip() and not line.startswith("MAP_")]
     return Result("cards_lint", status, f"mapctl lint says {status}", detail[:20])
+
+
+def check_context_health() -> Result:
+    """Folder context: nested guides, path-scoped rules, imports, the always-on budget.
+    ctxmap.py is the engine (the same one `mapctl context` and the console use); this is only
+    the CHECK binding. A project with no nested guides and no rules is OK, not a warning."""
+    import ctxmap
+    status, message, details = ctxmap.health_summary()
+    return Result("context_health", status, message, details)
 
 
 def _walk_leaves(node, prefix=""):
@@ -374,10 +514,16 @@ def check_config_registry() -> Result:
             if not agent.exists():
                 errors.append(f"{key}: agent file {_lib.rel(agent)} does not exist")
                 continue
+            # The VALUE is compared, not just the field's presence: a card saying sonnet over a
+            # frontmatter saying opus documents a pin nobody runs, which is worse than no card.
+            from mapctl import parse_frontmatter
             field = str(target.get("path", ""))
-            head = agent.read_text(encoding="utf-8")[:1200]
-            if f"{field}:" not in head:
+            meta = parse_frontmatter(agent.read_text(encoding="utf-8", errors="replace"))
+            if field not in meta:
                 warnings.append(f"{key}: {_lib.rel(agent)} frontmatter has no '{field}' field")
+            elif "default" in entry and str(meta[field]).strip() != str(entry["default"]).strip():
+                errors.append(f"{key}: registry pins {entry['default']!r} but {_lib.rel(agent)} "
+                              f"frontmatter says {field}: {meta[field]!r}; change one to match")
         else:
             warnings.append(f"{key}: unknown target kind {kind!r}")
 
@@ -393,7 +539,8 @@ def check_config_registry() -> Result:
                 warnings.append(f"{name}.{dotted}: tunable has no registry card")
 
     if errors:
-        return Result("config_registry_lint", FAIL, f"{len(errors)} dead card(s)", errors + warnings[:10])
+        return Result("config_registry_lint", FAIL, f"{len(errors)} dead or mismatched card(s)",
+                      errors + warnings[:10])
     if warnings:
         return Result("config_registry_lint", WARN, f"{len(warnings)} unregistered tunable(s)", warnings[:20])
     return Result("config_registry_lint", OK, f"{len(entries)} knobs registered, none dead")
@@ -549,7 +696,13 @@ def _deliberately_ignored(rel: str) -> bool:
     """The system's own intended ignores: private reference material, console runtime,
     machine-local settings, caches. Everything else in the shippable trees is meant to be
     trackable, so an ignore rule catching it is a shadow, not a choice."""
-    if rel.startswith(".claude/reference/private/"):
+    if rel.startswith((".claude/reference/private/", ".claude/worktrees/")):
+        return True
+    if rel == ".claude/state/heartbeat.json":  # rewritten every turn; the Stop hook recreates it
+        return True
+    if rel == ".claude/state/ritual-ticket.json":  # minted per ritual, consumed by `complete`
+        return True
+    if rel == ".claude/state/orchestration.json":  # per-machine runtime counters, rewritten by hooks
         return True
     if rel.endswith((".pyc", ".tmp", ".pid", ".log")):
         return True
@@ -565,10 +718,16 @@ def check_gitignore_shadowing() -> Result:
     .gitignore can silently untrack shipped .claude/ paths - the adoption kits under
     .claude/dist/ vanished from git exactly this way in the field and nothing warned. Ask
     git itself: check-ignore over the shippable trees, warn on any hit that is not one of
-    the system's own deliberate ignores."""
+    the system's own deliberate ignores. Under memory.json `visibility: ignored` the two trees
+    are ignored on purpose, so there is nothing to shadow and the check is quiet."""
     root = _lib.project_root()
     if not (root / ".git").exists():
         return Result("gitignore_shadowing", SKIP, "not a git repository")
+    try:
+        if _lib.visibility(root) == "ignored":
+            return _visibility_ignored_result(root)
+    except _lib.LibError as exc:
+        return Result("gitignore_shadowing", WARN, str(exc))
     candidates = []
     for base in (root / ".claude", root / ".claude-iff"):
         if not base.is_dir():
@@ -588,23 +747,57 @@ def check_gitignore_shadowing() -> Result:
     if not candidates:
         return Result("gitignore_shadowing", OK, "nothing to probe")
     try:
+        # Bytes, not text: a text-mode pipe on Windows ends each line in CRLF, git keeps the CR
+        # as part of the path, and then no file-level pattern (*.zip) can ever match.
         res = subprocess.run(
             ["git", "check-ignore", "-v", "--stdin"],
-            input="\n".join(candidates) + "\n",
-            capture_output=True, text=True, timeout=30, cwd=str(root), check=False,
+            input=("\n".join(candidates) + "\n").encode("utf-8"),
+            capture_output=True, timeout=30, cwd=str(root), check=False,
         )
     except (OSError, subprocess.SubprocessError) as exc:
         return Result("gitignore_shadowing", SKIP, f"git unavailable: {exc}")
     if res.returncode not in (0, 1):  # 0 = some path ignored, 1 = none ignored
         return Result("gitignore_shadowing", SKIP,
                       f"git check-ignore failed (exit {res.returncode})")
-    hits = [line for line in res.stdout.splitlines() if line.strip()]
+    out = (res.stdout or b"").decode("utf-8", errors="replace")
+    hits = [line.rstrip("\r") for line in out.splitlines() if line.strip()]
     if hits:
         return Result("gitignore_shadowing", WARN,
                       f"{len(hits)} shippable path(s) are gitignored: an over-broad pattern "
                       f"(a generic dist/, build/ or *.zip) is silently untracking them",
                       hits[:15])
     return Result("gitignore_shadowing", OK, f"{len(candidates)} shippable path(s), none shadowed")
+
+
+def _visibility_ignored_result(root: Path) -> Result:
+    """`visibility: ignored`: a shadow is impossible by design, so the check stays quiet. It
+    speaks only when the knob and git disagree: the managed block is missing (the trees would
+    reach the next `git add -A`), or files under them are still tracked from before."""
+    try:
+        # Paths as arguments, not --stdin: text-mode stdin on Windows sends CRLF and git keeps
+        # the CR as part of the path.
+        res = subprocess.run(["git", "check-ignore", "--no-index", "--",
+                              ".claude/STATUS.md", ".claude-iff/README.md"], capture_output=True,
+                             text=True, timeout=30, cwd=str(root), check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return Result("gitignore_shadowing", SKIP, f"git unavailable: {exc}")
+    if res.returncode not in (0, 1):
+        return Result("gitignore_shadowing", SKIP, f"git check-ignore failed (exit {res.returncode})")
+    ignored = {line.strip() for line in res.stdout.splitlines() if line.strip()}
+    missing = [t for t, probe in ((".claude/", ".claude/STATUS.md"),
+                                  (".claude-iff/", ".claude-iff/README.md")) if probe not in ignored]
+    if missing:
+        return Result("gitignore_shadowing", WARN,
+                      f"visibility is ignored but git does not ignore {', '.join(missing)}: run "
+                      f"`python3 .claude/tools/distctl.py gitignore --apply`")
+    tracked = _git_ls(root, "--cached", "--", ".claude", ".claude-iff") or []
+    if tracked:
+        return Result("gitignore_shadowing", WARN,
+                      f"visibility is ignored but {len(tracked)} file(s) under .claude/ or "
+                      f".claude-iff/ are still tracked; untracking them is a human step that "
+                      f"keeps the files: `git rm -r --cached .claude .claude-iff`", tracked[:15])
+    return Result("gitignore_shadowing", SKIP,
+                  "visibility is ignored: .claude/ and .claude-iff/ are gitignored on purpose")
 
 
 def check_theme_token_parity() -> Result:
@@ -663,16 +856,21 @@ def check_changelog_parity() -> Result:
         return Result("changelog_parity", SKIP,
                       "home-repo-only, disabled (memory.json distribution.enabled)")
     root = _lib.project_root()
-    versions = {"v" + _lib.system_version()}
+    stamp = _lib.system_version()
+    if not _lib.parse_version(stamp):
+        return Result("changelog_parity", FAIL,
+                      f"system_version {stamp!r} is not X.Y.Z or X.Y.Z-(alpha|beta|rc).N",
+                      ["fix system_version in .claude/config/registry.json"])
+    versions = {"v" + stamp}
     tags = _lib.git_output(["tag", "-l", "v*"], root=root) or ""
-    versions |= {t for t in tags.split() if re.fullmatch(r"v\d+\.\d+\.\d+", t)}
+    versions |= {t for t in tags.split() if _lib.parse_version(t, tag=True)}
     try:
         text = (root / "CHANGELOG.md").read_text(encoding="utf-8")
     except OSError:
         return Result("changelog_parity", FAIL, "CHANGELOG.md is missing at the repo root",
                       [f"expected sections for: {', '.join(sorted(versions))}"])
-    missing = sorted(v for v in versions
-                     if not re.search(rf"^## {re.escape(v)}\b", text, re.MULTILINE))
+    # Exact heading match (_lib.changelog_section): '## v0.3.0-alpha.1' must not satisfy v0.3.0.
+    missing = sorted(v for v in versions if _lib.changelog_section(text, v) is None)
     if missing:
         return Result("changelog_parity", FAIL,
                       f"{len(missing)} released version(s) lack a CHANGELOG.md section",
@@ -680,11 +878,515 @@ def check_changelog_parity() -> Result:
     return Result("changelog_parity", OK, f"{len(versions)} version(s) pinned in CHANGELOG.md")
 
 
+# --------------------------------------------------------------------------- secrets placement
+#
+# A key in a committed file is the one mistake a later commit cannot undo: deleting the line
+# leaves the key in history, so the only real fix is rotation. scan_secrets() is a plain
+# function over any root, so another caller (an export folder, a release tree) applies the
+# exact same rules. A finding names path, line, pattern and severity and NEVER the matched text
+# or any slice of it: findings are printed to terminals and stored in memory-run.json, which is
+# committed, and a check that leaked what it caught would be an incident of its own.
+# Where keys DO belong: .claude/reference/secrets.md.
+
+# Left boundary for the sk- families, so "risk-..." or "task-..." never reads as a key.
+_SK = r"(?<![A-Za-z0-9_-])sk-"
+SECRET_PATTERNS = (
+    ("anthropic_key", re.compile(_SK + r"ant-[A-Za-z0-9_-]{20,}")),
+    ("openrouter_key", re.compile(_SK + r"or-[A-Za-z0-9_-]{20,}")),
+    ("openai_key", re.compile(_SK + r"(?:(?:proj|svcacct|admin)-[A-Za-z0-9_-]{20,}|[A-Za-z0-9]{20,})")),
+    ("github_token", re.compile(r"(?<![A-Za-z0-9_])gh[pousr]_[A-Za-z0-9]{36,}")),
+    ("github_pat", re.compile(r"(?<![A-Za-z0-9_])github_pat_[A-Za-z0-9_]{22,}")),
+    ("aws_access_key", re.compile(r"(?<![A-Za-z0-9])(?:AKIA|ASIA)[0-9A-Z]{16}(?![0-9A-Za-z])")),
+    ("slack_token", re.compile(r"(?<![A-Za-z0-9])xox[abposr]-[A-Za-z0-9-]{10,}")),
+    ("google_api_key", re.compile(r"(?<![A-Za-z0-9_-])AIza[0-9A-Za-z_-]{35}")),
+    ("private_key", re.compile(r"-----BEGIN[A-Z0-9 ]*PRIVATE KEY(?: BLOCK)?-----")),
+)
+# Generic: a key-like NAME assigned a long literal. Weaker evidence than a vendor prefix, so it
+# WARNs rather than blocks (incompleteness informs, incorrectness stops).
+_SECRET_WORD = r"(?:api[_-]?key|apikey|secret|token|passw(?:or)?d)(?![a-z])"
+GENERIC_QUOTED = re.compile(r"(?i)" + _SECRET_WORD
+                            + r"[A-Za-z0-9_.-]*[\"']?\s*[:=]\s*([\"'])([^\"'\s]{20,})\1")
+GENERIC_BARE = re.compile(r"(?i)^\s*(?:export\s+|-\s+)?[A-Za-z0-9_.-]*?" + _SECRET_WORD
+                          + r"[A-Za-z0-9_.-]*\s*[:=]\s*([^\s\"'#]{20,})\s*$")
+SECRET_PRAGMA = "iff:allow-secret"
+# The suite plants key-shaped fixtures (built at runtime); its folder is never scanned.
+SECRET_SCAN_SKIP = (".claude/tools/tests/",)
+# Never descended into, in any scan mode: git internals and other checkouts (agent worktrees).
+# The record folder joins these at scan time when it sits inside the scanned root.
+SECRET_SCAN_PRUNE = (".git/", ".claude/worktrees/")
+SECRET_SCAN_PRUNE_NAMES = {".git", "__pycache__", "node_modules", ".venv", "venv", ".tox",
+                           ".mypy_cache", ".pytest_cache"}
+SECRET_SCAN_MAX_BYTES = 2 * 1024 * 1024
+
+# .mcp.json / settings.json structure: a NAME that says "credential". Split on _ - . and
+# camelCase first, so MAX_TOKENS (a count) is not GITHUB_TOKEN (a credential).
+_KEYLIKE_NAME = re.compile(r"(?:^|_)(?:api_?key|apikey|token|secret|client_?secret|password|"
+                           r"passwd|pat|authorization|credentials?|private_?key|access_?key|"
+                           r"bearer|cookie)(?:$|_)", re.I)
+_ENV_EXPANSION = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::-[^}]*)?\}")
+
+
+def _finding(rel: str, line: int, pattern: str, severity: str) -> dict:
+    return {"path": rel, "line": line, "pattern": pattern, "severity": severity}
+
+
+def _under(rel: str, prefix: str) -> bool:
+    """rel equals prefix or sits beneath it. normcase, per L-9: case-blind on Windows."""
+    a = os.path.normcase(rel)
+    b = os.path.normcase(prefix.rstrip("/"))
+    return a == b or a.startswith(b + os.path.normcase("/"))
+
+
+def _is_local_secret_file(rel: str) -> bool:
+    """The per-user homes: their VALUES are never read; they must simply never be committed.
+    `.env.production` and friends are not here: many stacks commit those on purpose, so they
+    are scanned like any other file."""
+    name = rel.rsplit("/", 1)[-1]
+    return name in (".env", "settings.local.json") or (name.startswith(".env.") and name.endswith(".local"))
+
+
+def _vendor_placeholder(match: str) -> bool:
+    low = match.lower()
+    return any(mark in low for mark in ("example", "xxxxxxxx", "placeholder", "redacted"))
+
+
+def _generic_value_suspicious(value: str) -> bool:
+    low = value.lower()
+    if any(mark in low for mark in ("example", "placeholder", "your", "xxxx", "changeme",
+                                    "change-me", "dummy", "redacted", "<", ">", "{{", "${",
+                                    "$(", "://", "...", "***")):
+        return False
+    if value.startswith(("$", "%")) or re.fullmatch(r"[A-Z][A-Z0-9_]*", value):
+        return False  # a reference to a variable, or a variable's NAME, not a value
+    return bool(re.search(r"[A-Za-z]", value) and re.search(r"[0-9]", value))
+
+
+def _vendor_match(value: str):
+    for name, rx in SECRET_PATTERNS:
+        for m in rx.finditer(value):
+            if not _vendor_placeholder(m.group(0)):
+                return name
+    return None
+
+
+def _scan_lines(rel: str, text: str) -> list:
+    out = []
+    for no, line in enumerate(text.split("\n"), 1):
+        if SECRET_PRAGMA in line:
+            continue
+        vendor = [name for name, rx in SECRET_PATTERNS
+                  if any(not _vendor_placeholder(m.group(0)) for m in rx.finditer(line))]
+        out.extend(_finding(rel, no, name, FAIL) for name in vendor)
+        if vendor:
+            continue  # a vendor prefix already says more than the generic rule could
+        for rx in (GENERIC_QUOTED, GENERIC_BARE):
+            if any(_generic_value_suspicious(m.group(m.lastindex)) for m in rx.finditer(line)):
+                out.append(_finding(rel, no, "generic_secret", WARN))
+                break
+    return out
+
+
+def _keylike(name) -> bool:
+    text = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", str(name))
+    return bool(_KEYLIKE_NAME.search(text.replace("-", "_").replace(".", "_")))
+
+
+def _value_verdict(value):
+    """For a value held under a key-like name: None when fine, else (pattern, severity).
+    Fine means empty, a pure ${VAR} / ${VAR:-default} expansion, an expansion behind a short
+    scheme word ("Bearer ${TOKEN}"), or too short / boolean / numeric to be a credential."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    vendor = _vendor_match(value)
+    if vendor:
+        return vendor, FAIL
+    residual = _ENV_EXPANSION.sub("", value).strip()
+    if residual != value.strip():
+        return ("literal", WARN) if re.search(r"[A-Za-z0-9_+/=-]{8,}", residual) else None
+    if len(residual) < 8 or residual.isdigit() or residual.lower() in (
+            "true", "false", "yes", "no", "on", "off", "null", "none"):
+        return None
+    return "literal", WARN
+
+
+def _locate(lines: list, *needles) -> int:
+    """Line number of the first needle found, for a finding inside parsed JSON. The needle
+    may be the value itself: it is searched for, never reported."""
+    for needle in needles:
+        if not needle:
+            continue
+        for no, line in enumerate(lines, 1):
+            if needle in line:
+                return no
+    return 1
+
+
+def _mcp_pairs(spec: dict) -> list:
+    """(name, value, locator) for every named value an MCP server entry carries."""
+    import urllib.parse
+    pairs = []
+    for block in ("env", "headers"):
+        named = spec.get(block)
+        for key, value in named.items() if isinstance(named, dict) else ():
+            pairs.append((key, value, json.dumps(value)[1:-1] if isinstance(value, str) else ""))
+    args = spec.get("args") if isinstance(spec.get("args"), list) else []
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if isinstance(arg, str):
+            flag = re.match(r"^-{1,2}([A-Za-z0-9_.-]+)=(.*)$", arg, re.S)
+            bare = re.match(r"^-{1,2}([A-Za-z0-9_.-]+)$", arg)
+            assign = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", arg, re.S)
+            if flag:
+                pairs.append((flag.group(1), flag.group(2), json.dumps(arg)[1:-1]))
+            elif bare and i + 1 < len(args) and isinstance(args[i + 1], str) \
+                    and not args[i + 1].startswith("-"):
+                pairs.append((bare.group(1), args[i + 1], json.dumps(args[i + 1])[1:-1]))
+                i += 1
+            elif assign:
+                pairs.append((assign.group(1), assign.group(2), json.dumps(arg)[1:-1]))
+        i += 1
+    url = spec.get("url")
+    if isinstance(url, str):
+        parts = urllib.parse.urlsplit(url)
+        locator = json.dumps(url)[1:-1]
+        pairs += [(k, v, locator) for k, v in urllib.parse.parse_qsl(parts.query)]
+        try:
+            if parts.password:
+                pairs.append(("password", parts.password, locator))
+        except ValueError:
+            pass
+    return pairs
+
+
+def _scan_mcp(rel: str, text: str) -> list:
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return [_finding(rel, 1, "mcp_unparsable", WARN)]
+    servers = data.get("mcpServers") if isinstance(data, dict) else None
+    if not isinstance(servers, dict):
+        return []
+    lines, out = text.split("\n"), []
+    for spec in servers.values():
+        if not isinstance(spec, dict):
+            continue
+        for name, value, locator in _mcp_pairs(spec):
+            verdict = _value_verdict(value) if _keylike(name) else None
+            if verdict:
+                pattern, severity = verdict
+                out.append(_finding(rel, _locate(lines, locator, json.dumps(name)),
+                                    "mcp_literal" if pattern == "literal" else pattern, severity))
+    return out
+
+
+def _scan_settings(rel: str, text: str) -> list:
+    """Committed settings.json: its env block is shared with everyone who clones the repo."""
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return []
+    env = data.get("env") if isinstance(data, dict) else None
+    if not isinstance(env, dict):
+        return []
+    lines, out = text.split("\n"), []
+    for name, value in env.items():
+        if not isinstance(value, str):
+            continue
+        vendor = _vendor_match(value)
+        verdict = (vendor, FAIL) if vendor else (_value_verdict(value) if _keylike(name) else None)
+        if verdict:
+            pattern, severity = verdict
+            out.append(_finding(rel, _locate(lines, json.dumps(value)[1:-1], json.dumps(name)),
+                                "settings_env_literal" if pattern == "literal" else pattern, severity))
+    return out
+
+
+def _git_ls(root: Path, *args) -> list | None:
+    try:
+        res = subprocess.run(["git", "ls-files", "-z", *args], cwd=str(root),
+                             capture_output=True, timeout=60, check=False)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if res.returncode != 0:
+        return None
+    return [p for p in res.stdout.decode("utf-8", errors="replace").split("\0") if p]
+
+
+def _is_git_toplevel(root: Path) -> bool:
+    """git mode only when root IS a work tree's top: a broken .git inside some other repo would
+    otherwise list that repo's (empty) view of this folder and read as a clean scan."""
+    top = _lib.git_output(["rev-parse", "--show-toplevel"], root=root)
+    try:
+        return bool(top) and os.path.samefile(top, root)
+    except OSError:
+        return False
+
+
+def _walk_files(root: Path, prune: list) -> list:
+    out = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        rel_dir = Path(dirpath).relative_to(root).as_posix()
+        rel_dir = "" if rel_dir == "." else rel_dir + "/"
+        dirnames[:] = sorted(d for d in dirnames if d not in SECRET_SCAN_PRUNE_NAMES
+                             and not any(_under(rel_dir + d, p) for p in prune))
+        out.extend(rel_dir + name for name in filenames)
+    return sorted(out)
+
+
+def _secret_scan(root, files=None, *, allow_local: bool = False, allow_paths=None):
+    """scan_secrets() plus the scan stats the ritual reports. Returns (findings, stats)."""
+    import fnmatch
+    root = Path(root)
+    if allow_paths is None:
+        configured = _lib.config_get("policy", "secrets.allow_paths", [])
+        allow_paths = [str(p) for p in configured] if isinstance(configured, list) else []
+    prune = list(SECRET_SCAN_PRUNE)
+    try:
+        record_rel = _lib.record_root().resolve().relative_to(root.resolve()).as_posix()
+        if record_rel != ".":
+            prune.append(record_rel + "/")
+    except (ValueError, OSError):
+        pass  # the usual case: the record is a sibling folder, outside any scanned root
+
+    tracked: set = set()
+    if files is not None:
+        mode, rels = "files", []
+        for f in files:
+            p = Path(f)
+            if p.is_absolute():
+                try:
+                    p = p.resolve().relative_to(root.resolve())
+                except ValueError:
+                    continue
+            rels.append(p.as_posix())
+    else:
+        listed = None
+        if (root / ".git").exists() and _is_git_toplevel(root):
+            # Tracked plus untracked-but-not-ignored: exactly what the next `git add -A` carries.
+            cached = _git_ls(root, "--cached")
+            others = _git_ls(root, "--others", "--exclude-standard")
+            if cached is not None and others is not None:
+                tracked, listed = set(cached), sorted(set(cached) | set(others))
+        mode, rels = ("git", listed) if listed is not None else ("walk", _walk_files(root, prune))
+
+    stats = {"mode": mode, "scanned": 0, "allowed": 0, "skipped_large": 0, "skipped_binary": 0}
+    findings = []
+    for rel in rels:
+        if any(_under(rel, p) for p in prune) or any(_under(rel, p) for p in SECRET_SCAN_SKIP) \
+                or any(part in SECRET_SCAN_PRUNE_NAMES for part in rel.split("/")[:-1]):
+            continue
+        if any(_under(rel, p) or fnmatch.fnmatch(rel, p) for p in allow_paths):
+            stats["allowed"] += 1
+            continue
+        path = root / rel
+        if path.is_symlink() or not path.is_file():
+            continue
+        if _is_local_secret_file(rel):
+            if rel in tracked:
+                findings.append(_finding(rel, 0, "local_secret_file_tracked", FAIL))
+            elif not allow_local:
+                findings.append(_finding(rel, 0, "local_secret_file", FAIL))
+            continue  # the sanctioned home's values are never read
+        try:
+            if path.stat().st_size > SECRET_SCAN_MAX_BYTES:
+                stats["skipped_large"] += 1
+                continue
+            raw = path.read_bytes()
+        except OSError:
+            continue
+        if b"\0" in raw[:8192]:
+            stats["skipped_binary"] += 1
+            continue
+        text = raw.decode("utf-8", errors="replace")
+        stats["scanned"] += 1
+        findings.extend(_scan_lines(rel, text))
+        if os.path.normcase(rel) == os.path.normcase(".mcp.json"):
+            findings.extend(_scan_mcp(rel, text))
+        elif os.path.normcase(rel) == os.path.normcase(".claude/settings.json"):
+            findings.extend(_scan_settings(rel, text))
+
+    seen, unique = set(), []
+    for f in findings:
+        key = (f["path"], f["line"], f["pattern"])
+        if key not in seen:
+            seen.add(key)
+            unique.append(f)
+    strong = {(f["path"], f["line"]) for f in unique if f["pattern"] != "generic_secret"}
+    unique = [f for f in unique if f["pattern"] != "generic_secret" or (f["path"], f["line"]) not in strong]
+    unique.sort(key=lambda f: (f["path"], f["line"], f["pattern"]))
+    return unique, stats
+
+
+def scan_secrets(root, files=None, *, allow_local: bool = False, allow_paths=None) -> list:
+    """Scan a tree for secrets in the wrong place. Returns findings, each
+    {path (relative, posix), line (0 = whole file), pattern, severity (FAIL|WARN)} and never
+    the matched value.
+
+    Scope: `files` (relative to root) when given; else, when root is a git work tree, tracked
+    plus untracked-not-ignored files (what `git add -A` would commit); else a pruned walk.
+    Never enters .git/, .claude/worktrees/ or the record folder; skips the suite's tests
+    folder, binaries, files over SECRET_SCAN_MAX_BYTES, lines carrying `iff:allow-secret` and
+    paths in policy.json secrets.allow_paths (or `allow_paths` when passed).
+
+    Per-user secret files (.env, .env*.local, settings.local.json) are never read. Tracked,
+    they always FAIL. Present but untracked, they FAIL unless allow_local=True - the ritual
+    passes True and asserts their ignore status separately; a folder about to be published
+    (an export) should keep the strict default."""
+    return _secret_scan(root, files, allow_local=allow_local, allow_paths=allow_paths)[0]
+
+
+def secret_ignore_rows(root) -> list:
+    """(status, rel, message) per per-user secret file present - at the root, at
+    .claude/settings.local.json, or anywhere git sees it unignored: it must be gitignored.
+    SKIP outside a git repo. A TRACKED one is scan_secrets()'s finding, not a row."""
+    import fnmatch
+    root = Path(root)
+    rels = [p.name for p in sorted(root.glob(".env*")) if p.is_file() and _is_local_secret_file(p.name)]
+    if (root / ".claude" / "settings.local.json").is_file():
+        rels.append(".claude/settings.local.json")
+    is_git = (root / ".git").exists()
+    if is_git:
+        rels += [r for r in _git_ls(root, "--others", "--exclude-standard") or []
+                 if _is_local_secret_file(r) and r not in rels
+                 and not any(_under(r, p) for p in SECRET_SCAN_PRUNE)]
+    allow = _lib.config_get("policy", "secrets.allow_paths", [])
+    allow = [str(p) for p in allow] if isinstance(allow, list) else []
+    rels = [r for r in rels if not any(_under(r, p) or fnmatch.fnmatch(r, p) for p in allow)]
+    if not rels:
+        return []
+    if not is_git:
+        return [(SKIP, rel, "present; not a git repository, so its ignore status cannot be checked")
+                for rel in rels]
+    tracked = set(_git_ls(root, "--cached") or [])
+    rels = [r for r in rels if r not in tracked]
+    if not rels:
+        return []
+    try:
+        res = subprocess.run(["git", "check-ignore", "--", *rels], cwd=str(root),
+                             capture_output=True, text=True, timeout=30, check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return [(SKIP, rel, f"git unavailable ({type(exc).__name__})") for rel in rels]
+    if res.returncode not in (0, 1):  # 0 = some ignored, 1 = none ignored, else an error
+        return [(SKIP, rel, f"git check-ignore failed (exit {res.returncode})") for rel in rels]
+    ignored = {os.path.normcase(line.strip()) for line in res.stdout.splitlines() if line.strip()}
+    return [(OK, rel, "gitignored") if os.path.normcase(rel) in ignored
+            else (FAIL, rel, "exists and is NOT gitignored: the next `git add -A` commits it")
+            for rel in rels]
+
+
+def check_secrets_placement() -> Result:
+    root = _lib.project_root()
+    findings, stats = _secret_scan(root, allow_local=True)
+    rows = secret_ignore_rows(root)
+    order = {FAIL: 0, WARN: 1, SKIP: 2}
+    lines = [(f["severity"], f"{f['severity']} {f['path']}{':' + str(f['line']) if f['line'] else ''} "
+                             f"{f['pattern']}") for f in findings]
+    lines += [(status, f"{status} {rel}: {msg}") for status, rel, msg in rows if status != OK]
+    details = [text for _status, text in sorted(lines, key=lambda x: order.get(x[0], 3))]
+    fails = sum(1 for status, _ in lines if status == FAIL)
+    warns = sum(1 for status, _ in lines if status == WARN)
+    scope = {"git": "tracked + unignored files", "walk": "a walk of the tree (not a git repo)",
+             "files": "the given files"}[stats["mode"]]
+    if fails:
+        return Result("secrets_placement", FAIL,
+                      f"{fails} secret(s) in the wrong place ({scope}): keys belong in the env "
+                      f"block of .claude/settings.local.json or behind ${{VAR}} in .mcp.json "
+                      f"(.claude/reference/secrets.md); a key that reached a commit must be "
+                      f"rotated, not just deleted", details)
+    if warns:
+        return Result("secrets_placement", WARN,
+                      f"{warns} possible secret(s) to review ({scope}); a false alarm takes an "
+                      f"`{SECRET_PRAGMA}` comment or a policy.json secrets.allow_paths entry", details)
+    ignored = sum(1 for status, _r, _m in rows if status == OK)
+    tail = f"; {ignored} per-user secret file(s) gitignored" if ignored else ""
+    return Result("secrets_placement", OK,
+                  f"{stats['scanned']} file(s) scanned ({scope}), no key-shaped strings{tail}", details)
+
+
+# --------------------------------------------------------------------------- deploy drift
+#
+# The deploy contract is "fixes only; new ideas go to `statectl proposal add`". A fix rarely adds
+# a file; a feature nearly always does. So the ritual lists the files added since the deploy
+# phase began, outside the paths phases.json's drift_ignore names (tests, docs, the system's own
+# bookkeeping). A WARN, never a block: the list informs a human, it cannot judge intent.
+
+DEFAULT_DRIFT_IGNORE = ("tests/", "test/", "docs/", "doc/", "test_*", "*_test.*", "*.test.*",
+                        "*.spec.*", "*.md", "*.rst", ".claude/state/", ".claude/tasks/",
+                        ".claude-iff/")
+
+
+def _drift_ignored(rel: str, patterns) -> bool:
+    """`dir/` patterns match that directory run anywhere in the path; others are fnmatch globs
+    over the file name and the whole path. Compared through normcase (L-9)."""
+    import fnmatch
+    parts = [os.path.normcase(p) for p in rel.split("/")]
+    for pat in patterns:
+        pat = str(pat)
+        if pat.endswith("/"):
+            seg = [os.path.normcase(p) for p in pat.strip("/").split("/")]
+            dirs = parts[:-1]
+            if any(dirs[i:i + len(seg)] == seg for i in range(len(dirs) - len(seg) + 1)):
+                return True
+        elif fnmatch.fnmatch(parts[-1], pat) or fnmatch.fnmatch(rel, pat):
+            return True
+    return False
+
+
+def deploy_added_files(root: Path, since_ts: str) -> list:
+    """Files added since `since_ts`: in commits since then, staged as new, or untracked and
+    written after it (an untracked file has no git history, so its mtime is the only witness).
+    Git through subprocess with argv, never a shell."""
+    since = _lib.parse_ts(since_ts)
+    if since is None:
+        return []
+    git_since = since.strftime("%Y-%m-%d %H:%M:%S +0000")
+    added = set()
+    log = _lib.git_output(["-c", "core.quotepath=off", "log", f"--since={git_since}",
+                           "--diff-filter=A", "--name-only", "--pretty=format:"], root=root)
+    staged = _lib.git_output(["-c", "core.quotepath=off", "diff", "--cached", "--name-only",
+                              "--diff-filter=A"], root=root)
+    added |= {line.strip() for line in (log + "\n" + staged).splitlines() if line.strip()}
+    others = _lib.git_output(["-c", "core.quotepath=off", "ls-files", "--others",
+                              "--exclude-standard"], root=root)
+    for line in others.splitlines():
+        rel = line.strip()
+        try:
+            if rel and (root / rel).stat().st_mtime >= since.timestamp():
+                added.add(rel)
+        except OSError:
+            continue
+    return sorted(added)
+
+
+def check_deploy_drift() -> Result:
+    state = _lib.lifecycle_state()
+    if state["mode"] not in _lib.ORGANISED_MODES:
+        return Result("deploy_drift", SKIP, f"{_lib.mode_label(state['mode'])}: no phase contract to drift from")
+    if state["phase"] != "deploy":
+        return Result("deploy_drift", SKIP, f"phase is {state['phase'] or 'unset'}, not deploy")
+    root = _lib.project_root()
+    if not (root / ".git").exists():
+        return Result("deploy_drift", SKIP, "not a git repository")
+    since = state["phase_since"] or ""
+    patterns = _lib.load_config("phases").get("drift_ignore")
+    if not isinstance(patterns, list):
+        patterns = list(DEFAULT_DRIFT_IGNORE)
+    drift = [rel for rel in deploy_added_files(root, since) if not _drift_ignored(rel, patterns)]
+    if drift:
+        return Result("deploy_drift", WARN,
+                      f"{len(drift)} file(s) added since deploy began ({since}) outside tests/docs: "
+                      f"deploy is fixes only; park new ideas with `statectl proposal add`",
+                      drift[:20])
+    return Result("deploy_drift", OK, f"no new files outside tests/docs since deploy began ({since})")
+
+
 CHECKS = {
     "journal_parses": check_journal_parses,
     "heartbeat_present": check_heartbeat,
     "generator_freshness": check_generator_freshness,
     "cards_lint": check_cards_lint,
+    "context_health": check_context_health,
     "config_registry_lint": check_config_registry,
     "price_table": check_price_table,
     "record_size": check_record_size,
@@ -694,6 +1396,8 @@ CHECKS = {
     "gitignore_shadowing": check_gitignore_shadowing,
     "theme_token_parity": check_theme_token_parity,
     "changelog_parity": check_changelog_parity,
+    "secrets_placement": check_secrets_placement,
+    "deploy_drift": check_deploy_drift,
 }
 
 
@@ -871,27 +1575,39 @@ def probe() -> list:
         ("tool.consolectl", ".claude/tools/consolectl.py"),
         ("tool.checkctl", ".claude/tools/checkctl.py"),
         ("tool.distctl", ".claude/tools/distctl.py"),
+        ("tool.ctxmap", ".claude/tools/ctxmap.py"),
+        ("tool.progress", ".claude/tools/progress.py"),
         ("hook.session-start", ".claude/hooks/session-start.sh"),
         ("hook.heartbeat", ".claude/hooks/heartbeat.sh"),
         ("hook.obs-capture", ".claude/hooks/obs-capture.sh"),
         ("hook.policy-gate", ".claude/hooks/policy-gate.sh"),
         ("hook.post-write-validate", ".claude/hooks/post-write-validate.sh"),
+        ("hook.ritual-ticket", ".claude/hooks/ritual-ticket.sh"),
+        ("hook.handoff-guard", ".claude/hooks/handoff-guard.sh"),
         ("agent.anatomist", ".claude/agents/anatomist.md"),
         ("agent.retro-analyst", ".claude/agents/retro-analyst.md"),
         ("agent.verifier", ".claude/agents/verifier.md"),
+        ("agent.builder", ".claude/agents/builder.md"),
+        ("agent.scout", ".claude/agents/scout.md"),
         ("skill.project-memory", ".claude/skills/project-memory/SKILL.md"),
         ("skill.plan-task", ".claude/skills/plan-task/SKILL.md"),
         ("skill.adopt", ".claude/skills/adopt/SKILL.md"),
+        ("skill.adhd", ".claude/skills/adhd/SKILL.md"),
         ("protocol.handshake", ".claude/protocols/handshake.md"),
         ("protocol.human-gates", ".claude/protocols/human-gates.md"),
         ("protocol.honesty", ".claude/protocols/honesty.md"),
         ("protocol.evolution", ".claude/protocols/evolution.md"),
+        ("protocol.orchestration", ".claude/protocols/orchestration.md"),
         ("config.memory", ".claude/config/memory.json"),
         ("config.policy", ".claude/config/policy.json"),
         ("config.observe", ".claude/config/observe.json"),
         ("config.console", ".claude/config/console.json"),
         ("config.registry", ".claude/config/registry.json"),
         ("config.model-prices", ".claude/config/model-prices.json"),
+        ("config.brainstorm", ".claude/config/brainstorm.json"),
+        ("config.publish", ".claude/config/publish.json"),
+        ("config.phases", ".claude/config/phases.json"),
+        ("config.orchestration", ".claude/config/orchestration.json"),
         ("map.layers", ".claude/system-map/layers.json"),
         ("console.template", ".claude/console/console.template.html"),
         ("console.server", ".claude/console/console.py"),
@@ -901,11 +1617,746 @@ def probe() -> list:
         ("memory.log", ".claude/Project-log.jsonl"),
         ("memory.lessons", ".claude/LESSONS.jsonl"),
         ("reference.glossary", ".claude/reference/glossary.md"),
+        ("reference.secrets", ".claude/reference/secrets.md"),
+        ("reference.public-private", ".claude/reference/public-private.md"),
         ("iff.readme", ".claude-iff/README.md"),
     ]
     results = []
     for name, path in expected:
         results.append(Result(name, OK if (root / path).exists() else FAIL, path))
+    return results
+
+
+# --------------------------------------------------------------------------- doctor
+#
+# `checkctl doctor`: can this machine run the system at all? One row per prerequisite, each
+# non-OK row with a one-line fix. READ-ONLY by contract: no state file, no run record, no
+# record folder is created - a diagnostic that writes is one more thing that can break.
+# Features this install may not have yet (mode, phase) read as SKIP, not FAIL. The ritual
+# ticket row reads the ticket and whether a prompt hook can mint one at all.
+
+MIN_PYTHON = (3, 8)
+EXPECTED_HOOKS = ("session-start.sh", "heartbeat.sh", "obs-capture.sh", "policy-gate.sh",
+                  "post-write-validate.sh", "ritual-ticket.sh", "handoff-guard.sh")
+DOCTOR_CONFIGS = ("memory", "policy", "observe", "console", "registry", "model-prices", "phases",
+                  "orchestration")
+WORK_MODES = _lib.MODES
+LIFECYCLE_PHASES = _lib.LIFECYCLE_PHASES
+# Path fragments of the common sync clients (lowercased, posix form). A heuristic: an OK row
+# says "no marker found", never "not synced".
+CLOUD_SYNC_MARKERS = ("dropbox", "onedrive", "icloud", "google drive", "googledrive",
+                      "/mobile documents/", "/library/cloudstorage/")
+
+
+def _path_under(child: Path, parent: Path) -> bool:
+    try:
+        a = os.path.normcase(str(Path(child).resolve()))
+        b = os.path.normcase(str(Path(parent).resolve()))
+    except OSError:
+        return False
+    return a == b or a.startswith(b.rstrip("\\/") + os.sep)
+
+
+def _windows_documents_redirect() -> Path | None:
+    """Known Folder Move: Documents silently redirected into OneDrive while the visible path
+    still reads C:/Users/<name>/Documents. Read-only registry lookup; None off Windows."""
+    if os.name != "nt":
+        return None
+    try:
+        import winreg
+        key_path = r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+            value, _kind = winreg.QueryValueEx(key, "Personal")
+    except (ImportError, OSError):
+        return None
+    expanded = os.path.expandvars(str(value))
+    return Path(expanded) if "onedrive" in expanded.lower() else None
+
+
+def cloud_sync_reason(path: Path) -> str | None:
+    text = str(path).replace("\\", "/").lower()
+    for marker in CLOUD_SYNC_MARKERS:
+        if marker in text:
+            return f"its path contains '{marker.strip('/')}'"
+    redirected = _windows_documents_redirect()
+    if redirected is not None:
+        bases = [redirected]
+        if os.environ.get("USERPROFILE"):
+            bases.append(Path(os.environ["USERPROFILE"]) / "Documents")
+        if any(_path_under(path, base) for base in bases):
+            return "it sits under Documents, which Windows redirects into OneDrive"
+    return None
+
+
+def _doctor_python():
+    v = sys.version_info
+    text = f"Python {v.major}.{v.minor}.{v.micro}"
+    if (v.major, v.minor) >= MIN_PYTHON:
+        return Result("python", OK, f"{text} (needs {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+)"), ""
+    return (Result("python", FAIL, f"{text} is older than {MIN_PYTHON[0]}.{MIN_PYTHON[1]}"),
+            f"install Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} or newer")
+
+
+def _doctor_python3():
+    import shutil
+    exe = shutil.which("python3")
+    fix = ("make `python3` resolve to a real Python 3 in bash (on Windows the Microsoft Store "
+           "stub answers instead: install from python.org or add a python3 shim)")
+    if not exe:
+        return Result("python3", FAIL, "`python3` is not on PATH, and every hook shells out to it"), fix
+    try:
+        res = subprocess.run([exe, "-c", "import sys; print(sys.version_info[0])"],
+                             capture_output=True, text=True, timeout=20, check=False)
+    except (OSError, subprocess.SubprocessError) as exc:
+        return Result("python3", FAIL, f"`python3` could not run: {type(exc).__name__}"), fix
+    if res.returncode == 0 and res.stdout.strip() == "3":
+        return Result("python3", OK, "`python3` runs Python 3 (the hooks can execute)"), ""
+    return Result("python3", FAIL, "`python3` on PATH does not run Python 3"), fix
+
+
+def _doctor_bash():
+    found = _lib.find_bash()
+    if found:
+        return Result("bash", OK, "bash found (the hooks are bash scripts)"), ""
+    return (Result("bash", FAIL, "no usable bash: no hook can run (on Windows the WSL launcher "
+                                 "in System32 does not count)"),
+            "install bash (on Windows: Git for Windows, which ships Git Bash)")
+
+
+def _doctor_git():
+    import shutil
+    if not shutil.which("git"):
+        return (Result("git", WARN, "git is not on PATH: history, push and the ritual's git checks "
+                                    "are unavailable"), "install git")
+    version = _lib.git_output(["--version"]) or "git"
+    if not (_lib.project_root() / ".git").exists():
+        return (Result("git", WARN, f"{version}; this project is not a git repository (gitignore "
+                                    f"and secrets-ignore checks SKIP)"), "git init")
+    return Result("git", OK, f"{version}; project is a git repository"), ""
+
+
+def _doctor_config():
+    bad = []
+    for name in DOCTOR_CONFIGS:
+        path = _lib.config_dir() / f"{name}.json"
+        try:
+            json.loads(path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            bad.append(f"{name}.json missing")
+        except (OSError, ValueError):
+            bad.append(f"{name}.json does not parse")
+    if bad:
+        return (Result("config", FAIL, "; ".join(bad)),
+                "fix the JSON or restore the file from the kit (a malformed policy.json drops "
+                "the gate to its protected-paths fallback)")
+    return Result("config", OK, f"{len(DOCTOR_CONFIGS)} config file(s) parse"), ""
+
+
+def _doctor_hooks():
+    settings = _lib.claude_dir() / "settings.json"
+    fix = "restore the hooks block of .claude/settings.json and .claude/hooks/ from the kit"
+    if not settings.exists():
+        return Result("hooks", FAIL, "no .claude/settings.json: no hook is wired"), fix
+    data = _lib.read_json(settings)
+    if not isinstance(data, dict):
+        return Result("hooks", FAIL, ".claude/settings.json does not parse"), fix
+    commands = []
+    for groups in (data.get("hooks") or {}).values() if isinstance(data.get("hooks"), dict) else ():
+        for group in groups if isinstance(groups, list) else ():
+            for hook in (group.get("hooks") or []) if isinstance(group, dict) else ():
+                if isinstance(hook, dict) and hook.get("command"):
+                    commands.append(str(hook["command"]))
+    if not commands:
+        return Result("hooks", FAIL, ".claude/settings.json wires no hook commands"), fix
+    hooks_dir = _lib.claude_dir() / "hooks"
+    scripts = sorted({m for c in commands for m in re.findall(r"\.claude/hooks/([A-Za-z0-9_.-]+)", c)})
+    missing = [s for s in scripts if not (hooks_dir / s).is_file()]
+    # The command string runs the script directly, so on POSIX it needs its executable bit.
+    not_exec = [s for s in scripts if os.name == "posix" and (hooks_dir / s).is_file()
+                and not os.access(hooks_dir / s, os.X_OK)]
+    if missing or not_exec:
+        parts = ([f"missing: {', '.join(missing)}"] if missing else []) + \
+                ([f"not executable: {', '.join(not_exec)}"] if not_exec else [])
+        return (Result("hooks", FAIL, "wired hook script(s) cannot run - " + "; ".join(parts)),
+                "restore .claude/hooks/ from the kit; on Linux/macOS: chmod +x .claude/hooks/*.sh")
+    # A wired command that names no hook script must still find its program.
+    import shutil
+    absent = []
+    for c in commands:
+        if re.search(r"\.claude/hooks/", c):
+            continue
+        first = (re.findall(r'"[^"]*"|\'[^\']*\'|\S+', c) or [""])[0].strip("\"'")
+        first = first.replace("$CLAUDE_PROJECT_DIR", str(_lib.project_root()))
+        if first and not (Path(first).is_file() or shutil.which(first)):
+            absent.append(first)
+    if absent:
+        return (Result("hooks", FAIL, f"wired hook command(s) name no program here: "
+                                      f"{', '.join(sorted(set(absent)))}"),
+                "install the program or remove the entry from .claude/settings.json")
+    unwired = [s for s in EXPECTED_HOOKS if s not in scripts]
+    if unwired:
+        return Result("hooks", WARN, f"shipped hook(s) not wired: {', '.join(unwired)}"), fix
+    return Result("hooks", OK, f"{len(commands)} hook command(s) wired, {len(scripts)} script(s) "
+                               f"present (Claude Code still asks you to trust them once)"), ""
+
+
+def _wired_hook_scripts() -> set:
+    """The .claude/hooks/ file names settings.json's hook commands run."""
+    data = _lib.read_json(_lib.claude_dir() / "settings.json")
+    hooks = data.get("hooks") if isinstance(data, dict) else None
+    out = set()
+    for groups in hooks.values() if isinstance(hooks, dict) else ():
+        for group in groups if isinstance(groups, list) else ():
+            for hook in (group.get("hooks") or []) if isinstance(group, dict) else ():
+                if isinstance(hook, dict):
+                    out.update(re.findall(r"\.claude/hooks/([A-Za-z0-9_.-]+)",
+                                          str(hook.get("command", ""))))
+    return out
+
+
+def _doctor_hook_scripts():
+    """Every hook script can run as written: LF line endings (bash reads a CR as part of the
+    command), a `#!` line, the exec bit where the OS reports one; and every script in hooks/ is
+    wired in settings.json (a helper is fine when another hook names it)."""
+    hooks_dir = _lib.claude_dir() / "hooks"
+    if not hooks_dir.is_dir():
+        return (Result("hook_scripts", FAIL, "no .claude/hooks/ folder"),
+                "restore .claude/hooks/ from the kit")
+    files = sorted(p for p in hooks_dir.iterdir() if p.is_file() and p.suffix in (".sh", ".py"))
+    texts = {p.name: p.read_bytes() for p in files}
+    crlf = [n for n, b in texts.items() if b"\r\n" in b]
+    no_shebang = [n for n, b in texts.items() if not b.startswith(b"#!")]
+    no_exec = [n for n in texts if os.name == "posix" and n.endswith(".sh")
+               and not os.access(hooks_dir / n, os.X_OK)]
+    wired = _wired_hook_scripts()
+    named_by_hooks = b"".join(texts[n] for n in wired if n in texts)
+    unwired = [n for n in texts if n not in wired and n.encode() not in named_by_hooks]
+    problems = ([f"CRLF line endings: {', '.join(crlf)}"] if crlf else []) + \
+               ([f"no #! line: {', '.join(no_shebang)}"] if no_shebang else []) + \
+               ([f"not executable: {', '.join(no_exec)}"] if no_exec else [])
+    if problems:
+        return (Result("hook_scripts", FAIL, "hook script(s) cannot run as written - "
+                                             + "; ".join(problems)),
+                "restore .claude/hooks/ from the kit (LF endings: `git config core.autocrlf "
+                "false` before checkout); on Linux/macOS: chmod +x .claude/hooks/*.sh")
+    if unwired:
+        return (Result("hook_scripts", WARN, f"hook file(s) present but never run: "
+                                             f"{', '.join(unwired)}"),
+                "wire them in .claude/settings.json or delete them")
+    exec_note = "exec bit set" if os.name == "posix" else "exec bit not reported on this OS"
+    return Result("hook_scripts", OK, f"{len(texts)} hook file(s): LF, #! line, {exec_note}, "
+                                      f"all wired"), ""
+
+
+def _doctor_record_root():
+    fix = ("set CLAUDE_IFF_RECORD_ROOT in the repo-root .env (or policy.record_root) to a "
+           "writable folder outside the repo")
+    try:
+        rr = _lib.record_root()
+    except Exception as exc:  # noqa: BLE001 - a resolver that raises is the finding
+        return Result("record_root", FAIL, f"cannot be resolved: {type(exc).__name__}: {exc}"), fix
+    shown = _lib.tilde(rr)
+    if _path_under(rr, _lib.project_root()):
+        return Result("record_root", FAIL, f"{shown} is INSIDE the repo, where git can reach the "
+                                           f"verbatim record"), fix
+    if rr.exists():
+        if not rr.is_dir():
+            return Result("record_root", FAIL, f"{shown} exists but is not a directory"), fix
+        if not os.access(rr, os.W_OK):
+            return Result("record_root", FAIL, f"{shown} is not writable"), fix
+        return Result("record_root", OK, f"{shown} (exists, writable)"), ""
+    parent = rr.parent
+    while not parent.exists() and parent != parent.parent:
+        parent = parent.parent
+    if not os.access(parent, os.W_OK):
+        return Result("record_root", FAIL, f"{shown} cannot be created: {_lib.tilde(parent)} is "
+                                           f"not writable"), fix
+    return Result("record_root", OK, f"{shown} (created on first capture)"), ""
+
+
+def _doctor_cloud_sync():
+    try:
+        reason = cloud_sync_reason(_lib.record_root())
+    except Exception as exc:  # noqa: BLE001
+        return Result("record_cloud_sync", SKIP, f"not checked: {type(exc).__name__}"), ""
+    if reason:
+        return (Result("record_cloud_sync", WARN, f"the record root looks cloud-synced ({reason}): "
+                                                  f"verbatim prompts and file contents would upload"),
+                "point CLAUDE_IFF_RECORD_ROOT (repo-root .env) at a folder outside the synced tree")
+    return Result("record_cloud_sync", OK, "no cloud-sync marker in the record root's path"), ""
+
+
+def _doctor_console():
+    import socket
+    cfg = _lib.load_config("console")
+    host = str(cfg.get("host", "127.0.0.1"))
+    if not (host in ("::1", "localhost") or host.startswith("127.")):
+        return (Result("console", FAIL, f"console.host is {host!r}: the console serves live state "
+                                        f"and must bind loopback only"),
+                "set host to 127.0.0.1 in .claude/config/console.json")
+    port = _lib.console_port(cfg)
+    if not 1 <= port <= 65535:
+        return (Result("console", FAIL, f"console.port {port} is not a valid port"),
+                'set port to "auto" in .claude/config/console.json')
+    how = "explicit" if isinstance(cfg.get("port"), int) else "derived from the folder name"
+    try:
+        with socket.create_connection((host, port), timeout=0.25):
+            live = "something is listening there"
+    except OSError:
+        live = "nothing listening yet (session start autostarts it)"
+    return Result("console", OK, f"{_lib.console_url(cfg)} (port {how}); {live}"), ""
+
+
+def _doctor_heartbeat():
+    result = check_heartbeat()
+    result.name = "heartbeat"
+    fix = "" if result.status == OK else ("trust the project's hooks when Claude Code asks (or via "
+                                          "/hooks), then end one turn")
+    return result, fix
+
+
+def _doctor_secrets():
+    result = check_secrets_placement()
+    fix = "" if result.status == OK else ("move keys to the env block of .claude/settings.local.json "
+                                          "or ${VAR} in .mcp.json; see .claude/reference/secrets.md")
+    return result, fix
+
+
+def _session_block() -> dict:
+    data = _lib.read_json(_lib.state_dir() / "session.json", {}) or {}
+    session = data.get("session") if isinstance(data, dict) else None
+    return session if isinstance(session, dict) else {}
+
+
+def _doctor_mode():
+    mode = _session_block().get("mode")
+    if not mode:
+        return (Result("mode", SKIP, "no mode recorded: freestyle applies"),
+                "none needed; `statectl mode` sets one where this install has it")
+    if _lib.normalize_mode(mode):  # a full name, or an input alias someone wrote by hand
+        return Result("mode", OK, f"mode: {mode}"), ""
+    return Result("mode", WARN, f"unknown mode {mode!r}"), f"set one of: {', '.join(WORK_MODES)}"
+
+
+def _doctor_phase():
+    phase = _session_block().get("phase")
+    if phase in LIFECYCLE_PHASES:
+        return Result("phase", OK, f"phase: {phase}"), ""
+    note = f"session phase {phase!r} is not a lifecycle phase" if phase else "no lifecycle phase recorded"
+    return (Result("phase", SKIP, f"{note} ({'|'.join(LIFECYCLE_PHASES)})"),
+            "none needed; `statectl phase` sets one where this install has it")
+
+
+def _ticket_hook_wired() -> bool:
+    """Is hooks/ritual-ticket.sh present and wired on a prompt event in settings.json? Without
+    it no ticket can ever be minted, and every `checkctl run` refuses."""
+    if not (_lib.claude_dir() / "hooks" / "ritual-ticket.sh").is_file():
+        return False
+    data = _lib.read_json(_lib.claude_dir() / "settings.json")
+    hooks = data.get("hooks") if isinstance(data, dict) else None
+    for event in ("UserPromptSubmit", "UserPromptExpansion"):
+        groups = hooks.get(event) if isinstance(hooks, dict) else None
+        for group in groups if isinstance(groups, list) else ():
+            for hook in (group.get("hooks") or []) if isinstance(group, dict) else ():
+                if isinstance(hook, dict) and "hooks/ritual-ticket.sh" in str(hook.get("command", "")):
+                    return True
+    return False
+
+
+def _doctor_ritual_ticket():
+    state = ticket_state()
+    ttl = int(state["ttl_s"] // 60)
+    hatch = (f"if the prompt hook never fires, the user runs `{GRANT_COMMAND}` in their own "
+             f"terminal")
+    fix_wire = ("restore the UserPromptSubmit and UserPromptExpansion entries for "
+                "hooks/ritual-ticket.sh in .claude/settings.json (and the script) from the kit, "
+                f"then start a new session; meanwhile {hatch}")
+    if state["status"] == "fresh":
+        left = int((state["ttl_s"] - max(state["age_s"], 0)) // 60)
+        return Result("ritual_ticket", OK, f"{state['reason']}; valid {left} more min"), ""
+    if state["status"] == "invalid":
+        return (Result("ritual_ticket", WARN, f"{state['reason']}: checkctl run refuses it"),
+                f"the user types /project-memory, which mints a fresh one; {hatch}")
+    if not _ticket_hook_wired():
+        return (Result("ritual_ticket", WARN, "no prompt hook can mint a ticket (hooks/ritual-ticket.sh "
+                                              "is missing or not wired), so every checkctl run "
+                                              "refuses the ritual"), fix_wire)
+    if state["status"] == "absent":
+        return Result("ritual_ticket", OK, f"none open; the prompt hook mints one when the user types "
+                                           f"/project-memory or /adopt (valid {ttl} min); {hatch}"), ""
+    return Result("ritual_ticket", OK, f"{state['reason']}; the next /project-memory replaces it"), ""
+
+
+DOCTOR_ROWS = (
+    _doctor_python, _doctor_python3, _doctor_bash, _doctor_git, _doctor_config, _doctor_hooks,
+    _doctor_hook_scripts, _doctor_record_root, _doctor_cloud_sync, _doctor_console, _doctor_heartbeat,
+    _doctor_secrets, _doctor_mode, _doctor_phase, _doctor_ritual_ticket,
+)
+
+
+def doctor() -> list:
+    """[(Result, fix_hint)], one per prerequisite. A row that raises is a FAIL row (fail
+    closed), never a crashed doctor."""
+    rows = []
+    for fn in DOCTOR_ROWS:
+        name = fn.__name__.replace("_doctor_", "")
+        try:
+            rows.append(fn())
+        except Exception as exc:  # noqa: BLE001
+            rows.append((Result(name, FAIL, f"row raised {type(exc).__name__}: {exc}"),
+                         "report this: the doctor itself is broken here"))
+    return rows
+
+
+def render_doctor(rows: list) -> None:
+    print("DOCTOR (read-only: nothing is written)")
+    width = max(len(r.name) for r, _ in rows)
+    for result, fix in rows:
+        print(f"[{result.status:<4}] {result.name:<{width}}  {result.message}")
+        pad = " " * (width + 9)
+        for line in result.details[:10] if result.status != OK else []:
+            print(f"{pad}{line}")
+        if fix and result.status != OK:
+            print(f"{pad}fix: {fix}")
+    print(f"\n{summarize([r for r, _ in rows])}")
+
+
+# --------------------------------------------------------------------------- phase exits
+#
+# `checkctl phase-exit --from <phase>`: may the project leave this lifecycle phase? READ-ONLY:
+# no state file, no run record. `statectl phase` calls phase_exit() in the organised modes and
+# refuses on FAIL unless --override. phases.json names each phase's exit check (`exit`); the
+# names are bound to code here, like every other step name - a data file never carries a check.
+#
+# Task files are .claude/tasks/*.md minus `_`-prefixed scaffolds (the template), files with no
+# `_Created ... · Status: X_` line (briefs) and the archive. A task file is matched to its
+# journal task by the file stem (the /plan-task id) or by the id leading its title
+# (`# Task: T4 - ...`).
+
+DEFAULT_BUILD_TEST_TIMEOUT = 1800
+TEST_TAIL_LINES = 8
+# The same status line consolectl's task reader parses, so the console and the exit check agree.
+_TASK_STATUS_LINE_RE = _lib.TASK_STATUS_LINE_RE
+_TASK_TITLE_LINE_RE = re.compile(r"^#\s*Task:\s*(.+?)\s*$", re.MULTILINE)
+_TITLE_ID_RE = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)\s+[-–—:]\s")
+_DOD_RE = re.compile(r"^[ \t]*\*\*Definition of done:\*\*(.*?)(?:\n[ \t]*\n|\Z)", re.MULTILINE | re.DOTALL)
+_TEST_RE = re.compile(r"^[ \t]*\*\*Test:\*\*(.*?)(?:\n[ \t]*\n|\Z)", re.MULTILINE | re.DOTALL)
+_BACKTICK_RE = re.compile(r"`([^`\n]+)`")
+
+
+def parse_task_file(path: Path) -> dict | None:
+    """The exit checks' view of one task file, or None when the file is not a task (it has no
+    status line). `test_commands` is None when there is no **Test:** paragraph at all."""
+    text = path.read_text(encoding="utf-8", errors="replace")
+    status_m = _TASK_STATUS_LINE_RE.search(text)
+    if not status_m:
+        return None
+    title_m = _TASK_TITLE_LINE_RE.search(text)
+    title = title_m.group(1).strip() if title_m else path.stem
+    ids = [path.stem]
+    id_m = _TITLE_ID_RE.match(title)
+    if id_m and id_m.group(1) != path.stem:
+        ids.append(id_m.group(1))
+    dod_m = _DOD_RE.search(text)
+    dod = " ".join(dod_m.group(1).split()) if dod_m else None
+    test_m = _TEST_RE.search(text)
+    return {
+        "path": path, "file": path.name, "title": title,
+        "status": status_m.group(1).strip().lower(), "ids": ids, "dod": dod,
+        "test_commands": _BACKTICK_RE.findall(test_m.group(1)) if test_m else None,
+    }
+
+
+def task_files(include_archive: bool = False) -> list:
+    tdir = _lib.claude_dir() / "tasks"
+    if not tdir.is_dir():
+        return []
+    files = [p for p in sorted(tdir.glob("*.md")) if not p.name.startswith("_")]
+    if include_archive and (tdir / "archive").is_dir():
+        files += sorted((tdir / "archive").rglob("*.md"))
+    return [t for t in (parse_task_file(p) for p in files) if t]
+
+
+def _journal_tasks() -> dict:
+    """casefolded task id -> the projector's task record (id, status, milestone, ...)."""
+    import statectl
+    return {t["id"].casefold(): t for t in statectl._build_session_projection()["tasks"]}
+
+
+def _match_journal_task(task_file: dict, journal: dict):
+    for candidate in task_file["ids"]:
+        hit = journal.get(candidate.casefold())
+        if hit is not None:
+            return hit
+    return None
+
+
+def current_milestone() -> str | None:
+    """The body of work in flight: the latest `milestone` event's id, else the milestone the
+    latest task event names."""
+    latest_event = latest_task = None
+    for ev in _lib.journal_read(tolerant=True):
+        if ev.get("action") == "milestone" and ev.get("id"):
+            latest_event = str(ev["id"])
+        elif ev.get("action") == "task" and ev.get("milestone"):
+            latest_task = str(ev["milestone"])
+    return latest_event or latest_task
+
+
+def _test_problem(task_file: dict) -> str | None:
+    tests = task_file["test_commands"]
+    if tests is None:
+        return "no **Test:** line"
+    if len(tests) != 1:
+        return f"**Test:** holds {len(tests)} backticked spans; it needs exactly one command"
+    if tests[0].strip().startswith("<"):
+        return "**Test:** is still the template placeholder"
+    return None
+
+
+def exit_plan(**_kw) -> list:
+    """plan -> next: at least one open task file; each with a real Definition of done, one
+    backticked Test command, and a journal task registered under a milestone."""
+    open_files = [t for t in task_files() if t["status"] != "done"]
+    if not open_files:
+        return [Result("task_files", FAIL, "no open task file in .claude/tasks/: plan at least "
+                                           "one (/plan-task) before leaving plan")]
+    journal = _journal_tasks()
+    results = []
+    for tf in open_files:
+        problems = []
+        if not tf["dod"]:
+            problems.append("no **Definition of done:**")
+        elif tf["dod"].startswith("<"):
+            problems.append("**Definition of done:** is still the template placeholder")
+        test_problem = _test_problem(tf)
+        if test_problem:
+            problems.append(test_problem)
+        jt = _match_journal_task(tf, journal)
+        suggest = tf["ids"][-1]
+        if jt is None:
+            problems.append(f"not registered: statectl task {suggest} --title \"...\" "
+                            f"--status todo --milestone <mid>")
+        elif not jt.get("milestone"):
+            problems.append(f"journal task {jt['id']} has no milestone: "
+                            f"statectl task {jt['id']} --milestone <mid>")
+        if problems:
+            results.append(Result(tf["file"], FAIL, "; ".join(problems)))
+        else:
+            results.append(Result(tf["file"], OK, f"task {jt['id']} under {jt['milestone']}, "
+                                                  f"test `{tf['test_commands'][0]}`"))
+    return results
+
+
+def run_command(command: str, timeout: int, cwd: Path | None = None,
+                knob: str = "phases.json build_test_timeout") -> tuple:
+    """(exit code or None, message, output tail) for one Test command: argv from shlex, never a
+    shell, run from `cwd` (default the repo root) with CLAUDE_PROJECT_DIR naming it too, so a
+    worktree's own tools resolve the worktree. None means it could not run, and says why."""
+    import shlex
+    try:
+        argv = shlex.split(command)
+    except ValueError as exc:
+        return None, f"Test command does not parse ({exc}): `{command}`", []
+    if not argv:
+        return None, "Test command is empty", []
+    where = Path(cwd) if cwd else _lib.project_root()
+    try:
+        res = subprocess.run(argv, cwd=str(where), capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", timeout=timeout, check=False,
+                             env=dict(os.environ, CLAUDE_PROJECT_DIR=str(where)))
+    except FileNotFoundError:
+        return None, (f"`{argv[0]}` was not found on PATH: the Test command's interpreter is "
+                      f"missing on this machine (`{command}`)"), []
+    except subprocess.TimeoutExpired:
+        return None, f"`{command}` timed out after {timeout}s ({knob})", []
+    except OSError as exc:
+        return None, f"`{command}` could not run: {exc}", []
+    tail = [ln for ln in ((res.stdout or "") + (res.stderr or "")).splitlines() if ln.strip()]
+    return res.returncode, f"`{command}` exit {res.returncode}", tail[-TEST_TAIL_LINES:]
+
+
+def run_task_test(command: str, timeout: int) -> tuple:
+    """(status, message, details) for one Test command, run from the repo root. A missing
+    interpreter is a FAIL that says so."""
+    code, message, tail = run_command(command, timeout)
+    return (OK if code == 0 else FAIL), message, tail
+
+
+def exit_build(milestone: str | None = None, **_kw) -> list:
+    """build -> next: every task of the current milestone is done and its Test exits 0 now."""
+    mid = milestone or current_milestone()
+    if not mid:
+        return [Result("milestone", FAIL, "no milestone recorded: statectl milestone <id> "
+                                          "--title ... and link tasks with --milestone")]
+    tasks = [t for t in _journal_tasks().values() if t.get("milestone") == mid]
+    if not tasks:
+        return [Result("milestone", FAIL, f"no task is registered under milestone {mid}")]
+    try:
+        timeout = int(_lib.load_config("phases").get("build_test_timeout", DEFAULT_BUILD_TEST_TIMEOUT))
+    except (TypeError, ValueError):
+        timeout = DEFAULT_BUILD_TEST_TIMEOUT
+    files = task_files(include_archive=True)
+    results = [Result("milestone", OK, f"{mid}: {len(tasks)} task(s)")]
+    ran: dict = {}  # tasks often share a Test (the whole suite): run each command once
+    for jt in sorted(tasks, key=lambda t: t["id"]):
+        tf = next((f for f in files if jt["id"].casefold() in [i.casefold() for i in f["ids"]]), None)
+        if jt.get("status") != "done":
+            results.append(Result(jt["id"], FAIL, f"status {jt.get('status')}, not done (Test not run)"))
+            continue
+        if tf is None:
+            results.append(Result(jt["id"], FAIL, "no task file names this task in .claude/tasks/ "
+                                                  "(or its archive): there is no Test to run"))
+            continue
+        problem = _test_problem(tf)
+        if problem:
+            results.append(Result(jt["id"], FAIL, f"{tf['file']}: {problem}"))
+            continue
+        command = tf["test_commands"][0]
+        if command not in ran:
+            ran[command] = run_task_test(command, timeout)
+        status, message, tail = ran[command]
+        results.append(Result(jt["id"], status, message, tail))
+    return results
+
+
+def exit_review(signoff: str | None = None, **_kw) -> list:
+    """review -> next: the human tested it and says so, in words."""
+    text = (signoff or "").strip()
+    if text:
+        return [Result("signoff", OK, f"signed off: {text}")]
+    return [Result("signoff", FAIL, "review ends on the human's sign-off: statectl phase <next> "
+                                    "--signoff \"<what was tested and what was found>\"")]
+
+
+def exit_deploy(**_kw) -> list:
+    """deploy -> next: `checkctl doctor` has no FAIL row."""
+    rows = doctor()
+    failed = [r for r, _fix in rows if r.status == FAIL]
+    if failed:
+        return [Result("doctor", FAIL, f"checkctl doctor has {len(failed)} FAIL row(s)",
+                       [f"{r.name}: {r.message}" for r in failed])]
+    warned = sum(1 for r, _fix in rows if r.status == WARN)
+    return [Result("doctor", OK, f"checkctl doctor: no FAIL ({warned} warn)")]
+
+
+PHASE_EXITS = {
+    "plan_ready": exit_plan,
+    "build_green": exit_build,
+    "review_signoff": exit_review,
+    "deploy_doctor": exit_deploy,
+}
+DEFAULT_PHASE_EXIT = {"plan": "plan_ready", "build": "build_green", "review": "review_signoff",
+                      "deploy": "deploy_doctor"}
+
+
+def phase_exit(phase: str, signoff: str | None = None, milestone: str | None = None) -> list:
+    """The exit check of one phase, as Results. Any FAIL means the phase may not be left (a
+    check that raises is a FAIL, never a silent pass)."""
+    value = _lib.normalize_phase(phase)
+    if value is None:
+        return [Result("phase_exit", FAIL, f"unknown phase {phase!r}: one of "
+                                           f"{', '.join(_lib.LIFECYCLE_PHASES)}")]
+    name = str(_lib.phase_spec(value).get("exit") or DEFAULT_PHASE_EXIT[value])
+    fn = PHASE_EXITS.get(name)
+    if fn is None:
+        return [Result(name, FAIL, f"phases.json names exit check '{name}' for {value}, which "
+                                   f"checkctl.PHASE_EXITS lacks")]
+    try:
+        return fn(signoff=signoff, milestone=milestone)
+    except Exception as exc:  # noqa: BLE001
+        return [Result(name, FAIL, f"exit check raised {type(exc).__name__}: {exc}")]
+
+
+# --------------------------------------------------------------------------- handoff
+#
+# `checkctl handoff <task_id> [--run] [--root <worktree>]`: may the lead accept this builder's
+# handoff? READ-ONLY apart from its output. The schema is _lib.validate_envelope, the one
+# validator the post-write hook and statectl's done guard share; on top of it this checks what
+# only a review can: the files the builder names exist under the root, the envelope says done,
+# and with --run that each recorded test still exits as recorded when rerun from the root.
+# --root points everything (envelope, files, test cwd) at a builder's worktree, so the lead can
+# check a handoff BEFORE merging it.
+
+def _relative_inside(entry: str, base: Path):
+    """None when `entry` is a repo-relative path that stays under `base`, else why not."""
+    posix = entry.replace("\\", "/")
+    if not posix.strip() or posix.startswith("/") or re.match(r"^[A-Za-z]:", posix) \
+            or ".." in posix.split("/"):
+        return "not a repo-relative path"
+    if not _path_under(base / posix, base):
+        return "resolves outside the root"
+    return None
+
+
+def handoff_check(task_id: str, root=None, run: bool = False, timeout: int | None = None) -> list:
+    """The handoff review of one task, as Results; any FAIL means the lead must not accept it."""
+    base = Path(root).resolve() if root else _lib.project_root()
+    if not base.is_dir():
+        return [Result("root", FAIL, f"{root} is not a directory")]
+    path = _lib.envelope_path(task_id, base)
+    shown = _lib.rel(path, base)
+    if not path.is_file():
+        return [Result("envelope", FAIL, f"no envelope at {shown} under {_lib.tilde(base)}: the "
+                                         f"builder writes it before stopping "
+                                         f"(.claude/protocols/handshake.md)")]
+    try:
+        obj = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [Result("envelope", FAIL, f"{shown} does not parse: {exc}")]
+    errors = _lib.validate_envelope(obj, builder=True)
+    if isinstance(obj, dict) and isinstance(obj.get("task_id"), str) and obj["task_id"] != task_id:
+        errors.append(f"task_id is {obj['task_id']!r} but the file is named for {task_id!r}")
+    results = [Result("schema", FAIL, f"{shown} breaks the builder envelope contract", errors)
+               if errors else Result("schema", OK, f"{shown} matches the builder envelope contract")]
+    if not isinstance(obj, dict):
+        return results
+
+    status = obj.get("status")
+    if status == _lib.ENVELOPE_DONE:
+        results.append(Result("status", OK, "done"))
+    else:
+        results.append(Result("status", FAIL, f"status is {status!r}, not done: the builder did not "
+                                               f"finish (read its DEVIATIONS and needs_main)"))
+
+    files = obj.get("files_changed") if isinstance(obj.get("files_changed"), list) else []
+    bad = []
+    for entry in files:
+        if not isinstance(entry, str):
+            continue
+        why = _relative_inside(entry, base)
+        if why is None and not (base / entry.replace("\\", "/")).exists():
+            why = "does not exist"
+        if why:
+            bad.append(f"{entry}: {why}")
+    results.append(Result("files_changed", FAIL, f"{len(bad)} of {len(files)} path(s) fail", bad)
+                   if bad else Result("files_changed", OK, f"{len(files)} path(s) exist under the root"))
+
+    tests = [t for t in (obj.get("tests") or []) if isinstance(t, dict)] \
+        if isinstance(obj.get("tests"), list) else []
+    passed = [t for t in tests if t.get("exit_code") == 0]
+    if not tests or len(passed) != len(tests):
+        results.append(Result("tests", FAIL, f"{len(passed)} of {len(tests)} recorded test(s) "
+                                             f"exited 0; a handoff needs at least one and all green"))
+    else:
+        results.append(Result("tests", OK, f"{len(tests)} recorded test(s), all exit 0"
+                                           + ("" if run else " (not rerun: add --run)")))
+    if run:
+        if timeout is None:
+            timeout = _lib.orchestration_knob("handoff_test_timeout")
+        for i, test in enumerate(tests):
+            command, recorded = test.get("command"), test.get("exit_code")
+            if not isinstance(command, str) or not command.strip():
+                continue
+            code, message, tail = run_command(command, timeout, cwd=base,
+                                              knob="orchestration.json handoff_test_timeout")
+            if code is None:
+                results.append(Result(f"rerun[{i}]", FAIL, message, tail))
+            elif code == recorded:
+                results.append(Result(f"rerun[{i}]", OK, f"{message}, as recorded", tail[-1:]))
+            else:
+                results.append(Result(f"rerun[{i}]", FAIL, f"{message}, but the envelope records "
+                                                           f"{recorded!r}", tail))
     return results
 
 
@@ -919,7 +2370,9 @@ def main(argv=None) -> int:
         "run",
         help="run one ritual phase",
         description="CHECK opens a ritual; POLISH and PUBLISH continue the one it opened. "
-                    "That is what lets PUBLISH verify POLISH ran in the SAME run id.",
+                    "That is what lets PUBLISH verify POLISH ran in the SAME run id. Every run "
+                    "needs a fresh ritual ticket: only the user opens the ritual, by typing "
+                    "/project-memory (or /adopt).",
     )
     run_cmd.add_argument("--phase", required=True, choices=sorted(PHASES))
     run_cmd.add_argument("--resume", action="store_true",
@@ -932,10 +2385,53 @@ def main(argv=None) -> int:
     sub.add_parser("generators", help="list registered generators and their freshness")
     probe_cmd = sub.add_parser("probe", help="one existence probe per shipped component")
     probe_cmd.add_argument("--json", action="store_true")
-    complete = sub.add_parser("complete", help="mark the ritual complete (called at the end of EVOLVE)")
+    doctor_cmd = sub.add_parser("doctor", help="read-only: can this machine run the system? one "
+                                               "row per prerequisite, exit 1 on any FAIL")
+    doctor_cmd.add_argument("--json", action="store_true")
+    exit_cmd = sub.add_parser("phase-exit", help="read-only: may the project leave this lifecycle "
+                                                 "phase? exit 1 on any FAIL")
+    exit_cmd.add_argument("--from", dest="from_phase", required=True, choices=_lib.LIFECYCLE_PHASES)
+    exit_cmd.add_argument("--signoff", help="the human's sign-off text (the review exit needs one)")
+    exit_cmd.add_argument("--milestone", help="build exit: check this milestone instead of the "
+                                              "current one")
+    exit_cmd.add_argument("--json", action="store_true")
+    handoff_cmd = sub.add_parser("handoff", help="read-only: may the lead accept this builder's "
+                                                 "handoff envelope? exit 1 on any FAIL")
+    handoff_cmd.add_argument("task_id")
+    handoff_cmd.add_argument("--run", action="store_true",
+                             help="rerun each recorded test from the root and compare exit codes")
+    handoff_cmd.add_argument("--root", help="check inside this worktree instead of the project "
+                                            "root (envelope, files and test cwd)")
+    handoff_cmd.add_argument("--json", action="store_true")
+    complete = sub.add_parser("complete", help="mark the ritual complete (called at the end of "
+                                               "EVOLVE); needs and consumes the ritual ticket")
     complete.add_argument("--note", default="")
+    ticket_cmd = sub.add_parser(
+        "ticket", help="HUMAN ONLY, in your own terminal: show the ritual ticket, or --grant one "
+                       "when the prompt hook never fires",
+        description="The escape hatch for the ritual ticket. Normally the prompt hook mints it "
+                    "when you type /project-memory or /adopt. If that hook never fires (an older "
+                    "Claude Code, hooks not trusted yet), run this with --grant in your own "
+                    "terminal, then type /project-memory. The policy gate refuses this "
+                    "subcommand to every agent, the main session included.")
+    ticket_cmd.add_argument("--grant", action="store_true",
+                            help="write a fresh ticket marked event: human-terminal")
+    ticket_cmd.add_argument("--skill", choices=RITUAL_SKILLS, default="project-memory")
 
     args = parser.parse_args(argv)
+
+    if args.command == "ticket":
+        if args.grant:
+            ticket = grant_ticket(args.skill)
+            print(f"ritual ticket granted from your terminal for /{ticket['skill']} "
+                  f"(valid {int(ticket_ttl_minutes())} min); now type /{ticket['skill']} in "
+                  f"Claude Code")
+        else:
+            state = ticket_state()
+            print(f"ritual ticket: {state['status']} - {state['reason']}")
+        _lib.print_verdict("CHECK", True)
+        return 0
+
 
     if args.command == "status":
         run = load_run()
@@ -962,29 +2458,80 @@ def main(argv=None) -> int:
         _lib.print_verdict("CHECK", not failed)
         return 1 if failed else 0
 
+    if args.command == "doctor":
+        rows = doctor()
+        failed = any(r.status == FAIL for r, _ in rows)
+        warned = any(r.status == WARN for r, _ in rows)
+        if args.json:
+            print(json.dumps([dict(r.as_dict(), fix=fix) for r, fix in rows], indent=2))
+        else:
+            render_doctor(rows)
+        _lib.print_verdict("CHECK", not failed, warn=warned)
+        return 1 if failed else 0
+
+    if args.command == "phase-exit":
+        results = phase_exit(args.from_phase, signoff=args.signoff, milestone=args.milestone)
+        failed = any(r.status == FAIL for r in results)
+        if args.json:
+            print(json.dumps({"phase": args.from_phase, "pass": not failed,
+                              "results": [r.as_dict() for r in results]}, indent=2))
+        else:
+            render(results, f"phase-exit {args.from_phase}")
+        _lib.print_verdict("CHECK", not failed)
+        return 1 if failed else 0
+
+    if args.command == "handoff":
+        results = handoff_check(args.task_id, root=args.root, run=args.run)
+        failed = any(r.status == FAIL for r in results)
+        if args.json:
+            print(json.dumps({"task_id": args.task_id, "accept": not failed,
+                              "results": [r.as_dict() for r in results]}, indent=2))
+        else:
+            render(results, f"handoff {args.task_id}")
+        _lib.print_verdict("CHECK", not failed)
+        return 1 if failed else 0
+
     if args.command == "complete":
         run = load_run()
         if not run:
             print("no ritual run to complete")
             _lib.print_verdict("CHECK", False)
             return 1
+        ticket = ticket_state(run)
+        if ticket["status"] != "fresh":
+            return refuse_without_ticket("completing the ritual", ticket)
         run["status"] = "done"
         run["last_completed"] = _lib.utc_now()
         run["step"] = None
+        stamp_ticket(run, ticket["ticket"])
+        unspent = consume_ticket(run, ticket["ticket"])
         save_run(run)
         try:
             _lib.journal_append("note", text=f"ritual complete ({run['run_id']}) {args.note}".strip())
         except Exception:
             pass
-        print(f"ritual {run['run_id']} complete")
-        _lib.print_verdict("CHECK", True)
+        print(f"ritual {run['run_id']} complete; the ritual ticket is consumed")
+        if unspent:
+            print(f"WARNING: could not delete {_lib.rel(ritual_ticket_path())} ({unspent}); it is "
+                  f"marked consumed in memory-run.json, so it cannot open another run")
+        _lib.print_verdict("CHECK", True, warn=bool(unspent))
         return 0
 
     # CHECK opens a ritual; the later phases continue it. Without this, every phase invocation
     # would mint a new run id and PUBLISH's same-run-id precondition could never be satisfied
     # in normal use, which would train people to bypass the very check that protects them.
     continues = args.resume or args.phase != "check"
+    current = load_run()
+    opening = args.new or not (continues and current.get("run_id"))
+    # The ticket gate, before anything is written: opening a run and continuing one both need
+    # a fresh ticket, so an agent can neither start the ritual nor carry one on past its life.
+    ticket = ticket_state(current)
+    if ticket["status"] != "fresh":
+        action = "opening a ritual run" if opening else f"continuing ritual {current.get('run_id')}"
+        return refuse_without_ticket(action, ticket)
     run = start_run(resume=continues and not args.new)
+    stamp_ticket(run, ticket["ticket"])
+    save_run(run)
     results = PHASES[args.phase](run)
     failed = [r for r in results if r.status == FAIL]
     warned = [r for r in results if r.status == WARN]

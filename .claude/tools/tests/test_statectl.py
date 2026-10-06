@@ -70,15 +70,16 @@ class TestEveryActionIsProjected(StatectlCase):
     MINIMAL_FIELDS = {
         "session_start": {"session": "s1", "phase": "build"},
         "pointer": {"text": "do the next thing"},
-        "task": {"id": "T1", "title": "write it", "status": "doing"},
+        "task": {"id": "T1", "title": "write it", "status": "doing", "milestone": "M1"},
         "milestone": {"id": "M1", "title": "shipped a thing"},
         "decision": {"text": "used approach X", "why": "simplest that works"},
         "loop": {"id": "L1", "text": "check this later", "status": "open"},
         "note": {"text": "just narrating"},
         "intent": {"state": "begin", "intent_id": "I1", "op": "write", "files": ["a.py"]},
-        "config": {"changes": {"x": 1}, "via": "test"},
         "gate": {"question": "ok to proceed?", "kind": "blocking"},
         "tooling": {"change_type": "add-tool", "what": "statectl.py"},
+        "mode": {"value": "guided-solo"},
+        "phase": {"value": "plan"},
     }
 
     def test_all_actions_present_and_covered_by_this_test(self):
@@ -110,6 +111,9 @@ class TestEveryActionIsProjected(StatectlCase):
         self.assertTrue(any(i["intent_id"] == "I1" for i in proj["open_intents"]))
         self.assertTrue(any(g["question"] == "ok to proceed?" for g in proj["open_gates"]))
         self.assertTrue(any(t["what"] == "statectl.py" for t in proj["recent_tooling"]))
+        self.assertEqual(next(t for t in proj["tasks"] if t["id"] == "T1")["milestone"], "M1")
+        self.assertEqual(proj["session"]["mode"], "guided-solo")
+        self.assertEqual(proj["session"]["phase"], "plan")
         self.assertGreaterEqual(proj["counts"]["milestones"], 1)
         self.assertGreaterEqual(proj["counts"]["decisions"], 1)
         self.assertGreaterEqual(proj["counts"]["tooling"], 1)
@@ -182,6 +186,75 @@ class TestTaskPartialUpdate(StatectlCase):
         self.assertEqual(counts["tasks_total"], 2)
         self.assertEqual(counts["tasks_done"], 1)
         self.assertEqual(counts["tasks_open"], 1)
+
+    def test_milestone_links_and_survives_partial_updates(self):
+        self.run_cli("task", "T1", "--title", "a", "--status", "todo", "--milestone", "M-1")
+        self.assertEqual(self.session_json()["tasks"][0]["milestone"], "M-1")
+        self.run_cli("task", "T1", "--status", "doing")
+        self.assertEqual(self.session_json()["tasks"][0]["milestone"], "M-1",
+                         "omitted --milestone must not clobber it")
+        self.assertIn("| T1 | a | doing | M-1 |", self.handoff_text())
+        self.run_cli("task", "T1", "--milestone", "")
+        self.assertFalse(self.session_json()["tasks"][0]["milestone"], "an explicit '' unlinks")
+        self.run_cli("task", "T2", "--title", "b")
+        self.assertIsNone(next(t for t in self.session_json()["tasks"] if t["id"] == "T2")["milestone"])
+
+
+class TestLifecycleProjection(StatectlCase):
+    """session.mode / session.phase come from `mode` and `phase` events. Old journals carry a
+    free-text session_start phase; they must still project, and a non-lifecycle value reads
+    as unset rather than as a phase nobody can leave."""
+
+    def test_old_journal_with_free_text_phase_projects_as_unset(self):
+        self.journal("session_start", session="s1", phase="implementation", note="old style")
+        code, out, err = self.run_cli("refresh")
+        self.assertEqual(code, 0, err)
+        sess = self.session_json()["session"]
+        self.assertEqual(sess["id"], "s1")
+        self.assertIsNone(sess["phase"])
+        self.assertEqual(sess["mode"], "freestyle", "unset mode means freestyle")
+        code, out, _ = self.run_cli("status")
+        self.assertEqual(code, 0)
+        self.assertIn("Phase: unset", out)
+        self.assertIn("**Mode:** Freestyle · **Phase:** unset", self.handoff_text())
+
+    def test_legacy_lifecycle_word_counts_until_a_phase_event_exists(self):
+        self.journal("session_start", session="s1", phase="build")
+        self.run_cli("refresh")
+        self.assertEqual(self.session_json()["session"]["phase"], "build")
+        self.journal("phase", value="review", **{"from": "build"})
+        self.journal("session_start", session="s2", phase="deploy")
+        self.run_cli("refresh")
+        sess = self.session_json()["session"]
+        self.assertEqual(sess["phase"], "review",
+                         "once phase events exist, session_start must not move the phase")
+        self.assertEqual(sess["id"], "s2")
+
+    def test_mode_and_phase_reach_session_and_handoff(self):
+        self.run_cli("mode", "fableous")
+        self.run_cli("phase", "plan")
+        sess = self.session_json()["session"]
+        self.assertEqual(sess["mode"], "fableous-orchestrated", "aliases are stored as full names")
+        self.assertEqual(sess["phase"], "plan")
+        self.assertTrue(sess["phase_since"])
+        self.assertIn("**Mode:** Fableous Orchestrated · **Phase:** plan", self.handoff_text())
+
+
+class TestProposalProjection(StatectlCase):
+    def test_open_count_and_handoff_follow_the_store(self):
+        self.run_cli("proposal", "add", "first idea", "--source", "human")
+        self.run_cli("proposal", "add", "second idea", "--source", "issue#12", "--kind", "fix")
+        self.assertEqual(self.session_json()["counts"]["proposals_open"], 2)
+        self.run_cli("proposal", "resolve", "PR-1", "--as", "planned", "--note", "in M2")
+        self.assertEqual(self.session_json()["counts"]["proposals_open"], 1)
+        handoff = self.handoff_text()
+        self.assertIn("**PR-2** [fix · issue#12] second idea", handoff)
+        self.assertNotIn("first idea", handoff, "a resolved proposal leaves the open list")
+
+    def test_empty_box_counts_zero(self):
+        self.run_cli("refresh")
+        self.assertEqual(self.session_json()["counts"]["proposals_open"], 0)
+        self.assertIn("## Open proposals\n\n_none open_", self.handoff_text())
 
 
 # --------------------------------------------------------------------------- 4. needs-human
@@ -447,6 +520,19 @@ class TestVerdictAndUsage(StatectlCase):
             ("need", "list"),  # empty branch: no needs opened yet
             ("need", "open", "--title", "check this", "--category", "review", "--context", "test context long enough to satisfy the sixty character floor for humans", "--action", "answer the question"),
             ("need", "list"),  # non-empty branch
+            ("task", "T2", "--milestone", "M1"),
+            ("mode", "guided"),
+            ("phase", "plan"),                      # first phase: no exit check
+            ("phase", "plan"),                      # same phase: no-op
+            ("phase", "build"),                     # refused: no task files (STATE_FAIL)
+            ("phase", "build", "--override", "testing the refusal path"),
+            ("mode", "freestyle"),
+            ("phase", "review", "--signoff", "looked fine"),
+            ("proposal", "list"),                   # empty branch
+            ("proposal", "add", "an idea", "--source", "human"),
+            ("proposal", "list", "--all"),
+            ("proposal", "resolve", "PR-1", "--as", "rejected", "--note", "not now"),
+            ("proposal", "resolve", "PR-9", "--as", "planned", "--note", "x"),  # unknown id
             ("refresh",),
             ("resume",),
             ("status",),

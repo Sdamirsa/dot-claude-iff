@@ -1,43 +1,42 @@
 # STATUS
 
-_Rewritten by `/project-memory`. Read this first, every session._
+_Rewritten by `/project-memory`. Read this first, every session. This copy was hand-updated at
+the v0.3.0-alpha.1 close-out; the first ritual of 0.3 rewrites it properly._
 
 ## Current focus
 
-v0.2.2 is released (tag, push and GitHub release with both zips). It carries a security fix
-that mattered: the policy gate was failing **open** on Windows through four independent holes,
-so the protected tree was unguarded on that platform. Alongside it, the console learned three
-things - its own port (derived from the folder name, no per-project decision), its machine
-(a named device identity that flags a move), and its machine's vital signs (an opt-in,
-live-only CPU/RAM/GPU strip). The suite is green on Windows for the first time.
+v0.3.0-alpha.1 is published as a GitHub pre-release from `dev` (2026-10-06); `main` and
+"latest" stay on v0.2.2 until the stable release. The alpha adds modes, phases, the user-only
+ritual with ROUTE, Fableous Orchestrated mode, the progress view, secrets check and doctor,
+visibility and export, folder context, and `/adhd`. Issues #7 to #14 are answered and kept
+open. None of the new hooks has run in a live session yet.
 
 ## Active tasks
 
-- none. New work starts with `/plan-task`.
+- none. The milestone's task files are done and still in `.claude/tasks/030a-*.md`; the
+  first ritual archives them.
 
 ## Next steps
 
-1. **Restart the Claude Code session** before trusting the gate on Windows: the PowerShell
-   entry in `settings.json`'s PreToolUse matcher only arms at session start, so this
-   platform's second shell lane stays ungated until then.
-2. Name any other machine that runs this repo: `statectl.py device "<alias>"`. Until a box is
-   named, every session start prints the DEVICE line.
-3. Re-run `/adopt` against a real second repo to validate the port-"auto" path end to end
-   (a fresh adopter should never be asked to choose a port).
-4. Configure the analysis engine (STORY tab setup guide) and run a first retrospective pass.
-5. Hard-gear session when ready: `/project-memory --hard`, with the queued items (a durable
-   proposal drop-box for gate-denied sub-agent work; verifier's scripted invoker;
-   memory-spine stores in mapctl; a `command` kind for adopter `commands/*.md`).
+1. **In a new session, type `/project-memory`.** It is item 1 of `docs/alpha-test-checklist.md`
+   and the first live test of the ritual ticket. If it refuses, run
+   `python3 .claude/tools/checkctl.py ticket --grant` in your own terminal.
+2. Work through the rest of `docs/alpha-test-checklist.md` over the testing weeks; file
+   findings as issues or with `statectl proposal add`.
+3. When satisfied: a pull request `dev` -> `main`, then the stable tag on `main`
+   (`.claude/reference/release-flow.md`). Before that, the maturation pass (proposal PR-4).
 
 ## Blockers / open decisions
 
-- none. The needs-human queue is empty; both feature approvals from this session are resolved.
+- none on the queue. Open proposals: `python3 .claude/tools/statectl.py proposal list`.
 
 ## Watch-outs
 
-- Build a path for prefix matching with `as_posix()` and test containment with
-  `os.path.normcase`; run the suite on every OS the system claims before tagging (L-9).
-- A gate that enumerates harness tool names needs one test per shell lane - a lane with no
-  test is a lane with no gate (L-10).
-- README-embedded assets use percentage widths; a local render at the wrong container width
-  is false confidence (L-8).
+- Windows: a bare `bash` can be the WSL launcher; hooks and tests resolve Git Bash explicitly
+  (`_lib.find_bash`). Hook files are pinned to LF and force UTF-8 for their Python children.
+- The policy gate is a tripwire for honest mistakes, not a sandbox (README lists what it does
+  not stop). Builders hold no grant in the protected tree; they work in lead-made worktrees.
+- Harness worktree isolation branches from `origin/main`, not the working branch: use
+  `statectl dispatch`, never resume a builder whose worktree is gone.
+- The build exit check reruns every task's Test command; with a dozen tasks that exceeds ten
+  minutes (proposal filed). The zips on `dev` may lag between releases; `main` and tags are exact.

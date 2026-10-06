@@ -34,6 +34,30 @@ every conflict to me before deciding.
 ---
 
 <details>
+<summary><b>What is new in 0.3</b></summary>
+
+- **Modes**: freestyle (default), guided-solo, fableous-orchestrated.
+  `python3 .claude/tools/statectl.py mode guided-solo`
+- **Phases**: plan → build → review → deploy, each exit checked.
+  `python3 .claude/tools/statectl.py phase build`
+- **The ritual is yours alone**: only your prompt opens `/project-memory`; it ends with ROUTE.
+  If the prompt hook never fires: `python3 .claude/tools/checkctl.py ticket --grant`, in your
+  own terminal.
+- **Fableous orchestration**: a lead dispatches builders into worktrees and merges what passes.
+  `python3 .claude/tools/statectl.py dispatch <task>`
+- **Progress view**: `python3 .claude/tools/statectl.py progress`
+- **Secrets check and doctor**: `python3 .claude/tools/checkctl.py doctor`
+- **Visibility and export**: `python3 .claude/tools/distctl.py export --to <checkout> --dry-run`
+- **Folder context**: `python3 .claude/tools/mapctl.py context`
+- **`/adhd`**: a brainstorm you invoke; the agent may suggest it, never run it.
+
+The policy gate is a **tripwire for honest mistakes, not a sandbox**: a script written then run,
+a payload decoded at run time, or a path assembled inside interpreter code passes it. The full
+list is in [the Partner Guide](../.claude/README.md#what-is-new-in-03).
+
+</details>
+
+<details>
 <summary><b>The six decisions it is built on</b></summary>
 
 **1 · Communication carries context, both ways.** The agent cannot open a question for you
@@ -54,8 +78,10 @@ so `git push` structurally cannot publish a prompt, a file body, or a secret.
 **4 · One command stops, publishes, learns, and evolves.** `/project-memory` runs four phases
 under one transaction: **check** reality against the record, **polish** memory and rebuild
 every derived surface, **publish** (seal, commit, ask before pushing), **evolve** - propose at
-most three evidence-backed changes, which land only with your approval. Every generator runs
-inside this ritual and nowhere else, so nothing can silently rot.
+most three evidence-backed changes, which land only with your approval - then **route** the
+next session (phase, mode, an optional maturation pass). Every generator runs inside this
+ritual and nowhere else, so nothing can silently rot. Only you open it: the agent suggests it,
+and the tools refuse a ritual your own prompt did not start.
 
 **5 · The system explains itself.** Every component has a card with curated relations,
 compiled into a clickable map (click to trace connections, click again for details). An
@@ -108,7 +134,8 @@ safe to share.
   `.claude/` so agents read the same document you do.
 - **[The guided tour](https://sdamirsa.github.io/dot-claude-iff/)** - ten pages with progress
   tracking: understand (with the privacy risk map), set up, six hands-on exercises.
-- **[The protocols](../.claude/protocols)** - handshake, human gates, honesty, evolution.
+- **[The protocols](../.claude/protocols)** - handshake, human gates, honesty, evolution,
+  orchestration.
 - **[The design contract](../.claude/research/2026-08-24-system-design.md)** - how this was
   distilled from two source systems, and the eight settled decisions.
 
@@ -146,8 +173,8 @@ examples live in [the Partner Guide](../.claude/README.md#for-humans-how-to-coll
    expected versus observed.
 4. **Correct once, then make it stick.** Say "log this as a lesson" and the mistake becomes a
    mechanical prevention rule the agent cites before repeating it.
-5. **Close your blocks.** Run `/project-memory` at the end of a session; answer gates when
-   asked - silence is not approval.
+5. **Close your blocks.** Type `/project-memory` at the end of a session (only you can open
+   it; the agent will suggest it); answer gates when asked - silence is not approval.
 
 </details>
 

@@ -8,14 +8,18 @@
     "or key that does not exist (a dead card is worse than no card), WARN when a scalar in a",
     "watched file has no card (incompleteness informs, it does not block)."
   ],
-  "system_version": "0.2.2",
+  "system_version": "0.3.0-alpha.1",
   "lint": {
     "watched_files": [
       "memory",
       "policy",
       "observe",
       "console",
-      "model-prices"
+      "model-prices",
+      "brainstorm",
+      "publish",
+      "phases",
+      "orchestration"
     ],
     "exempt_keys": [
       "version",
@@ -58,6 +62,19 @@
       "default": false
     },
     {
+      "key": "memory.ritual.ticket_ttl_minutes",
+      "title": "Ritual ticket lifetime",
+      "description": "Minutes a ritual ticket stays fresh. The prompt hook (hooks/ritual-ticket.sh) writes .claude/state/ritual-ticket.json when the user's own prompt starts with /project-memory or /adopt; checkctl run opens or continues a ritual only while it is fresh, and checkctl complete needs it and consumes it. Anything but a positive number reads as the default. No flag or environment variable skips the ticket.",
+      "layer": "EVOLVE",
+      "target": {
+        "kind": "config",
+        "file": "memory",
+        "path": "ritual.ticket_ttl_minutes"
+      },
+      "type": "int",
+      "default": 360
+    },
+    {
       "key": "memory.push",
       "title": "Push policy",
       "description": "Whether PUBLISH pushes after committing. always: push without asking. ask (default): one question per ritual. never: commit only.",
@@ -76,56 +93,60 @@
       "default": "ask"
     },
     {
-      "key": "memory.snapshot.enabled",
-      "title": "Vault snapshots",
-      "description": "Take a git-bundle + chat snapshot into RECORD_ROOT/vault at PUBLISH.",
-      "layer": "OBSERVE",
+      "key": "memory.visibility",
+      "title": "Visibility of .claude/",
+      "description": "tracked: .claude/ and .claude-iff/ are committed with the project; the managed .gitignore block ignores only per-user and derived files. ignored: both trees stay in this checkout and never reach git; publish a clean copy with distctl.py export. /adopt asks once (recommends ignored when the remote is public); apply a change with distctl.py gitignore --apply. Absent reads as tracked; kits ship tracked.",
+      "layer": "GOVERN",
       "target": {
         "kind": "config",
         "file": "memory",
-        "path": "snapshot.enabled"
+        "path": "visibility"
       },
-      "type": "bool",
-      "default": false
+      "type": "string",
+      "enum": [
+        "tracked",
+        "ignored"
+      ],
+      "default": "tracked"
     },
     {
-      "key": "memory.snapshot.keep",
-      "title": "Vault retention count",
-      "description": "How many snapshots to keep. Older ones are reported as prunable, never auto-deleted.",
-      "layer": "OBSERVE",
+      "key": "publish.include",
+      "title": "Export include list",
+      "description": "Globs (relative to the repo root, fnmatch style, a trailing / names a folder) of .claude/ and .claude-iff/ files distctl.py export may publish. Empty publishes nothing from either tree. Only narrows: the hard-coded floor (state, tasks, research, worktrees, private reference, STATUS, logs, lessons, the record surface, local settings, env files) always wins. Kits ship it empty.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "publish",
+        "path": "include"
+      },
+      "type": "list[string]",
+      "default": []
+    },
+    {
+      "key": "memory.context.size_target_lines",
+      "title": "Guide and rule size target",
+      "description": "context_health warns when one guide (CLAUDE.md, CLAUDE.local.md) or rule (.claude/rules/*.md) is longer than this many lines. 200 follows Claude Code's own guidance: a longer file costs context on every load and is followed less reliably.",
+      "layer": "MEMORY",
       "target": {
         "kind": "config",
         "file": "memory",
-        "path": "snapshot.keep"
+        "path": "context.size_target_lines"
       },
       "type": "int",
-      "default": 8
+      "default": 200
     },
     {
-      "key": "memory.snapshot.min_free_multiple",
-      "title": "Snapshot disk guard",
-      "description": "Refuse a snapshot unless free disk is at least this multiple of the estimated size.",
-      "layer": "OBSERVE",
+      "key": "memory.context.always_on_budget_lines",
+      "title": "Always-on context budget",
+      "description": "context_health warns when everything that loads at launch (the root guide, its @imports, rules without paths:) adds up past this many lines. Move what only one part of the tree needs into a folder guide or a scoped rule.",
+      "layer": "MEMORY",
       "target": {
         "kind": "config",
         "file": "memory",
-        "path": "snapshot.min_free_multiple"
+        "path": "context.always_on_budget_lines"
       },
-      "type": "float",
-      "default": 2.0
-    },
-    {
-      "key": "memory.snapshot.include_claude_projects",
-      "title": "Snapshot includes chat transcripts",
-      "description": "Include ~/.claude/projects/<slug>/ transcripts in the vault snapshot.",
-      "layer": "OBSERVE",
-      "target": {
-        "kind": "config",
-        "file": "memory",
-        "path": "snapshot.include_claude_projects"
-      },
-      "type": "bool",
-      "default": true
+      "type": "int",
+      "default": 400
     },
     {
       "key": "policy.record_root",
@@ -139,6 +160,19 @@
       },
       "type": "string|null",
       "default": null
+    },
+    {
+      "key": "policy.secrets.allow_paths",
+      "title": "Secrets scan allowlist",
+      "description": "Repo-relative path prefixes or globs the secrets_placement check skips (vendored fixtures, a stack that commits its .env on purpose). For one line, prefer an inline iff:allow-secret comment.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "policy",
+        "path": "secrets.allow_paths"
+      },
+      "type": "list[string]",
+      "default": []
     },
     {
       "key": "observe.enabled",
@@ -234,7 +268,7 @@
     {
       "key": "observe.analyze.provider",
       "title": "Retrospective analysis provider",
-      "description": "Which model service obsctl analyze calls over the raw record. none disables it.",
+      "description": "Which OpenAI-compatible service obsctl analyze calls over the raw record (each name has a default base_url; base_url overrides it). none disables it. Must match observe.json analyze.providers and obsctl.PROVIDER_BASE_URLS.",
       "layer": "OBSERVE",
       "target": {
         "kind": "config",
@@ -244,9 +278,9 @@
       "type": "string",
       "enum": [
         "none",
+        "openai",
         "ollama",
-        "openrouter",
-        "claude"
+        "openrouter"
       ],
       "default": "none"
     },
@@ -461,6 +495,201 @@
       },
       "type": "string",
       "default": "inherit"
+    },
+    {
+      "key": "agent.builder.model",
+      "title": "Builder model",
+      "description": "Implements one task card in a git worktree in the fableous-orchestrated mode; the lead reviews and merges. Pinned to the strongest builder so the lead reviews a diff instead of redoing it.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "builder",
+        "path": "model"
+      },
+      "type": "string",
+      "default": "opus"
+    },
+    {
+      "key": "agent.builder.effort",
+      "title": "Builder effort",
+      "description": "Reasoning effort for the builder: high, because a builder carries a whole task card to a green suite on its own and a shallow pass costs a second dispatch.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "builder",
+        "path": "effort"
+      },
+      "type": "string",
+      "default": "high"
+    },
+    {
+      "key": "agent.scout.model",
+      "title": "Scout model",
+      "description": "Read-only research for the lead (surveys, lookups, quick checks); a cheaper model, because finding facts costs tokens the lead should keep for decisions.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "scout",
+        "path": "model"
+      },
+      "type": "string",
+      "default": "sonnet"
+    },
+    {
+      "key": "agent.scout.effort",
+      "title": "Scout effort",
+      "description": "Reasoning effort for the scout: medium, enough to search well; a scout reports facts and leaves the reasoning about them to the lead.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "agent-frontmatter",
+        "file": "scout",
+        "path": "effort"
+      },
+      "type": "string",
+      "default": "medium"
+    },
+    {
+      "key": "orchestration.nudge_after",
+      "title": "Delegation nudge threshold",
+      "description": "fableous-orchestrated only: after this many lead Write/Edit calls on code (not .claude/state/, .claude/tasks/, docs/ or .md/.rst/.txt files) with no sub-agent dispatched, the post-write hook hands the lead one advisory reminder to delegate, then counts again. 0 turns it off. Never blocks.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "orchestration",
+        "path": "nudge_after"
+      },
+      "type": "int",
+      "default": 8
+    },
+    {
+      "key": "orchestration.handoff_test_timeout",
+      "title": "Handoff rerun timeout",
+      "description": "Seconds each recorded test may run under `checkctl handoff <id> --run`. A timeout is a FAIL for that test.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "orchestration",
+        "path": "handoff_test_timeout"
+      },
+      "type": "int",
+      "default": 1800
+    },
+    {
+      "key": "orchestration.progress.pulse_seconds",
+      "title": "Activity pulse throttle",
+      "description": "Every mode: the policy gate (after its decision, on every Write/Edit/Bash/PowerShell call) and the capture hook on SubagentStart/SubagentStop rewrite state/heartbeat.json as 'working' once it is older than this many seconds, so 'last activity' stays true through a multi-hour turn. A Stop hook's 'turn ended' is superseded on the next call. 0 turns it off. Telemetry: a broken pulse never changes a gate decision.",
+      "layer": "OBSERVE",
+      "target": {
+        "kind": "config",
+        "file": "orchestration",
+        "path": "progress.pulse_seconds"
+      },
+      "type": "int",
+      "default": 60
+    },
+    {
+      "key": "orchestration.progress.report_minutes",
+      "title": "Periodic progress report",
+      "description": "guided-solo and fableous-orchestrated only: once this many minutes have passed since the last report, the post-write hook hands the lead the compact `statectl progress` block with one instruction, post it to the user as is. Advisory, main session only, never in freestyle, skipped when there is no milestone or no task. 0 turns it off.",
+      "layer": "CONSOLE",
+      "target": {
+        "kind": "config",
+        "file": "orchestration",
+        "path": "progress.report_minutes"
+      },
+      "type": "int",
+      "default": 30
+    },
+    {
+      "key": "brainstorm.branch_count",
+      "title": "Brainstorm branch count",
+      "description": "How many frames /adhd picks per run, so how many isolated Diverge branches run in parallel. Cost grows linearly with it.",
+      "layer": null,
+      "target": {
+        "kind": "config",
+        "file": "brainstorm",
+        "path": "branch_count"
+      },
+      "type": "int",
+      "default": 5
+    },
+    {
+      "key": "brainstorm.frames",
+      "title": "Brainstorm frames",
+      "description": "The cognitive-frame catalogue /adhd picks from: each frame has a name, a vantage prompt and tags (code, design, general, wild). Must hold at least branch_count frames, at least one tagged wild.",
+      "layer": null,
+      "target": {
+        "kind": "config",
+        "file": "brainstorm",
+        "path": "frames"
+      },
+      "type": "list",
+      "default": "upstream catalogue (see skills/adhd/UPSTREAM.md)"
+    },
+    {
+      "key": "brainstorm.branch_model",
+      "title": "Brainstorm branch model",
+      "description": "Agent-tool model for every Diverge branch: a model alias (sonnet, opus, haiku, ...) or inherit (omit the per-call model, run on the session's model).",
+      "layer": null,
+      "target": {
+        "kind": "config",
+        "file": "brainstorm",
+        "path": "branch_model"
+      },
+      "type": "string",
+      "default": "sonnet"
+    },
+    {
+      "key": "brainstorm.critic_model",
+      "title": "Brainstorm critic model",
+      "description": "Agent-tool model for the critic pass and the deepen calls: a model alias (sonnet, opus, haiku, ...) or inherit (the default, so the judge is never weaker than the session).",
+      "layer": null,
+      "target": {
+        "kind": "config",
+        "file": "brainstorm",
+        "path": "critic_model"
+      },
+      "type": "string",
+      "default": "inherit"
+    },
+    {
+      "key": "phases.phases",
+      "title": "Phase contracts",
+      "description": "Per lifecycle phase (plan, build, review, deploy): a label, a contract of at most five lines printed at session start in the guided-solo and fableous-orchestrated modes, and the name of the exit check (bound in checkctl.PHASE_EXITS) that statectl phase runs before leaving it.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "phases",
+        "path": "phases"
+      },
+      "type": "dict",
+      "default": "plan_ready / build_green / review_signoff / deploy_doctor"
+    },
+    {
+      "key": "phases.build_test_timeout",
+      "title": "Build exit test timeout",
+      "description": "Seconds each task's Test command may run in the build exit check (checkctl phase-exit --from build). A timeout is a FAIL for that task. Generous by default: a Test may be a whole suite.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "phases",
+        "path": "build_test_timeout"
+      },
+      "type": "int",
+      "default": 1800
+    },
+    {
+      "key": "phases.drift_ignore",
+      "title": "Deploy drift ignore list",
+      "description": "Paths the ritual's deploy_drift check does not list as new work while in the deploy phase: 'dir/' entries match that directory anywhere in a path, other entries are file-name or path globs. Defaults cover tests, docs and the system's own bookkeeping.",
+      "layer": "GOVERN",
+      "target": {
+        "kind": "config",
+        "file": "phases",
+        "path": "drift_ignore"
+      },
+      "type": "list",
+      "default": "tests/, docs/, *.md, .claude/state/, .claude/tasks/, .claude-iff/ and friends"
     }
   ]
 }

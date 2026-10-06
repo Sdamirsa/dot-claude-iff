@@ -11,14 +11,22 @@
     "config.registry",
     "config.model-prices",
     "config.observe",
+    "config.policy",
+    "config.console",
+    "config.phases",
     "store.journal",
     "store.heartbeat",
     "store.memory_run",
-    "store.needs_human"
+    "store.needs_human",
+    "store.session",
+    "store.ritual_ticket",
+    "store.handshakes",
+    "config.orchestration"
   ],
   "writes": [
     "store.memory_run",
-    "store.generators"
+    "store.generators",
+    "store.ritual_ticket"
   ],
   "invokes": [
     "tool.mapctl",
@@ -30,20 +38,24 @@
   "glyphs": [],
   "auto": {
     "discovered": "2026-08-25",
-    "hash": "7059e2171f185350e9e6cc6be9d355f558a4c4e24f0f4937f878aae2d820e6bd",
+    "hash": "8349df4b44b6dbe7ea73b4e322b211f0c6ed6717ddaf23b917a32698ced9f4be",
     "suggested_reads": [
       "store.generators",
       "store.heartbeat",
       "store.journal",
       "store.memory_run",
-      "store.needs_human"
+      "store.needs_human",
+      "store.ritual_ticket",
+      "store.session"
     ],
     "suggested_writes": [
       "store.generators",
       "store.heartbeat",
       "store.journal",
       "store.memory_run",
-      "store.needs_human"
+      "store.needs_human",
+      "store.ritual_ticket",
+      "store.session"
     ]
   }
 }

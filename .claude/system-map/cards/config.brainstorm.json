@@ -1,0 +1,20 @@
+{
+  "id": "config.brainstorm",
+  "kind": "data",
+  "layer": null,
+  "package": null,
+  "title": "Brainstorm",
+  "path": ".claude/config/brainstorm.json",
+  "description": "Brainstorm tuning for the /adhd skill: how many isolated branches diverge, which frames they pick from, and which model runs each phase.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "24eff83f4fa2aadf3dd50f34de39f5e996e8610beddc763ff254b92399ff4eab",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

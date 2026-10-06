@@ -11,6 +11,12 @@
 #
 # Wired to the lean event set by default (see .claude/config/observe.json); the payload is
 # passed through an env var because the python heredoc below claims stdin.
+#
+# Second, separate job: on SubagentStart/SubagentStop it is also the activity pulse's sub-agent
+# lane (_lib.activity_pulse, throttled): it already runs there, so no new process.
+# UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
+# hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
+export PYTHONUTF8=1
 
 set -u
 OBS_INPUT="$(cat 2>/dev/null || true)"
@@ -37,11 +43,20 @@ try:
     except Exception:
         payload = {"_obs_raw": raw[:2000]}
 
+    event = payload.get("hook_event_name") or "unknown"
+    # Activity pulse on sub-agent start/stop (this hook already runs there): heartbeat.json
+    # stays true while a long turn waits on its agents. Before the capture filter, so it pulses
+    # whether or not capture is on; isolated, so a broken pulse costs a beat, not the event.
+    try:
+        if event in _lib.PULSE_EVENTS:
+            _lib.activity_pulse(event)
+    except Exception:
+        pass
+
     cfg = _lib.load_config("observe")
     if not cfg.get("enabled", True):
         raise SystemExit(0)
 
-    event = payload.get("hook_event_name") or "unknown"
     if not cfg.get("capture_all_events", False):
         allowed = set(cfg.get("capture_events") or ())
         if event not in allowed:

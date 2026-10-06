@@ -1,0 +1,20 @@
+{
+  "id": "config.publish",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Publish",
+  "path": ".claude/config/publish.json",
+  "description": "What distctl.py export may publish from .claude/ and .claude-iff/ into a clean public copy: an include list of globs that can only narrow a hard-coded floor (state, logs, lessons, status, tasks, research, the record surface, local settings and env files never export). Kits ship it empty.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "d463a940273dd5db4624492dc8caa7ff04f7a5d004f0e37e071af85720e829cc",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

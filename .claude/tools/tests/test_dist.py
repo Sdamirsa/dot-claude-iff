@@ -3,28 +3,88 @@
 
 A zip that leaks the source's journal, queue, or filled CLAUDE.md hands every adopter another
 project's memory; a zip that goes stale hands them last month's system. So: exclusions proven,
-placeholder form proven, determinism proven (identical content, identical bytes, write-gated).
+placeholder form proven, determinism proven (identical content, identical bytes, write-gated,
+whatever line endings the checkout used), and - in the home repo, where
+_lib.zip_equality_required() says so (main, tags, pull requests into main) - the committed zips
+proven equal to a rebuild, byte for byte. `distctl.py verify` is strict everywhere.
 """
 
 from __future__ import annotations
 
 import json
+import os
+import re
+import shutil
+import subprocess
 import sys
+import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _fixture import FixtureCase  # noqa: E402
+from _fixture import REPO_ROOT, FixtureCase  # noqa: E402
 
 import _lib  # noqa: E402
 import distctl  # noqa: E402
+
+GIT = shutil.which("git")
+_COMMIT = ["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false",
+           "commit", "-q", "--allow-empty", "-m"]
+
+
+def _home_repo() -> bool:
+    """The repo running this suite is dot-claude-iff's own source (distribution.enabled true
+    in its REAL memory.json). Tests of the committed zips, the workflows and release-flow.md
+    are about that repo; in an adopting project those files are absent by design."""
+    cfg = _lib.read_json(REPO_ROOT / ".claude" / "config" / "memory.json", {}) or {}
+    return bool((cfg.get("distribution") or {}).get("enabled", False))
+
+
+def _git(root: Path, *args) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=str(root), capture_output=True, text=True,
+                          check=False)
+
+
+def uncommitted_payload(root: Path) -> list | None:
+    """Payload sources with uncommitted edits (modified, staged, deleted or untracked), or None
+    when git cannot say. Edits waiting for the ritual are not staleness yet: POLISH rebuilds
+    the zips and PUBLISH commits both together."""
+    res = _git(root, "status", "--porcelain=v1", "-z", "--untracked-files=all",
+               "--", ".claude", ".claude-iff/README.md")
+    if res.returncode != 0:
+        return None
+    paths = []
+    for token in res.stdout.split("\0"):
+        if not token:
+            continue
+        # "XY path"; a rename's second token is the bare old path. Both count.
+        paths.append(token[3:] if token[2:3] == " " else token)
+    return sorted(p for p in paths if distctl.payload_source(p))
+
+
+def zip_verdict(root: Path) -> tuple[str, list]:
+    """("fresh", []) when the committed zips equal a rebuild; ("pending", edits) when they
+    differ only because payload edits are not committed yet; ("stale", names) when the
+    COMMITTED payload no longer matches the committed zips - the state CI must never pass."""
+    stale = distctl.stale_zips(root)
+    if not stale:
+        return "fresh", []
+    pending = uncommitted_payload(root)
+    if pending:
+        return "pending", pending
+    return "stale", stale
 
 
 class DistCase(FixtureCase):
     def setUp(self):
         super().setUp()
         claude = self.root / ".claude"
+        # The fixture IS a home repo: set the knob explicitly rather than inheriting whatever
+        # the repo running the suite ships (an adopting project ships it false).
+        cfg = _lib.read_json(claude / "config" / "memory.json", {}) or {}
+        cfg["distribution"] = {"enabled": True}
+        self.write_config("memory", cfg)
         (claude / "skills" / "adopt").mkdir(parents=True, exist_ok=True)
         (claude / "skills" / "adopt" / "CLAUDE.template.md").write_text(
             "# {{PROJECT_NAME}}\n\n{{MISSION}}\n", encoding="utf-8")
@@ -93,6 +153,147 @@ class TestPayload(DistCase):
         second = distctl.build(self.root)
         self.assertFalse(any(r["wrote"] for r in second.values()),
                          "identical content must produce identical bytes and skip the write")
+
+    def test_worktrees_never_ship(self):
+        """A worktree is a whole checkout of the repo (journal, filled CLAUDE.md, zips) parked
+        under .claude/worktrees/; it must be pruned structurally, git or no git."""
+        wt = self.root / ".claude" / "worktrees" / "t9" / ".claude"
+        (wt / "tools").mkdir(parents=True)
+        (wt / "tools" / "leak.py").write_text("WORKTREE COPY\n", encoding="utf-8")
+        (wt / "CLAUDE.md").write_text("# filled guide of a worktree\n", encoding="utf-8")
+        distctl.build(self.root)
+        for zip_name in distctl.ZIP_NAMES:
+            with self.subTest(zip=zip_name):
+                self.assertFalse(any("worktrees" in n for n in self.names(zip_name)))
+
+    def test_home_only_file_never_ships(self):
+        ref = self.root / ".claude" / "reference"
+        ref.mkdir(parents=True, exist_ok=True)
+        (ref / "release-flow.md").write_text("# dev/main flow of THE SOURCE\n", encoding="utf-8")
+        (ref / "brand-identity.md").write_text("# THE SOURCE's look and voice\n", encoding="utf-8")
+        (ref / "glossary.md").write_text("ships\n", encoding="utf-8")
+        distctl.build(self.root)
+        for zip_name, prefix in (("dot-claude-iff-fresh.zip", ""),
+                                 ("dot-claude-iff-adopt-kit.zip", "dot-claude-iff-kit/")):
+            with self.subTest(zip=zip_name):
+                names = self.names(zip_name)
+                self.assertNotIn(f"{prefix}.claude/reference/release-flow.md", names)
+                self.assertNotIn(f"{prefix}.claude/reference/brand-identity.md", names)
+                self.assertIn(f"{prefix}.claude/reference/glossary.md", names)
+
+    def test_brand_identity_is_home_only_in_a_build_of_this_tree(self):
+        """The home repo's own brand doc exists here and never reaches either zip."""
+        self.assertIn("reference/brand-identity.md", distctl.HOME_ONLY_FILES)
+        if not (REPO_ROOT / ".claude" / "reference" / "brand-identity.md").exists():
+            self.skipTest("no brand-identity.md here: an adopting project has none")
+        if not _home_repo():
+            self.skipTest("distribution is off here: this tree builds no zips")
+        out = Path(self._tmp.name) / "home-build"
+        distctl.build(REPO_ROOT, out_dir=out, quiet=True)
+        for zip_name in distctl.ZIP_NAMES:
+            with self.subTest(zip=zip_name), zipfile.ZipFile(out / zip_name) as z:
+                self.assertFalse(any(n.endswith("reference/brand-identity.md")
+                                     for n in z.namelist()))
+
+    def test_text_ships_lf_and_bytes_do_not_depend_on_checkout_eol(self):
+        """A Windows checkout (core.autocrlf) reads CRLF where Linux reads LF. The same commit
+        must build the same zip on both, and a .sh must reach bash with LF endings."""
+        hooks = self.root / ".claude" / "hooks"
+        hooks.mkdir(parents=True, exist_ok=True)
+        files = {hooks / "beat.sh": b"#!/usr/bin/env bash\nset -u\nexit 0\n",
+                 self.root / ".claude" / "reference" / "doc.md": b"# doc\n\nline\n"}
+        blob = b"\x00\x01binary\r\nkept\r\n"
+        (self.root / ".claude" / "reference").mkdir(parents=True, exist_ok=True)
+        (self.root / ".claude" / "reference" / "blob.bin").write_bytes(blob)
+
+        def build_with(eol: bytes, out: Path) -> dict:
+            for path, data in files.items():
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data.replace(b"\n", eol))
+            distctl.build(self.root, out_dir=out)
+            return {n: (out / n).read_bytes() for n in distctl.ZIP_NAMES}
+
+        lf = build_with(b"\n", self.root / "out-lf")
+        crlf = build_with(b"\r\n", self.root / "out-crlf")
+        self.assertEqual(lf, crlf, "zip bytes changed with the checkout's line endings")
+        with zipfile.ZipFile(self.root / "out-crlf" / "dot-claude-iff-fresh.zip") as z:
+            self.assertEqual(z.read(".claude/hooks/beat.sh"), files[hooks / "beat.sh"])
+            self.assertNotIn(b"\r\n", z.read(".claude/reference/doc.md"))
+            self.assertEqual(z.read(".claude/reference/blob.bin"), blob,
+                             "a file holding NUL bytes is binary and must pass untouched")
+
+    def test_headers_do_not_name_the_building_os(self):
+        """ZipInfo stamps create_system from the BUILDING OS (0 on Windows), which changed the
+        bytes per OS and made unzip drop the .sh mode bits; deflate would tie the bytes to the
+        zlib build. Both are pinned."""
+        hooks = self.root / ".claude" / "hooks"
+        hooks.mkdir(parents=True, exist_ok=True)
+        (hooks / "beat.sh").write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+        distctl.build(self.root)
+        with zipfile.ZipFile(self.root / ".claude" / "dist" / "dot-claude-iff-fresh.zip") as z:
+            for info in z.infolist():
+                with self.subTest(entry=info.filename):
+                    self.assertEqual(info.create_system, 3)
+                    self.assertEqual(info.compress_type, zipfile.ZIP_STORED)
+            self.assertEqual(z.getinfo(".claude/hooks/beat.sh").external_attr >> 16, 0o755)
+
+    def test_shipped_kits_land_with_no_project_steps(self):
+        """Mechanism 3: this repo's project_steps (its own suite as a CHECK step) must not run
+        in an adopter's ritual."""
+        cfg = _lib.read_json(self.root / ".claude" / "config" / "memory.json", {}) or {}
+        cfg["project_steps"] = {"_comment": "kept", "check": [
+            {"name": "test_suite", "kind": "check", "argv": ["python3", "x.py"]}],
+            "polish": [{"name": "p", "argv": ["true"]}]}
+        self.write_config("memory", cfg)
+        distctl.build(self.root)
+        for zip_name, entry in (("dot-claude-iff-fresh.zip", ".claude/config/memory.json"),
+                                ("dot-claude-iff-adopt-kit.zip",
+                                 "dot-claude-iff-kit/.claude/config/memory.json")):
+            with self.subTest(zip=zip_name):
+                steps = json.loads(self.read(zip_name, entry))["project_steps"]
+                self.assertEqual(steps["check"], [])
+                self.assertEqual(steps["polish"], [])
+                self.assertEqual(steps["_comment"], "kept", "the shape still ships")
+
+    def test_shipped_gitignore_untracks_heartbeat_and_worktrees(self):
+        distctl.build(self.root)
+        for zip_name, entry in (("dot-claude-iff-fresh.zip", ".gitignore"),
+                                ("dot-claude-iff-adopt-kit.zip", "dot-claude-iff-kit/.gitignore")):
+            with self.subTest(zip=zip_name):
+                lines = self.read(zip_name, entry).splitlines()
+                self.assertIn(".claude/state/heartbeat.json", lines)
+                self.assertIn(".claude/worktrees/", lines)
+
+    def test_shipped_gitignore_is_the_managed_block_whatever_the_home_visibility(self):
+        """One renderer for every install path: the kits carry the block for the visibility
+        they ship (tracked), never this repo's own choice."""
+        cfg = _lib.read_json(self.root / ".claude" / "config" / "memory.json", {}) or {}
+        cfg["visibility"] = "ignored"
+        self.write_config("memory", cfg)
+        distctl.build(self.root)
+        block = distctl.render_gitignore_block("tracked")
+        for zip_name, entry in (("dot-claude-iff-fresh.zip", ".gitignore"),
+                                ("dot-claude-iff-adopt-kit.zip", "dot-claude-iff-kit/.gitignore")):
+            with self.subTest(zip=zip_name):
+                self.assertEqual(self.read(zip_name, entry), block)
+
+    def test_stale_zips_red_after_an_edit_green_after_a_rebuild(self):
+        distctl.build(self.root)
+        self.assertEqual(distctl.stale_zips(self.root), [])
+        (self.root / ".claude" / "tasks" / "_template.md").write_text(
+            "# Task: {{TITLE}} (edited)\n", encoding="utf-8")
+        self.assertEqual(sorted(distctl.stale_zips(self.root)), sorted(distctl.ZIP_NAMES),
+                         "a payload edit without a rebuild must read stale")
+        distctl.build(self.root)
+        self.assertEqual(distctl.stale_zips(self.root), [])
+
+    def test_verify_writes_nothing(self):
+        distctl.build(self.root)
+        before = {n: (self.root / ".claude" / "dist" / n).read_bytes() for n in distctl.ZIP_NAMES}
+        (self.root / ".claude" / "tasks" / "_template.md").write_text("# edited\n", encoding="utf-8")
+        self.assertTrue(distctl.stale_zips(self.root))
+        after = {n: (self.root / ".claude" / "dist" / n).read_bytes() for n in distctl.ZIP_NAMES}
+        self.assertEqual(before, after, "verify must compare, never rebuild in place")
 
 
 class TestBilling(FixtureCase):
@@ -176,6 +377,24 @@ class TestDistributionGate(DistCase):
                 self.assertFalse(shipped["monitor"]["enabled"],
                                  "the monitor is opt-in; kits must land with it off")
 
+    def test_shipped_kits_land_publishing_nothing_and_tracked(self):
+        """Mechanism 3: what this repo publishes from .claude/ and whether it tracks .claude/
+        are its own calls. The kits land with publish.json's include empty and visibility at
+        the default, so an adopter starts from "publish nothing" and /adopt asks the rest."""
+        self.write_config("publish", {"_comment": ["kept"], "include": [".claude/skills/", ".claude/*.md"]})
+        cfg = _lib.read_json(self.root / ".claude" / "config" / "memory.json", {}) or {}
+        cfg["visibility"] = "ignored"
+        self.write_config("memory", cfg)
+        distctl.build(self.root)
+        for prefix, zip_name in (("", "dot-claude-iff-fresh.zip"),
+                                 ("dot-claude-iff-kit/", "dot-claude-iff-adopt-kit.zip")):
+            with self.subTest(zip=zip_name):
+                publish = json.loads(self.read(zip_name, f"{prefix}.claude/config/publish.json"))
+                self.assertEqual(publish["include"], [])
+                self.assertEqual(publish["_comment"], ["kept"], "the shape still ships")
+                memory = json.loads(self.read(zip_name, f"{prefix}.claude/config/memory.json"))
+                self.assertEqual(memory["visibility"], "tracked")
+
     def test_ritual_reports_gated_generators_as_skipped(self):
         import checkctl
         self._set_knob(False)
@@ -215,9 +434,11 @@ class TestDistributionGate(DistCase):
 
 
 class TestGitTrackedManifest(DistCase):
-    """The working tree supplies file content; git decides WHICH files ship. A gitignored
-    or untracked file under .claude/ (the private reference tree that leaked in the field)
-    must never reach the zips, and what the manifest keeps out is reported, never silent."""
+    """The payload rule: the working tree decides which files ship and what they contain;
+    git only vetoes what it ignores. A gitignored file under .claude/ (the private reference
+    tree that leaked in the field) must never reach the zips, and what the veto keeps out is
+    reported, never silent. An untracked, NOT ignored file ships: the ritual's PUBLISH tracks
+    it with `git add -A` right after POLISH builds the zips."""
 
     def setUp(self):
         super().setUp()
@@ -247,22 +468,432 @@ class TestGitTrackedManifest(DistCase):
         self.assertNotIn(".claude/reference/private/brand-guide.md", names)
         self.assertIn(".claude/reference/public.md", names)
 
-    def test_untracked_file_does_not_ship_and_is_reported(self):
+    def test_gitignored_file_does_not_ship_and_is_reported(self):
         import contextlib
         import io
         ref = self.root / ".claude" / "reference"
         ref.mkdir(parents=True, exist_ok=True)
         (ref / "tracked.md").write_text("in\n", encoding="utf-8")
+        (ref / "scratch.md").write_text("out\n", encoding="utf-8")
+        (self.root / ".gitignore").write_text(".claude/reference/scratch.md\n", encoding="utf-8")
         self._git("add", "-A")
-        (ref / "stray.md").write_text("out\n", encoding="utf-8")
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             distctl.build(self.root)
         names = self.names("dot-claude-iff-fresh.zip")
         self.assertIn(".claude/reference/tracked.md", names)
-        self.assertNotIn(".claude/reference/stray.md", names)
-        self.assertIn("stray.md", out.getvalue(),
-                      "a file the manifest keeps out must be named, never silently dropped")
+        self.assertNotIn(".claude/reference/scratch.md", names)
+        self.assertIn("scratch.md", out.getvalue(),
+                      "a file the ignore veto keeps out must be named, never silently dropped")
+
+    def test_a_file_created_in_session_ships_in_the_same_ritual(self):
+        """The staleness root cause. Under the old index-only rule a new, still-untracked file
+        was skipped, the ledger stamped the (working-tree) inputs fresh, PUBLISH's `git add -A`
+        then tracked the file, and the zips lacked it until some unrelated input changed."""
+        ref = self.root / ".claude" / "reference"
+        ref.mkdir(parents=True, exist_ok=True)
+        (ref / "old.md").write_text("tracked\n", encoding="utf-8")
+        self._git("add", "-A")
+        (ref / "new-this-session.md").write_text("new\n", encoding="utf-8")  # untracked
+        distctl.build(self.root)                                              # POLISH
+        self.assertIn(".claude/reference/new-this-session.md",
+                      self.names("dot-claude-iff-fresh.zip"))
+        self._git("add", "-A")                                                # PUBLISH
+        self.assertEqual(distctl.stale_zips(self.root), [],
+                         "tracking the file must not leave the zips behind the commit")
+
+    def test_worktrees_never_ship_even_when_git_lists_them(self):
+        """Structural, not a gitignore courtesy: with NO ignore rule, git reports a worktree's
+        files as untracked-not-ignored, and they still must not ship."""
+        wt = self.root / ".claude" / "worktrees" / "t1" / ".claude" / "tools"
+        wt.mkdir(parents=True)
+        (wt / "copy.py").write_text("x\n", encoding="utf-8")
+        distctl.build(self.root)
+        self.assertFalse(any("worktrees" in n for n in self.names("dot-claude-iff-fresh.zip")))
+
+
+class TestZipVerdict(DistCase):
+    """The committed-zip guard's three states, proven on a fixture repo so the guard is shown
+    able to fail: fresh -> pending (uncommitted payload edit, POLISH will rebuild) -> stale (the
+    edit is COMMITTED without a rebuild: what CI must catch) -> fresh again after a rebuild."""
+
+    def setUp(self):
+        super().setUp()
+        if not GIT:
+            self.skipTest("git not available")
+        if _git(self.root, "init", "-q").returncode != 0:
+            self.skipTest("git init failed")
+
+    def _commit(self, msg: str) -> None:
+        self.assertEqual(_git(self.root, "add", "-A").returncode, 0)
+        res = _git(self.root, *_COMMIT, msg)
+        self.assertEqual(res.returncode, 0, res.stderr)
+
+    def test_three_states(self):
+        distctl.build(self.root)
+        self._commit("system + zips")
+        self.assertEqual(zip_verdict(self.root)[0], "fresh")
+
+        (self.root / ".claude" / "tasks" / "_template.md").write_text(
+            "# Task: {{TITLE}} v2\n", encoding="utf-8")
+        verdict, detail = zip_verdict(self.root)
+        self.assertEqual(verdict, "pending")
+        self.assertIn(".claude/tasks/_template.md", detail)
+
+        self._commit("payload edit committed without a rebuild")
+        verdict, detail = zip_verdict(self.root)
+        self.assertEqual(verdict, "stale")
+        self.assertEqual(sorted(detail), sorted(distctl.ZIP_NAMES))
+
+        distctl.build(self.root)
+        self._commit("zips rebuilt")
+        self.assertEqual(zip_verdict(self.root)[0], "fresh")
+
+    def test_a_non_payload_edit_is_not_pending(self):
+        distctl.build(self.root)
+        self._commit("system + zips")
+        (self.root / ".claude" / "STATUS.md").write_text("new status\n", encoding="utf-8")
+        self.assertEqual(uncommitted_payload(self.root), [],
+                         "STATUS.md is reset in the kits; editing it is not a payload edit")
+        self.assertEqual(zip_verdict(self.root)[0], "fresh")
+
+    def test_verify_stays_strict_where_the_suite_is_not(self):
+        """Off main the equality test skips; `distctl.py verify` still says stale and exits 1."""
+        import contextlib
+        import io
+        _git(self.root, "symbolic-ref", "HEAD", "refs/heads/dev")
+        distctl.build(self.root)
+        self._commit("system + zips")
+        (self.root / ".claude" / "tasks" / "_template.md").write_text("# Task: v2\n", encoding="utf-8")
+        self._commit("payload edit merged on dev without a rebuild")
+        self.assertEqual(_lib.zip_equality_required(env={})[0], False, "dev: the suite skips")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = distctl.main(["verify"])
+        self.assertEqual(code, 1, out.getvalue())
+        self.assertIn("stale: .claude/dist/dot-claude-iff-fresh.zip", out.getvalue())
+        self.assertIn("DIST_FAIL", out.getvalue())
+
+
+class TestZipEqualityScope(unittest.TestCase):
+    """_lib.zip_equality_required: the one place that decides where the committed zips must equal
+    a rebuild. Strict on main, on tags, on pull requests into main and on CI for main; skipped
+    with a one-line reason everywhere else."""
+
+    CASES = (
+        ("dev, local", {}, "dev", False),
+        ("feature branch", {}, "wt/t13", False),
+        ("detached, local", {}, "HEAD", False),
+        ("main, local", {}, "main", True),
+        ("push to dev", {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "dev",
+                         "GITHUB_BASE_REF": ""}, "dev", False),
+        ("push to main, detached", {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "main",
+                                    "GITHUB_BASE_REF": ""}, "HEAD", True),
+        ("tag", {"GITHUB_REF_TYPE": "tag", "GITHUB_REF_NAME": "v0.3.0-alpha.1"}, "HEAD", True),
+        ("pre-release tag on dev", {"GITHUB_REF_TYPE": "tag", "GITHUB_REF_NAME": "v0.3.0-alpha.2"},
+         "dev", True),
+        ("PR into main", {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "12/merge",
+                          "GITHUB_BASE_REF": "main"}, "HEAD", True),
+        ("PR into dev", {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "13/merge",
+                         "GITHUB_BASE_REF": "dev"}, "HEAD", False),
+        ("manual release run from dev", {"GITHUB_REF_TYPE": "branch", "GITHUB_REF_NAME": "dev"},
+         "dev", False),
+    )
+
+    def test_each_environment(self):
+        for label, env, branch, expected in self.CASES:
+            with self.subTest(case=label):
+                required, reason = _lib.zip_equality_required(env=env, branch=branch)
+                self.assertIs(required, expected, reason)
+                self.assertTrue(reason and "\n" not in reason, "one line of reason")
+                if not required:
+                    self.assertIn("not required", reason)
+
+    def test_env_defaults_to_the_process_environment(self):
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"GITHUB_REF_TYPE": "tag", "GITHUB_REF_NAME": "v1.0.0"}):
+            self.assertTrue(_lib.zip_equality_required(branch="dev")[0])
+        quiet = {k: "" for k in ("GITHUB_REF_TYPE", "GITHUB_REF_NAME", "GITHUB_BASE_REF")}
+        with mock.patch.dict(os.environ, quiet):
+            self.assertFalse(_lib.zip_equality_required(branch="dev")[0])
+
+
+class TestZipEqualityBranch(FixtureCase):
+    """With no branch given, the helper asks git for the checkout's own branch."""
+
+    def setUp(self):
+        if not GIT:
+            self.skipTest("git not available")
+        super().setUp()
+        self.assertEqual(_git(self.root, "init", "-q").returncode, 0)
+        (self.root / "f.txt").write_text("x\n", encoding="utf-8")
+        _git(self.root, "add", "-A")
+        self.assertEqual(_git(self.root, *_COMMIT, "one").returncode, 0)
+
+    def test_the_current_branch_decides(self):
+        for branch, expected in (("main", True), ("dev", False)):
+            with self.subTest(branch=branch):
+                _git(self.root, "checkout", "-q", "-B", branch)
+                self.assertIs(_lib.zip_equality_required(env={})[0], expected)
+
+
+def _tail(text: str, lines: int = 60) -> str:
+    return "\n".join((text or "").splitlines()[-lines:])
+
+
+@unittest.skipUnless(_home_repo(), "home-repo-only: builds the fresh kit from this source tree "
+                                   "(inside the kit itself this test would only recurse)")
+class TestKitSelfTest(unittest.TestCase):
+    """What adopters receive must pass its own checks. Build the fresh zip from the current
+    tree, extract it the way `unzip` does (mode bits kept), make it a git repo with a repo-local
+    identity and one commit, then run the KIT's own `checkctl doctor` and the KIT's own suite
+    inside it, as subprocesses with a clean environment. Anything that only passes in the home
+    repo (home-only files, the distribution knob, committed zips, this repo's tasks or git
+    history) is a defect in the kit, found here rather than by an adopter."""
+
+    SUITE_TIMEOUT = 1800
+
+    def test_the_fresh_kit_passes_its_own_doctor_and_suite(self):
+        if not GIT:
+            self.skipTest("git not available")
+        with tempfile.TemporaryDirectory(prefix="claude-iff-kit-") as tmp:
+            base = Path(tmp)
+            distctl.build(REPO_ROOT, out_dir=base / "dist", quiet=True)
+            proj = base / "adopter"
+            with zipfile.ZipFile(base / "dist" / "dot-claude-iff-fresh.zip") as z:
+                for info in z.infolist():
+                    z.extract(info, proj)
+                    mode = (info.external_attr >> 16) & 0o777
+                    if mode and os.name == "posix":
+                        os.chmod(proj / info.filename, mode)
+            env = {k: v for k, v in os.environ.items()
+                   if not k.upper().startswith(("CLAUDE", "GITHUB_", "GIT_"))}
+            env.update(CLAUDE_PROJECT_DIR=str(proj), PYTHONUTF8="1",
+                       CLAUDE_IFF_RECORD_ROOT=str(base / "adopter_claude_iff"))
+            for args in (["init", "-q"], ["config", "user.name", "kit"],
+                         ["config", "user.email", "kit@example.invalid"],
+                         ["config", "commit.gpgsign", "false"],
+                         ["config", "core.autocrlf", "false"], ["add", "-A"],
+                         ["commit", "-q", "-m", "adopt dot-claude-iff"]):
+                res = subprocess.run(["git", *args], cwd=str(proj), env=env, capture_output=True,
+                                     text=True, timeout=120, check=False)
+                self.assertEqual(res.returncode, 0, f"git {' '.join(args)}: {res.stderr}")
+
+            doctor = subprocess.run([sys.executable, ".claude/tools/checkctl.py", "doctor"],
+                                    cwd=str(proj), env=env, capture_output=True, text=True,
+                                    timeout=300, check=False)
+            self.assertEqual(doctor.returncode, 0,
+                             f"the kit's own doctor FAILs:\n{_tail(doctor.stdout + doctor.stderr)}")
+            suite = subprocess.run([sys.executable, ".claude/tools/tests/run_tests.py", "-q"],
+                                   cwd=str(proj), env=env, capture_output=True, text=True,
+                                   timeout=self.SUITE_TIMEOUT, check=False)
+            failures = [line for line in (suite.stderr or "").splitlines()
+                        if line.startswith(("FAIL:", "ERROR:"))]
+            self.assertEqual(suite.returncode, 0,
+                             "the kit's own suite fails inside a fresh adopter repo:\n"
+                             + "\n".join(failures[:40]) + "\n" + _tail(suite.stdout, 5))
+
+
+@unittest.skipUnless(_home_repo(), "home-repo-only: the committed zips live in dot-claude-iff")
+class TestCommittedZips(unittest.TestCase):
+    """The real zips at .claude/dist/: equal to a rebuild of this tree, byte for byte, and
+    carrying what the boundary promises. One rebuild into a scratch dir serves every test."""
+
+    @classmethod
+    def setUpClass(cls):
+        if not GIT:
+            raise unittest.SkipTest("git not available: the payload rule needs it")
+        cls._tmp = tempfile.TemporaryDirectory(prefix="claude-iff-dist-")
+        cls.out = Path(cls._tmp.name) / "dist"
+        distctl.build(REPO_ROOT, out_dir=cls.out, quiet=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._tmp.cleanup()
+
+    def names(self, zip_name: str) -> list:
+        with zipfile.ZipFile(self.out / zip_name) as z:
+            return z.namelist()
+
+    def read(self, zip_name: str, entry: str) -> bytes:
+        with zipfile.ZipFile(self.out / zip_name) as z:
+            return z.read(entry)
+
+    def test_committed_zips_equal_a_rebuild(self):
+        # Strict only where people download the zips or a release is cut (main, tags, PRs into
+        # main): between releases the zips on dev may lag, so no merge there needs a rebuild.
+        branch = _git(REPO_ROOT, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        required, reason = _lib.zip_equality_required(branch=branch)
+        if not required:
+            self.skipTest(reason)
+        mismatched = []
+        for name in distctl.ZIP_NAMES:
+            committed = REPO_ROOT / ".claude" / "dist" / name
+            if not committed.exists() or committed.read_bytes() != (self.out / name).read_bytes():
+                mismatched.append(name)
+        if not mismatched:
+            return
+        # Still needed where the test is strict: the ritual's CHECK runs this suite before POLISH
+        # rebuilds the zips, so a payload edit waiting for that rebuild is not staleness yet.
+        pending = uncommitted_payload(REPO_ROOT)
+        if pending:
+            self.skipTest(f"zips behind {len(pending)} uncommitted payload edit(s), e.g. "
+                          f"{pending[:3]}: POLISH (or distctl.py build) rebuilds them before "
+                          f"the commit; on a clean tree this test is strict")
+        self.fail(f"committed zips are stale: {mismatched}. The committed payload changed "
+                  f"without a rebuild - run `python3 .claude/tools/distctl.py build` and commit "
+                  f"the zips (`distctl.py verify` says fresh when done).")
+
+    def test_release_flow_is_absent_from_both_zips(self):
+        self.assertTrue((REPO_ROOT / ".claude" / "reference" / "release-flow.md").exists(),
+                        "the home-only doc exists here; the point is that it never ships")
+        for name in distctl.ZIP_NAMES:
+            with self.subTest(zip=name):
+                self.assertFalse(any(n.endswith("reference/release-flow.md")
+                                     for n in self.names(name)))
+
+    def test_no_worktree_or_state_enters_a_zip(self):
+        for name in distctl.ZIP_NAMES:
+            with self.subTest(zip=name):
+                names = self.names(name)
+                self.assertFalse(any("/worktrees/" in n for n in names))
+                self.assertFalse(any("/state/" in n for n in names))
+
+    def test_kits_drop_the_home_suite_step(self):
+        home = _lib.read_json(REPO_ROOT / ".claude" / "config" / "memory.json", {})
+        self.assertTrue(home["project_steps"]["check"], "the home repo runs its suite in CHECK")
+        for name, entry in (("dot-claude-iff-fresh.zip", ".claude/config/memory.json"),
+                            ("dot-claude-iff-adopt-kit.zip",
+                             "dot-claude-iff-kit/.claude/config/memory.json")):
+            with self.subTest(zip=name):
+                cfg = json.loads(self.read(name, entry).decode("utf-8"))
+                self.assertEqual(cfg["project_steps"]["check"], [])
+                self.assertFalse(cfg["distribution"]["enabled"])
+                self.assertEqual(cfg["visibility"], "tracked")
+
+    def test_kits_ship_publish_nothing_and_the_managed_gitignore(self):
+        block = distctl.render_gitignore_block("tracked").encode()
+        for name, prefix in (("dot-claude-iff-fresh.zip", ""),
+                             ("dot-claude-iff-adopt-kit.zip", "dot-claude-iff-kit/")):
+            with self.subTest(zip=name):
+                publish = json.loads(self.read(name, f"{prefix}.claude/config/publish.json"))
+                self.assertEqual(publish["include"], [])
+                self.assertEqual(self.read(name, f"{prefix}.gitignore"), block)
+                self.assertIn(f"{prefix}.claude/reference/public-private.md", self.names(name),
+                              "the public/private manual ships to adopters")
+
+    def test_fresh_install_stop_hook_creates_the_heartbeat(self):
+        """heartbeat.json is untracked and the kit ships no state/: the first Stop on a fresh
+        install must create both, or heartbeat_present warns forever."""
+        bash = _lib.find_bash()
+        if not bash:
+            self.skipTest("bash not available")
+        with tempfile.TemporaryDirectory(prefix="claude-iff-fresh-") as tmp:
+            proj, record = Path(tmp) / "proj", Path(tmp) / "proj_claude_iff"
+            with zipfile.ZipFile(self.out / "dot-claude-iff-fresh.zip") as z:
+                z.extractall(proj)
+            state = proj / ".claude" / "state"
+            self.assertFalse(state.exists(), "a fresh install starts with no state/")
+            self.assertIn(".claude/state/heartbeat.json",
+                          (proj / ".gitignore").read_text(encoding="utf-8").splitlines())
+            env = dict(os.environ, CLAUDE_PROJECT_DIR=str(proj), CLAUDE_IFF_RECORD_ROOT=str(record))
+            res = subprocess.run([bash, str(proj / ".claude" / "hooks" / "heartbeat.sh")],
+                                 input=json.dumps({"hook_event_name": "Stop"}), env=env,
+                                 capture_output=True, text=True, timeout=30, check=False)
+            self.assertEqual(res.returncode, 0, res.stderr)
+            beat = _lib.read_json(state / "heartbeat.json")
+            self.assertTrue(beat and beat.get("ts"), "the Stop hook did not create the heartbeat")
+
+    def test_heartbeat_and_worktrees_are_gitignored_here(self):
+        for path in (".claude/state/heartbeat.json", ".claude/worktrees/t1/.claude/x.py"):
+            with self.subTest(path=path):
+                res = _git(REPO_ROOT, "check-ignore", "--no-index", "-q", path)
+                self.assertEqual(res.returncode, 0, f"{path} is not gitignored")
+
+
+@unittest.skipUnless(_home_repo(), "home-repo-only: the workflows live in dot-claude-iff")
+class TestWorkflows(unittest.TestCase):
+    """The two workflows, read as text (no YAML parser in the stdlib) and, for the notes
+    extraction, executed: the regex that picks a release's notes is the workflow's own code."""
+
+    WF = REPO_ROOT / ".github" / "workflows"
+    SUITE = "run: ${{ matrix.py }} .claude/tools/tests/run_tests.py -q"
+
+    def text(self, name: str) -> str:
+        return (self.WF / name).read_text(encoding="utf-8")
+
+    def test_ci_runs_the_suite_on_push_and_pr_on_both_os(self):
+        ci = self.text("ci.yml")
+        lines = [ln.strip() for ln in ci.splitlines()]
+        self.assertIn("push:", lines)
+        self.assertIn("branches: [dev, main]", lines)
+        self.assertIn("pull_request:", lines)
+        for line in ("- os: ubuntu-latest", "py: python3", "- os: windows-latest", "py: python",
+                     self.SUITE):
+            with self.subTest(line=line):
+                self.assertIn(line, lines)
+
+    def test_release_gate_runs_the_same_suite_as_ci(self):
+        lines = [ln.strip() for ln in self.text("release.yml").splitlines()]
+        self.assertIn(self.SUITE, lines)
+        self.assertIn("- os: windows-latest", lines)
+
+    def test_prerelease_tags_publish_as_prerelease_never_latest(self):
+        rel = self.text("release.yml")
+        self.assertIn('python3 .claude/tools/_lib.py --release-kind "$TAG")" || exit 1', rel,
+                      "a malformed tag must fail the job, not publish as stable")
+        self.assertIn('if [ "$KIND" = "prerelease" ]; then', rel)
+        self.assertIn('KIND_FLAGS="--prerelease --latest=false"', rel)
+        create = rel[rel.index("gh release create"):]
+        self.assertIn("$KIND_FLAGS", create, "the flags must reach gh release create")
+
+    def test_release_still_rebuilds_and_diffs_the_zips(self):
+        """The suite skips zip equality off main; the release job never does."""
+        rel = self.text("release.yml")
+        build = rel.index("python3 .claude/tools/distctl.py build")
+        self.assertIn("git diff --exit-code --stat -- .claude/dist/", rel[build:])
+        self.assertLess(build, rel.index('gh release create "$TAG"'), "rebuild before publishing")
+
+    def test_release_flow_states_the_zip_step_and_its_consequence(self):
+        text = re.sub(r"\s+", " ", (REPO_ROOT / ".claude" / "reference" / "release-flow.md")
+                      .read_text(encoding="utf-8"))
+        for phrase in ("distctl.py build", "distctl.py verify", "commit the zips, then tag",
+                       "_lib.zip_equality_required", "pre-release cut from `dev`",
+                       "may lag the tree", "guaranteed equal to a rebuild", "statectl.py accept"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, text)
+
+    def _notes_script(self) -> str:
+        rel = self.text("release.yml")
+        start = rel.index("<<'PY'\n") + len("<<'PY'\n")
+        end = rel.index("\n          PY\n", start)
+        return "\n".join(ln[10:] for ln in rel[start:end].splitlines()) + "\n"
+
+    def _notes(self, tag: str, changelog: str) -> str:
+        with tempfile.TemporaryDirectory(prefix="claude-iff-notes-") as tmp:
+            tools = Path(tmp) / ".claude" / "tools"
+            tools.mkdir(parents=True)
+            shutil.copy(REPO_ROOT / ".claude" / "tools" / "_lib.py", tools / "_lib.py")
+            (Path(tmp) / "CHANGELOG.md").write_text(changelog, encoding="utf-8")
+            script = Path(tmp) / "notes.py"
+            script.write_text(self._notes_script(), encoding="utf-8")
+            res = subprocess.run([sys.executable, str(script), tag], cwd=tmp, capture_output=True,
+                                 text=True, timeout=30, check=False)
+            self.assertEqual(res.returncode, 0, res.stderr)
+            return res.stdout.strip()
+
+    def test_notes_match_the_exact_tag_only(self):
+        log = ("# Changelog\n\n## Unreleased\n\n- next\n\n"
+               "## v3.0.1 - 2026-02-01\n\n- three-oh-one\n\n"
+               "## v0.3.0-alpha.10 - 2026-01-03\n\n- alpha ten\n\n"
+               "## v0.3.0-alpha.1 - 2026-01-02\n\n- alpha one\n\n"
+               "## v0.2.2 - 2026-01-01\n\n- two-two\n")
+        self.assertEqual(self._notes("v3.0", log), "See CHANGELOG.md.",
+                         "v3.0 must not pick up the v3.0.1 section")
+        self.assertEqual(self._notes("v0.3.0", log), "See CHANGELOG.md.",
+                         "a stable tag must not pick up its own pre-release's notes")
+        self.assertEqual(self._notes("v0.3.0-alpha.1", log), "- alpha one")
+        self.assertEqual(self._notes("v0.2.2", log), "- two-two")
 
 
 

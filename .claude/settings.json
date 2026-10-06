@@ -18,6 +18,20 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ritual-ticket.sh", "timeout": 10}
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "hooks": [
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ritual-ticket.sh", "timeout": 10}
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell",
@@ -44,14 +58,16 @@
     "SubagentStart": [
       {
         "hooks": [
-          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10}
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10},
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/handoff-guard.sh", "timeout": 10}
         ]
       }
     ],
     "SubagentStop": [
       {
         "hooks": [
-          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10}
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/obs-capture.sh", "timeout": 10},
+          {"type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/handoff-guard.sh", "timeout": 10}
         ]
       }
     ],

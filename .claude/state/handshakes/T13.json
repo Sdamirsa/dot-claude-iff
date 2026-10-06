@@ -1,0 +1,84 @@
+{
+  "task_id": "T13",
+  "agent_id": "builder-T13",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "done",
+  "RESULT": "statectl dispatch <id> now cuts .claude/worktrees/<id lowercased> on branch wt/<id lowercased> from HEAD, writes the stub and prints the filled _builder-brief.md (refusing cleanly, changing nothing, on a missing or uncommitted task file, an existing worktree or branch, a dirty tree, or no git repo); statectl accept <id> reruns checkctl handoff --run --root in the worktree, restores .claude/dist/ and policy.json's derived_files there, stages the rest, sets hook exec bits in the index, commits, merges --no-ff, removes worktree and branch, and stops with the merge in progress on a conflict. _lib.zip_equality_required(env, branch) makes the committed-zip equality test strict only on main, tags, PRs into main and CI for main; distctl verify and release.yml's rebuild-and-diff stay strict; release-flow.md, the project-memory release step, orchestration.md, the brief template, glossary and guides describe it.",
+  "files_changed": [
+    ".claude/tools/statectl.py",
+    ".claude/tools/_lib.py",
+    ".claude/tools/distctl.py",
+    ".claude/tools/mapctl.py",
+    ".claude/tools/tests/test_orchestration.py",
+    ".claude/tools/tests/test_dist.py",
+    ".claude/tasks/_builder-brief.md",
+    ".claude/protocols/orchestration.md",
+    ".claude/protocols/handshake.md",
+    ".claude/reference/release-flow.md",
+    ".claude/reference/glossary.md",
+    ".claude/agents/builder.md",
+    ".claude/CLAUDE.md",
+    ".claude/README.md",
+    ".claude/skills/adopt/CLAUDE.template.md",
+    ".claude/skills/project-memory/SKILL.md",
+    ".claude/system-map/cards/store.dist.json",
+    ".github/workflows/ci.yml",
+    ".github/workflows/release.yml",
+    ".claude/state/handshakes/T13.json"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_orchestration test_dist test_statectl -q",
+      "exit_code": 0,
+      "summary": "167 passed · 0 failed · 0 errored · 2 skipped / TESTS_OK"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "659 passed · 0 failed · 0 errored · 2 skipped / TESTS_OK"
+    }
+  ],
+  "EVIDENCE": [
+    "task Test -> 167 passed, 2 skipped: test_committed_zips_equal_a_rebuild skipped 'not required on branch wt/t13: ... (.claude/reference/release-flow.md)', and the POSIX-only fsync test",
+    "full suite -> 659 passed, 0 failed, 2 skipped",
+    "new fixture-repo tests (throwaway git repo, identity local, GIT_CONFIG_GLOBAL empty, GIT_CONFIG_NOSYSTEM=1): dispatch success + 7 refusals + scout + lead-only help; accept success (no-ff merge commit, worktree+branch gone, dist/derived not in the merge diff although the fake builder changed them, new hook 100755 in the index), invalid envelope x3 (nothing committed), --no-run, --message, conflict (MERGE_HEAD present, exit 1, worktree kept, then finish + accept --no-run cleans up), missing worktree says re-dispatch",
+    "mutation checks (scratch script, monkeypatched): no exec-bit step, empty derived list, merge without --no-ff, no dirty check -> each turns a named test red",
+    "zip scope: 11 environment cases + os.environ default + branch from git; distctl verify exits 1 with DIST_FAIL on a stale zip committed on dev",
+    "checkctl probe (worktree) -> 51 ok, 0 fail; mapctl lint -> only pre-existing stale-hash WARNs",
+    "smoke: _builder_prompt for T13 in this worktree filled every placeholder (contracts -> .claude/tasks/030a-00-milestone.md, CI -> ubuntu-latest, windows-latest)"
+  ],
+  "DEVIATIONS": [
+    "Dispatch's dirty-tree exemption is all of .claude/state/ plus .claude/dist/ plus policy.json derived_files, not only the derived files: statectl rewrites the journal on every command, dispatch included, so a narrower rule would refuse the second dispatch of a wave.",
+    "Dispatch adds two refusals: the task file itself not committed at HEAD (the worktree would not see it), and --worktree not of the form .claude/worktrees/<name> (the stop check and the nudge only look there). It also warns (STATE_WARN) when .claude/worktrees/ is not gitignored.",
+    "accept has an extra --worktree option; default is the stub's worktree, else .claude/worktrees/<id lowercased>.",
+    "Canonical derived list = policy.json derived_files.paths, read by new _lib.derived_files() (raises LibError when missing, so accept refuses rather than guess). Other generator outputs (state/story-feed.json, state/generators.json, docs/demo/console.html) are not in that declaration and are not restored.",
+    "No 'explicit flag' for strict zip equality (task file Context): followed the lead's helper spec. A manual workflow_dispatch release from dev is guarded by release.yml's rebuild-and-diff, not by the suite.",
+    "Kept the skip-when-dirty logic in the equality test: still needed on main, where the ritual's CHECK runs the suite before POLISH rebuilds the zips.",
+    "Changed existing test test_statectl_dispatch_writes_the_stub to pass --no-worktree: it encodes the old stub-only default in a no-git fixture, which this task deliberately changes.",
+    "_builder-brief.md placeholders are now fillable tokens (<TASK_ID>, <task file>, <contracts>, <branch>, <wt>, <platform>, <ci>, <model>); the shared-files placeholder became prose; the scaffold paragraph is dropped when filled. Existing brief test phrases still hold.",
+    "Commit subjects: worktree commit '<id>: <task title without id>' (or --message), merge commit 'merge <id>: <same>', matching the repo's history.",
+    "Docs touched beyond the list: handshake.md stub paragraph, agents/builder.md, .claude/README.md (command list, where zips are guaranteed fresh), project-memory SKILL.md release step 3 (the zip step), store.dist card + mapctl KNOWN_STORES description, distctl docstring, ci.yml and release.yml comments.",
+    "MISTAKE: I once edited the MAIN checkout's .github/workflows/ci.yml (wrong path) instead of the worktree's, and reverted it with the inverse edit at once. Its content now equals the worktree original apart from line endings; it is LF, like main's untouched release.yml, so I believe it is byte-identical to before, but I could not run git to prove it."
+  ],
+  "UNCERTAINTIES": [
+    "Ran only on Windows with Git Bash; the Linux CI lane is unverified. The tests isolate git through GIT_CONFIG_GLOBAL, which needs git >= 2.32.",
+    "Main checkout .github/workflows/ci.yml: not proven unchanged with git (see DEVIATIONS).",
+    "dispatch/accept were exercised only in fixture repos, never against this repository.",
+    "A failing `git worktree remove --force` (e.g. a locked file on Windows) is reported as a WARN with the manual command; that path is not tested.",
+    "The policy gate does not stop a sub-agent from running `statectl.py dispatch|accept`: their git runs inside python, and the gate only sees the command line. Lead-only is documented (help text, protocol), not enforced.",
+    "T12 edits statectl.py concurrently: my hunks are the module docstring's last two lines, the dispatch/accept section that replaced cmd_dispatch, and the dispatch+accept parser block; a conflict there is possible."
+  ],
+  "needs_main": [
+    "Confirm the main checkout's .github/workflows/ci.yml is unchanged (`git status` / `git diff -- .github/workflows/ci.yml`).",
+    "After merging: the ritual's POLISH to refresh map.json/console.html (store.dist card description changed; tool card hashes stale).",
+    "CHANGELOG entry for dispatch/accept and the zip scope.",
+    "Optional: update the milestone's own 030a-builder-brief.md, which still says the lead rebuilds zips at merge."
+  ],
+  "SUGGESTIONS": [
+    "Gate: deny `statectl.py dispatch|accept` to sub-agents (T10/T12 scope). Their subprocess git would otherwise bypass the git deny.",
+    "The gate's bare-word git match also fires on read-only `grep \"git\" file` and on python one-liners quoting 'git'. The new brief warns builders about this.",
+    "Several tool cards (ctxmap, obsctl, sysmon, ...) already carried stale auto.hash before this task; the next ritual scan clears them."
+  ]
+}

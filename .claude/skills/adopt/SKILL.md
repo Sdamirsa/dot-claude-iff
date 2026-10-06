@@ -30,7 +30,8 @@ Read before writing anything:
 1. `<target>` README and manifests (`pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`,
    Makefile, whatever exists). Detect language, package manager, test runner, lint command.
 2. An existing `<target>/CLAUDE.md` or `<target>/.claude/CLAUDE.md`, if any: its content must
-   survive as source material, not be clobbered.
+   survive as source material, not be clobbered. Nested folder guides (`<folder>/CLAUDE.md`)
+   are noted, not folded: they stay where they are.
 3. An existing `<target>/.claude/`, if any: list every file. Anything already there (skills,
    agents, rules, config) belongs to the target, not to you.
 4. Top-level layout: where code, scripts, configs, and outputs live.
@@ -47,8 +48,14 @@ first, before touching the target. Ask:
 |---|---|---|
 | Mission, 1 to 2 sentences: what is this project for? | Code shows *what*, not *why* | Draft one from the README and offer it for editing |
 | What counts as an invariant here? | Load-bearing constraints live in the human's head | Offer candidates you spotted in Phase 1 (e.g. "single source-of-truth data file", "atomic writes") |
-| Track `.claude/` in git? | Team/privacy call | Yes, the system is designed to be tracked |
+| Visibility: commit `.claude/` with the code (`tracked`), or keep it in this checkout only (`ignored`)? | Team and privacy call: the journal, the project log and the lessons hold the user's own words | Run `gh repo view --json visibility` in `<target>` first. When it answers `PUBLIC`, recommend `ignored` and say why in one sentence: the journal and the project log hold the user's own words, and a public remote would publish them. Otherwise (private, no remote, `gh` missing or signed out) ask plainly, `tracked` first as today's behaviour, without pushing either |
 | Does this project already run an agent operating system of its own (a continuity engine, policy hooks, self-tests, a console)? | Phase 1 sees files, not systems; kinship flips the whole install mode | If yes, use **Sibling mode** (end of Phase 3) instead of the copy |
+
+With the visibility question, recommend the pattern that makes the answer easy: work with the
+agent in a private repository and publish releases to a public one with
+`python3 .claude/tools/distctl.py export --to <public-checkout>`, which never carries the
+record, the memory spine or secrets, and never commits or pushes. The whole pattern, and what
+`tracked` and `ignored` mean for a team, is in `.claude/reference/public-private.md`.
 
 Also compute and report the record root, and warn if it looks cloud-synced:
 
@@ -74,16 +81,21 @@ Do not proceed on silence. If the user answers "Other", capture their wording ve
 
 ## Phase 3: install
 
-Adopt from a CLEAN source. Check `git -C <source> status --short` first: if the source has
-uncommitted changes, tell the user and prefer its last commit (or ask them to commit first). An
-adoption snapshotted mid-edit can copy a file whose tests, producer or consumer moved on a
-minute later, and the target inherits a mismatch nobody wrote on purpose.
+**The copy manifest** depends on what `<source>` is:
 
-Copy only files git TRACKS in `<source>` - take the manifest from
-`git -C <source> ls-files -- .claude .claude-iff`, never from a directory walk. A clean
-`git status` does not vouch for gitignored content: a private, gitignored tree under
-`.claude/` (it happened with `reference/private/`) must never ride an adoption into someone
-else's repo. Skip `reference/private/` even if a source tracks it.
+- **An extracted kit** (the adopt-kit or fresh zip, no `.git` in it): the kit IS the
+  manifest. It was built from the source's tracked files minus everything below, so copy every
+  file under its `.claude/` and `.claude-iff/`.
+- **A git checkout** (a clone, or a project running the system): adopt from a CLEAN source.
+  Check `git -C <source> status --short` first: if the source has uncommitted changes, tell the
+  user and prefer its last commit (or ask them to commit first); an adoption snapshotted
+  mid-edit can copy a file whose tests, producer or consumer moved on a minute later. Then copy
+  only files git TRACKS - take the manifest from `git -C <source> ls-files -- .claude
+  .claude-iff`, never from a directory walk. A clean `git status` does not vouch for gitignored
+  content: a private, gitignored tree under `.claude/` (it happened with `reference/private/`)
+  must never ride an adoption into someone else's repo.
+
+Either way, skip `reference/private/` even if a source carries it.
 
 Copy that manifest into `<target>/.claude/`, file by file, using this rule:
 
@@ -94,13 +106,15 @@ Skip `__pycache__/` directories and any `*.tmp` files if present in `<source>`: 
 not shipped assets.
 
 This system ships **one profile: everything.** Unlike systems that hold back machine-specific
-files, `hooks/`, `settings.json`, and `settings.local.json` ARE part of this install: they are
-written portably against `$CLAUDE_PROJECT_DIR` (never a hardcoded path), so they carry cleanly
-into any target. Copy them like every other file, subject to the same merge rule. An existing
-`<target>/.claude/settings.json` is a conflict: report it and KEEP THE TARGET'S, like every
-other collision. Never replace it wholesale - that single write would unbind all of the
-target's hooks, bind this system's six, and silently drop the target's `permissions` and
-`env` blocks. Hook-wiring changes are individual line merges the user approves one by one.
+files, `hooks/` and `settings.json` ARE part of this install: they are written portably against
+`$CLAUDE_PROJECT_DIR` (never a hardcoded path), so they carry cleanly into any target. Copy
+them like every other file, subject to the same merge rule. `settings.local.json` is not in any
+manifest and never travels: it is per-user and gitignored, and it is where the TARGET's own
+keys go (`.claude/reference/secrets.md`). An existing `<target>/.claude/settings.json` is a
+conflict: report it and KEEP THE TARGET'S, like every other collision. Never replace it
+wholesale - that single write would unbind all of the target's hooks, bind this system's, and
+silently drop the target's `permissions` and `env` blocks. Hook-wiring changes are individual
+line merges the user approves one by one.
 
 **Exclude per-project state and identity, even from `<source>`.** These paths hold that
 project's own runtime history or its own voice, not shippable system content, and copying them
@@ -126,17 +140,43 @@ tamper-evidence anchor - or another project's live contract:
 Also skip the derived files `.claude/console/console.html` and `.claude/system-map/map.json`
 (both listed under `derived_files` in `policy.json`): Phase 5 regenerates both from scratch.
 
-Also create, if `<target>` lacks it:
-- A root `.gitignore` entry for `.claude/tools/__pycache__/` and any stray `*.tmp` atomic-write
-  leftovers under `.claude/`, if the target doesn't already ignore them. While there, check the
-  target's EXISTING patterns for over-broad shadows: a generic `dist/`, `build/` or `*.zip`
-  matches at any depth and silently untracks `.claude/` paths (checkctl's gitignore_shadowing
-  check warns about this from then on). RECORD_ROOT itself needs no gitignore entry: it is a
-  sibling folder outside the repo, already unreachable by git.
+Also skip, on a clone or any running source, the paths that are the source's own build
+machinery rather than the system (the kits already leave all of them out):
+- `.claude/dist/`: the source's release zips. dot-claude-iff tracks them, so its manifest
+  lists them, but they are build output, and a copy inside `<target>` would nest a stale
+  system inside the installed one.
+- `.claude/worktrees/`: build-time scratch checkouts of the whole source repo. Gitignored, so
+  the manifest should never list them; skip the tree even if it does.
+- `.claude/reference/release-flow.md`: dot-claude-iff's own dev/main release flow.
+- `.claude/reference/brand-identity.md`: dot-claude-iff's own look and voice.
 
 Do not create `RECORD_ROOT` (the sibling `<target-parent>/<target-name>_claude_iff/` folder) by
 hand: the first hook invocation creates it on demand, empty, and that is the correct starting
 state.
+
+**Visibility and the managed `.gitignore` block** (every install path: clone, fresh zip, kit).
+Record the Phase 2 answer in `<target>/.claude/config/memory.json` as `"visibility": "tracked"`
+or `"visibility": "ignored"` (kits ship `tracked`; a clone carries its source's value), then
+write the block from inside `<target>`:
+
+```
+python3 .claude/tools/distctl.py gitignore --apply
+```
+
+It renders one block between two marker lines and appends it to `<target>/.gitignore`
+(creating the file when absent), or rewrites it in place on a rerun; the target's own lines are
+never touched. Both values carry the secrets safety net (`.env`, `*.env`, `.env*.local`,
+`settings.local.json`) and the python caches; `tracked` adds the console runtime, the
+heartbeat, the ritual ticket, `.claude/worktrees/` and atomic-write leftovers, `ignored`
+ignores `.claude/` and `.claude-iff/` whole. This command is the one writer: never copy a source's `.gitignore` (the
+kit's `dot-claude-iff-kit/.gitignore`, a clone's root file) by hand. If the answer is `ignored`
+and the target already tracks files under `.claude/`, tell the user that untracking them is
+their git step (`git rm -r --cached .claude .claude-iff`, which keeps the files on disk); do not
+run it. Under `tracked`, also check the target's EXISTING patterns for over-broad shadows: a
+generic `dist/`, `build/` or `*.zip` matches at any depth and silently untracks `.claude/` paths
+(checkctl's gitignore_shadowing check warns about this from then on, and is quiet under
+`ignored`). RECORD_ROOT itself needs no gitignore entry: it is a sibling folder outside the
+repo, already unreachable by git.
 
 **Sibling mode.** When the Phase 2 gate found the target already running an agent operating
 system of its own (common when source and target share ancestry), do NOT run the copy above.
@@ -167,8 +207,10 @@ Turn the copied scaffold into this project's system:
    invariants, domain notes) from the Phase 1 inventory and the Phase 2 answers, from repo
    reality, not guesses. If the target already had a root `CLAUDE.md` or a pre-existing
    `.claude/CLAUDE.md`, fold that content verbatim into the right sections (Domain notes is the
-   usual home) and remove the redundant file with the user's OK: keep exactly ONE project guide
-   (Claude Code auto-loads `./CLAUDE.md` OR `./.claude/CLAUDE.md`, never both). A substantial
+   usual home) and remove the redundant file with the user's OK: keep exactly ONE root guide
+   (`./CLAUDE.md` or `./.claude/CLAUDE.md`; two split the always-on instructions in two, and
+   `context_health` fails on it). Nested folder guides are a different thing: allowed, left in
+   place, and mapped (`python3 .claude/tools/mapctl.py context` lists them). A substantial
    fold will push the guide past the anatomist's ~80-line health threshold on day one; that is
    expected, not a defect - do not trim the user's content to satisfy the check. Note "condense
    in an early evolution pass" and move on; the anatomist's audit grants adoption-day folds
@@ -197,8 +239,9 @@ Turn the copied scaffold into this project's system:
 6. **Old-project state**: if `<source>` is an adopted project rather than a pristine checkout,
    its `.claude/tasks/`, `.claude/rules/`, `.claude/research/`, `.claude/reference/`, and
    `.claude/system-map/cards/` may hold ITS project-specific history, not the system's. Empty
-   `<target>/.claude/tasks/` of everything that ARRIVED IN THIS INSTALL except `_template.md`,
-   and remove an ARRIVED `tasks/archive/` entirely (the template is scaffold, not history; the
+   `<target>/.claude/tasks/` of everything that ARRIVED IN THIS INSTALL except the
+   `_`-prefixed scaffolds (`_template.md`, `_builder-brief.md`), and remove an ARRIVED
+   `tasks/archive/` entirely (scaffolds are not history; the
    archive is all history) - a live task or archive the target already had keeps running,
    untouched, per the step-3 rule. For
    `system-map/cards/`, drop ONLY cards whose `layer` names one of `<source>`'s own flow layers
@@ -214,15 +257,18 @@ Turn the copied scaffold into this project's system:
    `demo_build` and `dist_build`, dot-claude-iff's own release machinery: in `<target>` they
    would zip its private `.claude/` into redistributable archives and render its real session
    state into `docs/`, which many repos publish. checkctl reports them as SKIP with the reason
-   named; that is the correct steady state everywhere except the source repo.
-8. **Console port, decided once.** `config/console.json` ships port 7717, and every adoption
-   on one machine inherits it, so the second project's console loses the bind every session.
-   Pick a free port ONCE, now - e.g.
-   `python3 -c "import socket; s=socket.socket(); s.bind(('127.0.0.1',0)); print(s.getsockname()[1]); s.close()"`
-   - and write it into `<target>/.claude/config/console.json` with a `_comment` naming why, so
-   a future `/adopt --upgrade` reads it as intentional rather than unexplained drift. Decide it
-   here and never again: the session-start hook reports a busy port instead of silently
-   failing, but a collision reported every session is still a collision.
+   named; that is the correct steady state everywhere except the source repo. In the same
+   file, empty the `check` and `polish` lists under `project_steps`: a clone
+   carries the source's own steps (dot-claude-iff runs its test suite as a CHECK step), and
+   the kits already ship them empty. Likewise set `include` in `config/publish.json` to `[]`:
+   a clone carries the source's own publishing list, the kits ship it empty.
+8. **Console port: leave it `"auto"`.** `config/console.json` ships `"port": "auto"`: the
+   port derives from the target's folder name (and the console answers at
+   `http://<folder>.localhost:<port>/console.html`), so two projects on one machine do not
+   inherit one port. `python3 .claude/tools/checkctl.py doctor` prints the URL. Only if the
+   session-start hook reports the port busy, pick a free one ONCE and write it into
+   `<target>/.claude/config/console.json` with a `_comment` naming why, so a future
+   `/adopt --upgrade` reads it as intentional rather than drift.
 
 Do NOT preinstall speculative project-specific skills, rules, or agents, and tell the user so
 explicitly: the evolution protocol (`.claude/protocols/evolution.md`) adds tooling when evidence
@@ -233,9 +279,24 @@ appears, not before. An unused skill is negative value.
 Run the checklist against reality, not against your memory of what you did. Every command below
 runs with `<target>` as the working directory (or `CLAUDE_PROJECT_DIR=<target>` set):
 
-- [ ] Every file in the Phase 3 copy manifest (git-tracked under `<source>/.claude/`, minus the
-      Phase 3 exclusions) exists at its matching path under `<target>/.claude/`, or was
-      reported as a conflict and resolved with the user.
+**The ritual ticket.** `checkctl run` (the CHECK and POLISH boxes below) refuses without a
+fresh ticket in `<target>/.claude/state/ritual-ticket.json`. It works here because the user
+typed `/adopt`: the target's prompt hook (`hooks/ritual-ticket.sh`) minted the ticket from
+that prompt, and it counts for this adoption's runs the same way a typed `/project-memory`
+would. That holds only when this session runs INSIDE `<target>` with its hooks trusted since
+the session started (the fresh zip; START-HERE has the user type `/adopt`). When the user
+typed `/adopt` in another project, or the hooks were installed during this session (the kit
+path: hooks load at session start), the target has no ticket and `checkctl run` refuses. Never
+write, copy or forge a ticket: the policy gate denies the file to you on purpose. Instead,
+verify read-only with `python3 .claude/tools/checkctl.py doctor` and `checkctl.py probe` (no
+ticket needed), mark the CHECK and POLISH boxes deferred to the first ritual, and in Phase 6
+ask the user to open a new session in `<target>`, trust the hooks, and type `/project-memory`.
+
+- [ ] Every file in the Phase 3 copy manifest (the kit's files, or git-tracked under
+      `<source>/.claude/`, minus the Phase 3 exclusions) exists at its matching path under
+      `<target>/.claude/`, or was reported as a conflict and resolved with the user.
+- [ ] `python3 <target>/.claude/tools/checkctl.py doctor` reports no FAIL (bash, python3, hook
+      scripts and wiring, record root, console URL, secrets placement, the ritual ticket).
 - [ ] `grep -rnE "\{\{[A-Z_]+\}\}" <target>/.claude --include="*.md" | grep -v "skills/adopt/" | grep -v _template`
       returns nothing. The pattern matches real placeholders only (`{{PROJECT_NAME}}`-shaped),
       scoped to markdown: a bare `grep "{{"` can NEVER return clean on a correct install,
@@ -243,10 +304,13 @@ runs with `<target>` as the working directory (or `CLAUDE_PROJECT_DIR=<target>` 
       own shipped template (kept placeholder-form on purpose, so the target can seed the next
       adoption) all contain `{{` forever. A checkbox that cannot pass teaches agents to report
       `partial` on every install, or worse, to stop reading the checklist.
-- [ ] Exactly one project guide exists: `<target>/.claude/CLAUDE.md`, or a root `CLAUDE.md` if
-      the user chose that, never both.
+- [ ] Exactly one root guide exists: `<target>/.claude/CLAUDE.md`, or a root `CLAUDE.md` if
+      the user chose that, never both. Nested folder guides the target already had stay where
+      they are; `python3 .claude/tools/mapctl.py context` lists every guide and rule.
 - [ ] Every JSON/JSONL file under `<target>/.claude/` parses (config, journal, Project-log,
       LESSONS, layers, registry).
+- [ ] `python3 <target>/.claude/tools/distctl.py gitignore` exits 0: `<target>/.gitignore`
+      carries the managed block for the visibility recorded in `memory.json`.
 - [ ] `python3 <target>/.claude/tools/checkctl.py run --phase check` runs and its verdicts are
       legible (fresh install, so most checks pass trivially; report anything that doesn't).
 - [ ] `python3 <target>/.claude/tools/mapctl.py scan` runs, then dispatch the **anatomist agent
@@ -275,7 +339,9 @@ runs with `<target>` as the working directory (or `CLAUDE_PROJECT_DIR=<target>` 
 Report to the user in Structured Return form: `STATUS` (done | partial | blocked), `RESULT`
 (what was installed, what was merged, what was skipped and why), `EVIDENCE` (file listing, grep
 output, the checkctl/mapctl/consolectl/test_hooks output), plus `DEVIATIONS` and `QUESTIONS` if
-any. Any unchecked box means STATUS is partial: say so plainly.
+any. Any unchecked box means STATUS is partial: say so plainly. Boxes deferred for want of a
+ticket count as unchecked: name them, and name the one step that closes them (the user types
+`/project-memory` in a new session in `<target>`).
 
 ## Phase 6: first ritual
 
@@ -283,13 +349,19 @@ Close by putting the system into motion:
 
 1. Set a pointer to the project's actual first move:
    `python3 <target>/.claude/tools/statectl.py pointer "<first real next action>"`.
+   Ask which work mode the user wants and record it with `statectl.py mode <freestyle |
+   guided-solo | fableous-orchestrated>` (freestyle is the default); for fableous-orchestrated,
+   point them to `.claude/protocols/orchestration.md`, which says who does what (the lead
+   plans and merges, builders implement in worktrees, scouts research).
 2. Show the console: `python3 <target>/.claude/tools/consolectl.py open` prints the console's
    `file://` path and the one-line command to start the live server (`consolectl.py serve`).
    Recommend the half-screen layout: console in one half of the screen, Claude Code in the
    other, so state is visible while you work, per `.claude/README.md`.
 3. Offer to run `/plan-task` on the project's first real task, right now.
-4. Remind the user of the session ritual: start by reading `.claude/STATUS.md`, the active task
-   file, and Watch-outs; end every session with `/project-memory`.
+4. Remind the user of the session ritual: the agent starts by reading `.claude/STATUS.md`, the
+   active task file, and Watch-outs; the user ends each session by typing `/project-memory`
+   (the agent suggests it; only the user can open it). If Phase 5 deferred CHECK and POLISH
+   for want of a ticket, ask the user to do that now, in a new session in `<target>`.
 5. Set expectations for the first retro: it will likely return `NO-CHANGES`, that is correct
    behavior, not a failure. The system grows from evidence the project hasn't generated yet.
 
@@ -297,8 +369,8 @@ Close by putting the system into motion:
 
 For a `<target>` that already has `.claude/` installed:
 
-1. Diff every git-tracked file under `<source>/.claude/` (same manifest rule as Phase 3, same
-   `reference/private/` skip) against its counterpart in `<target>/.claude/`,
+1. Diff every file of the Phase 3 manifest (the kit's files, or git-tracked under
+   `<source>/.claude/`; same `reference/private/` skip) against its counterpart in `<target>/.claude/`,
    with the same exclusions as Phase 3: never diff or touch `.claude/state/` (including
    `handshakes/`), `.claude-iff/obs/anchor.json`, `.claude-iff/obs/rollups/`, or the derived
    files `console/console.html` and `system-map/map.json`. All of these are per-project runtime
@@ -315,6 +387,11 @@ For a `<target>` that already has `.claude/` installed:
    `<source>`'s value. `checkctl`'s registry lint warns loudly whenever `system_version` is
    behind what `<source>` ships, so an upgrade that skips this step leaves the warning firing
    even though the files are current.
+   Then bring the managed `.gitignore` block up to date with the source's renderer:
+   `CLAUDE_PROJECT_DIR=<target> python3 <source>/.claude/tools/distctl.py gitignore --apply`.
+   An install from before the block existed reads `visibility` as `tracked` and gets the block
+   appended (or swapped in for the old kit lines, when those are present verbatim); ask the
+   Phase 2 visibility question first if the target's `memory.json` has no `visibility` yet.
 4. Re-run the Phase 5 verify checklist; an upgrade that adds new tools or agents still needs the
    anatomist dispatched to place them and `consolectl.py build` to pick them up.
 5. Report drift and what was applied in Structured Return form, same shape as Phase 5.

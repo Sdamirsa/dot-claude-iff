@@ -6,10 +6,8 @@ A generalizable `.claude/` operating system for any project. This repo builds it
 to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gates.
 
 > Start here: `.claude/STATUS.md` (where we are) · `.claude/tasks/` (active work) · the console
-> (`http://dot-claude-iff.localhost:7146/console.html`, meant for half your screen beside this
-> terminal). The port derives from the folder name (`console.json` port `"auto"`); every
-> session start prints the URL that actually bound.
-> This file is a map, not a dump.
+> (half your screen beside this terminal; its port derives from the folder name and every
+> session start prints the URL that actually bound). This file is a map, not a dump.
 
 ## Session ritual
 
@@ -17,20 +15,28 @@ to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gat
   active task file. Set a pointer before anything long or risky:
   `python3 .claude/tools/statectl.py pointer "<next concrete action>"` - a mid-turn cutoff never
   fires the Stop hook, so the pointer on disk is the only thing that actually survives.
-- **During:** follow `.claude/protocols/` - `handshake.md` (agent to agent), `human-gates.md`
-  (wait vs proceed), `honesty.md` (how to report), `evolution.md` (how this folder changes).
-- **End:** run `/project-memory`.
+- **During:** follow `.claude/protocols/`: handshake, human-gates, honesty, evolution, orchestration.
+- **End:** the user types `/project-memory`; you suggest it at a natural boundary. The ritual
+  is the user's command: `checkctl` refuses a run without the ticket their prompt mints.
 
 ## Working agreement
 
-1. **Faithful reporting.** Failures are reported with their output. Skipped steps are named.
-   "Done" means verified-done.
-2. **Mistakes get logged, both sides.** A `mistake` entry in `Project-log.jsonl` plus a row in
-   `LESSONS.jsonl` whose prevention rule is mechanical and checkable.
+1. **Faithful reporting.** Failures come with their output; skipped steps are named; "done"
+   means verified-done.
+2. **Mistakes get logged, both sides:** a `mistake` entry in `Project-log.jsonl` plus a
+   `LESSONS.jsonl` row whose prevention rule is mechanical and checkable.
 3. **Recurring mistakes get one respectful reminder,** citing the lesson row.
-4. **Pushback, then align.** State the concern once with evidence and an alternative. If the
-   user confirms their path, align fully and log it with tag `user-confirmed-over-pushback`.
+4. **Pushback, then align.** The concern once, with evidence and an alternative; if the user
+   confirms their path, align fully and log it tagged `user-confirmed-over-pushback`.
 5. **No volatile numbers in docs.** Point at the source data file instead.
+
+## Communication
+
+- Answer or verdict first. At most four options, exactly one marked as the pick with a
+  one-line reason; rejected options listed apart, one line each.
+- An ask with "quick" or "just" gets three lines or fewer.
+- "Not enough evidence, missing X" is a valid pick.
+- Brevity never trims failure output or the list of skipped steps: `honesty.md` wins.
 
 ## Three laws
 
@@ -38,56 +44,57 @@ to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gat
    through `/project-memory`. An unregistered generator rots.
 2. **Gates fail closed, telemetry fails open.** A broken validator blocks the write; a broken
    capture hook loses an event and nothing else.
-3. **The record is radioactive.** Verbatim content (prompts, file contents, tool output) never
-   enters git. It lives in `RECORD_ROOT`, a sibling folder outside the repo; only allowlisted
-   metadata rollups and the tamper-evidence anchor are committed.
+3. **The record is radioactive.** Verbatim content never enters git. It lives in `RECORD_ROOT`,
+   a sibling folder outside the repo; only allowlisted metadata and the anchor are committed.
 
-## Commands
+## Commands (each takes `--help`; `.claude/README.md` walks through them)
 
 ```
-python3 .claude/tools/statectl.py  start|pointer|task|milestone|decision|loop|note|intent|gate
-                                   tooling|need|device|refresh|resume|status
-python3 .claude/tools/checkctl.py  run --phase check|polish|publish · probe · generators · status
-python3 .claude/tools/obsctl.py    ingest|seal|rollup|anchor|report|story|size|analyze
-python3 .claude/tools/mapctl.py    scan|lint|compile|show
-python3 .claude/tools/consolectl.py build|payload|serve
-python3 .claude/tools/sysmon.py                   # one system snapshot (CPU/RAM/GPU), stdlib
-python3 .claude/tools/tests/run_tests.py          # the whole suite
+python3 .claude/tools/statectl.py   start|pointer|task|milestone|decision|loop|note|intent|gate
+                                    need|tooling|device|refresh|resume|status · mode|phase|proposal
+                                    dispatch|accept|progress (dispatch, accept: the lead only)
+python3 .claude/tools/checkctl.py   run --phase check|polish|publish (inside the ritual) · status
+                                    probe · generators · doctor · phase-exit · handoff <task_id>
+                                    ticket --grant (the HUMAN, in their own terminal; never agents)
+python3 .claude/tools/distctl.py    export|gitignore|verify (build: home repo only)
+python3 .claude/tools/mapctl.py     scan|lint|compile|show|context
+python3 .claude/tools/obsctl.py     ingest|seal|rollup|anchor|report|story|size|analyze
+python3 .claude/tools/consolectl.py build|payload|serve · sysmon.py · tests/run_tests.py
 ```
 
-Skills: `/project-memory` (check · polish · publish · evolve; `--hard` for a maturation
-session) · `/plan-task` · `/adopt`.
-Agents: `anatomist` (anatomy expert, cards, placement, pruning) · `retro-analyst` (propose-only
-evolution) · `verifier` (adversarial claim checking).
+- **Modes** (`statectl mode`): freestyle (default) · guided-solo · fableous-orchestrated.
+- **Phases** (`statectl phase`): plan → build → review → deploy, each exit run by `phase-exit`.
+- **The ritual**: user-typed only; it ends with ROUTE (next phase, next mode, maturation pass).
+- **Proposals** (`statectl proposal add`): parked ideas; in deploy, new features go here.
+- **Orchestration** (`protocols/orchestration.md`): lead-only dispatch/accept, handoff, progress.
+- **Health** `checkctl doctor` · **export** `distctl export` · **secrets** `reference/secrets.md`.
+- **Folder context** (`mapctl context`): which guides and rules load where.
+
+Skills: `/project-memory` (the user's) · `/plan-task` · `/adopt` · `/adhd` (a user-invoked
+brainstorm of about ten agent calls: suggest it in one line for an open question, never run it).
+Agents: `anatomist` (anatomy, cards, placement, pruning) · `retro-analyst` (propose-only
+evolution) · `verifier` (adversarial claim checking) · `builder` (one task card in a worktree)
+· `scout` (read-only research); the last two per `protocols/orchestration.md`.
 
 ## Layout
 
 | Path | Role |
 |------|------|
 | `.claude/STATUS.md` · `Project-log.jsonl` · `LESSONS.jsonl` | the memory spine |
-| `.claude/protocols/` | handshake · human-gates · honesty · evolution |
-| `.claude/reference/` | glossary · distribution-boundary |
-| `.claude/state/` | `journal.jsonl` is truth; session/HANDOFF/needs-human/map are projections |
-| `.claude/system-map/` | `layers.json` + one card per component → compiled `map.json` |
-| `.claude/console/` | the single-page console + its stdlib server |
-| `.claude/config/` | memory (ritual registry) · policy · observe · console · registry · prices |
+| `.claude/protocols/` · `.claude/reference/` | how agents work · glossary and manuals |
+| `.claude/state/` · `.claude/system-map/` | the journal and its projections · the map's cards |
+| `.claude/config/` | every knob, each with a card in `registry.json` |
 | `.claude-iff/` | committed record surface: anchor + redacted rollups, write-denied |
-| `<parent>/dot-claude-iff_claude_iff/` | RECORD_ROOT: raw capture, transcripts, analysis, vault |
+| `<parent>/dot-claude-iff_claude_iff/` | RECORD_ROOT: raw capture, transcripts, analysis |
 
 ## Invariants
 
-- Hooks and the six core tools are **bash + python3 stdlib only**, forever. Project steps and
-  optional features may use uv.
-- `.claude/hooks/`, `config/`, `agents/`, `protocols/`, `settings.json` are the **protected
-  tree**: main session only. Sub-agents propose changes there, they do not make them.
-- Derived files (`session.json`, `HANDOFF.md`, `needs-human.json`, `map.json`, `console.html`)
-  are never hand-edited. Change the source, rerun the generator.
-- Append-only stores are written through `statectl.py`, not by hand.
-- The journal's action vocabulary lives in `_lib.JOURNAL_ACTIONS`; a new action means teaching
-  the projector about it in the same change.
+- Hooks and every tool in `.claude/tools/` are **bash + python3 stdlib only**, forever. Project
+  steps and optional features may use uv.
+- The **protected tree** (`policy.json` `protected`: hooks, tools, config, agents, protocols,
+  skills, console, settings) is the main session's on every write lane; sub-agents propose.
+- Derived files (`policy.json` `derived_files`) are never hand-edited: change the source, rerun
+  the generator. Append-only stores are written through `statectl.py`; a new journal action
+  joins `_lib.JOURNAL_ACTIONS` and the projector in the same change.
 - Flow layers are earned through evolution, never guessed at adoption. Unplaced is honest.
-
-## Source material
-
-`temp-to-analyse/` holds the two systems this was distilled from. It is gitignored and one of
-them is private: never commit, push, or publish its contents.
+- Distilled source material is gitignored and never committed, pushed or published.

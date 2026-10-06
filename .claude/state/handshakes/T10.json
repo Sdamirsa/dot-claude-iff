@@ -1,0 +1,77 @@
+{
+  "agent_id": "builder-T10",
+  "task_id": "T10",
+  "status": "done",
+  "agent": "builder",
+  "model": "claude-opus-5-5",
+  "RESULT": "The gate's three false positives are fixed (prose strings in interpreter code are read as shell lines, not as opaque paths; a backslash after a path character is a separator in the git word match; code tokens never glob), and it now refuses running hooks/ritual-ticket.sh and `checkctl ticket` to every identity and `statectl dispatch|accept` to sub-agents, on both shell lanes. `checkctl ticket --grant` is the human escape hatch (event human-terminal), named by the refusal, doctor, the skill and the glossary; doctor gains a hook_scripts row and a wired-program check; the gitignore CR bug is fixed; a kit self-test builds the fresh zip, makes it a git repo and runs the kit's own doctor and suite (green after fixing four home-only assumptions). Dead knobs are gone, the provider enum agrees, brand-identity.md is home-only, CLAUDE.md, the template, both READMEs, glossary and adopt skill are rewritten, and every card is reconciled with an EOL-normalised hash.",
+  "files_changed": [
+    ".claude/hooks/policy_gate.py",
+    ".claude/tools/checkctl.py",
+    ".claude/tools/distctl.py",
+    ".claude/tools/mapctl.py",
+    ".claude/tools/_lib.py",
+    ".claude/tools/statectl.py",
+    ".claude/tools/tests/test_hooks.py",
+    ".claude/tools/tests/test_ritual.py",
+    ".claude/tools/tests/test_secrets.py",
+    ".claude/tools/tests/test_contracts.py",
+    ".claude/tools/tests/test_dist.py",
+    ".claude/tools/tests/test_statectl.py",
+    ".claude/tools/tests/test_mapctl.py",
+    ".claude/config/memory.json",
+    ".claude/config/registry.json",
+    ".claude/CLAUDE.md",
+    ".claude/README.md",
+    ".claude/skills/adopt/CLAUDE.template.md",
+    ".claude/skills/adopt/SKILL.md",
+    ".claude/skills/project-memory/SKILL.md",
+    ".claude/reference/glossary.md",
+    ".claude/reference/distribution-boundary.md",
+    ".claude/system-map/cards",
+    ".claude/system-map/cards/tool.sysmon.json",
+    ".claude/system-map/cards/store.ritual_ticket.json",
+    ".github/README.md",
+    ".github/workflows/ci.yml"
+  ],
+  "tests": [
+    {"command": "python3 .claude/tools/tests/run_tests.py -q", "exit_code": 0, "summary": "747 passed · 0 failed · 0 errored · 2 skipped / TESTS_OK"},
+    {"command": "python3 .claude/tools/checkctl.py probe", "exit_code": 0, "summary": "52 ok · 0 warn · 0 fail · 0 skipped / CHECK_OK"}
+  ],
+  "EVIDENCE": [
+    "Reproduced before fixing: the new TestGateFalsePositives/TestRitualEscapes/TestLeadOnlyCommands failed on the old gate (envelope heredoc naming policy_gate.py denied for verifier/builder/worker on both lanes; backslash GIT path denied on both lanes; `.*?` and `2 * 3` in python next to open('out.txt','w') denied as the record; every ritual-ticket.sh run allowed except via subprocess in a sub-agent); all green after.",
+    "test_contracts.TestGitignoreShadowing.test_a_file_level_pattern_is_caught failed before the bytes-stdin fix (*.md never matched on Windows), passes after.",
+    "Kit self-test first run: doctor exit 0, inner suite 15 failed + 3 errored (TestChangelogParity and test_generic_dist_pattern_is_caught inherited distribution=false from the kit; docs/understand.html home-only; guide tests read the template whose sections differed; context_health flagged backticked state paths absent from a fresh kit). All fixed; TestKitSelfTest green.",
+    "Confirmed unread before removal: memory.snapshot.* (no code reads `snapshot` from config), phases.evolve (phase_steps called only with check/polish/publish), project_steps.generator (project_steps called only with check/polish), journal `config` action (no writer; only the projector's no-op branch).",
+    "python3 .claude/tools/mapctl.py lint -> 0 errors, 4 warnings (config.brainstorm, human.maintainer, skill.adhd, tool._lib unplaced)",
+    "python3 .claude/tools/checkctl.py doctor (worktree) -> 14 ok, 1 warn (heartbeat: no Stop hook in a worktree), 0 fail"
+  ],
+  "DEVIATIONS": [
+    "test_secrets.DOCTOR_NAMES gains `hook_scripts` (a new doctor row); test_dist's project_steps fixture drops its `generator: []`; test_statectl drops the `config` action from MINIMAL_FIELDS (the action is removed). TestChangelogParity and test_generic_dist_pattern_is_caught now set distribution.enabled explicitly (they assumed the home repo's config); test_understand_page_no_longer_keeps_keys_in_dotenv skips when docs/ is absent. No deny assertion was loosened.",
+    "The gate refuses `checkctl ticket` with or without --grant (the bare form only prints the ticket state): matching the subcommand rather than the flag is what survives argparse prefix abbreviations like --gr.",
+    "The forbidden-subcommand match applies to the program itself or a python interpreter's script/-m module, plus interpreter code that also starts a program (RUN_HINT); words in any other position (a note, an envelope's prose) are not a run.",
+    "mapctl.compute_hash now normalises CRLF to LF (out of the task text, found while reconciling cards): this Windows checkout's CRLF files hashed differently from git/CI, so a scan here made cards read stale on Linux. Every card's hash was refreshed by the scan.",
+    "CLAUDE.md is 100 lines, not the anatomist's ~80: it now carries the commands, modes, phases, ritual, proposals, orchestration, doctor, export, secrets and folder context the task asked for. The template uses `.claude/state/` unbackticked in its layout row because a fresh kit has no state folder until first use.",
+    "No minimum Claude Code version is stated anywhere in the docs for UserPromptExpansion, so doctor carries no version note.",
+    "tool.sysmon placed in CONSOLE (its one consumer is console.server, its knob is console.monitor.enabled); config.brainstorm and skill.adhd, tool._lib and human.maintainer left unplaced as genuinely unclear.",
+    "Orchestration protocol addendum (item 12) was already present (T13); no change."
+  ],
+  "UNCERTAINTIES": [
+    "The kit self-test was run on Windows only; on Ubuntu CI it depends on zip mode bits (restored from external_attr) and repo-local git identity, both handled but not run there.",
+    "The suite now takes about six and a half minutes here (the kit self-test runs the inner suite once).",
+    "Several files were written with LF while this checkout holds CRLF (autocrlf); git normalises, but the lead's diff tool may show whole-file line-ending noise for them.",
+    "files_changed lists `.claude/system-map/cards` as a folder: the scans refreshed many card hashes and I did not use git to enumerate them."
+  ],
+  "needs_main": [
+    "Rebuild and commit the dist zips (release step): brand-identity.md must leave both zips, and the shipped payload changed.",
+    "Recompile map.json and console.html through the ritual (derived; not touched here).",
+    "STATUS.md still mentions --hard: the first /project-memory rewrites it.",
+    "Gate, tools, config, skills and cards are protected-tree files: merge only after review."
+  ],
+  "SUGGESTIONS": [
+    "_lib.sha256_paths (the generator ledger) hashes raw bytes too, so generator freshness may differ between a CRLF and an LF checkout of the same commit; the same CRLF normalisation would fix it.",
+    "reference/glossary.md, release-flow.md and brand-identity.md have no cards (mapctl does not discover reference/); decide declared-vs-discovered once.",
+    "`checkctl ticket --grant` could also require an interactive terminal (stdin isatty) as a second tripwire beside the gate.",
+    "The word match for denied commands still fires on harmless mentions inside multi-line python heredocs written by sub-agents (it hit this builder twice on scratch scripts); reading the git word only in command position would remove that class."
+  ]
+}

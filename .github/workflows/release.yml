@@ -5,6 +5,12 @@
 # .claude/tools/distctl.py, the same registered generator the ritual runs, so what a
 # release carries is byte-identical to what the repo ships.
 #
+# Two kinds of tag, one workflow (the flow is .claude/reference/release-flow.md):
+#   vX.Y.Z-(alpha|beta|rc).N  cut on dev  -> a GitHub PRE-release; "latest" does not move
+#   vX.Y.Z                    cut on main -> a full release; becomes "latest"
+# Any other v-tag fails the release job: a malformed pre-release tag must not publish as
+# stable and move "latest". _lib.py owns the grammar; this file only asks it.
+#
 # To cut a release:   git tag v0.1.0 && git push origin v0.1.0
 # Or run it by hand:  Actions tab -> release -> Run workflow
 
@@ -25,7 +31,7 @@ jobs:
   # was caught by a human running Windows, never by CI. Lesson L-9's prevention rule is this
   # job. The interpreter differs by runner - `python3` on ubuntu, `python` on windows - so the
   # matrix carries the name rather than adding a setup action that would also move the
-  # ubuntu job's proven Python version.
+  # ubuntu job's proven Python version. ci.yml runs the same matrix on every push and PR.
   test:
     strategy:
       fail-fast: false
@@ -39,11 +45,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test (the gate - no release over a red suite)
+        # Git Bash, not the runner's default PowerShell: on windows-latest a bare `bash` on
+        # PATH is the WSL launcher with no distro, so every hook test failed there. Under
+        # `shell: bash` Git's own bash comes first, which is also what Claude Code uses.
+        shell: bash
         run: ${{ matrix.py }} .claude/tools/tests/run_tests.py -q
 
   release:
     needs: test
-    runs-on: ubuntu-latest   # zips stay single-OS: determinism is the whole point of them
+    runs-on: ubuntu-latest   # any OS would do: the zips are LF-normalised and deterministic
     steps:
       - uses: actions/checkout@v4
 
@@ -51,25 +61,39 @@ jobs:
         run: |
           python3 .claude/tools/distctl.py build
           ls -la .claude/dist/
+          # The rebuild must equal the committed zips. On a tag the suite already proved it
+          # (_lib.zip_equality_required); on a manual run from dev this step is the only check.
+          # Either way it is made where the assets are published, so it stays.
+          git diff --exit-code --stat -- .claude/dist/
 
       - name: Create the GitHub Release with both zips
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${GITHUB_REF_NAME}"
-          if [ "${GITHUB_REF_TYPE}" != "tag" ]; then
+          KIND_FLAGS=""
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            # prerelease|stable from the one grammar in _lib; exit 1 on a malformed tag.
+            KIND="$(python3 .claude/tools/_lib.py --release-kind "$TAG")" || exit 1
+            if [ "$KIND" = "prerelease" ]; then
+              KIND_FLAGS="--prerelease --latest=false"
+            fi
+          else
             TAG="manual-$(date -u +%Y%m%d-%H%M%S)"
             git tag "$TAG" && git push origin "$TAG"
           fi
           # Notes come from the tag's own CHANGELOG.md section - the changelog_parity CHECK
-          # step guarantees it exists, so a release can never outrun its changelog. The
+          # step guarantees it exists, so a release can never outrun its changelog. The heading
+          # match is exact (_lib.changelog_section): v3.0 never picks up '## v3.0.1'. The
           # boilerplate below it is the same for every release.
           python3 - "$TAG" > /tmp/release-notes.md <<'PY'
-          import re, sys
+          import sys
+          sys.path.insert(0, ".claude/tools")
+          import _lib
           tag = sys.argv[1]
           text = open("CHANGELOG.md", encoding="utf-8").read()
-          m = re.search(rf"^## {re.escape(tag)}\b[^\n]*\n(.*?)(?=^## |\Z)", text, re.M | re.S)
-          print((m.group(1).strip() if m else "See CHANGELOG.md.") + "\n")
+          section = _lib.changelog_section(text, tag)
+          print((section or "See CHANGELOG.md.") + "\n")
           PY
           {
             echo ""
@@ -80,8 +104,11 @@ jobs:
             echo ""
             echo "Manual: \`.claude/README.md\` in either zip."
           } >> /tmp/release-notes.md
+          # KIND_FLAGS is deliberately unquoted: empty for a stable tag, two flags for a
+          # pre-release.
           gh release create "$TAG" \
             ".claude/dist/dot-claude-iff-fresh.zip#Fresh start (unzip into a new repo)" \
             ".claude/dist/dot-claude-iff-adopt-kit.zip#Adopt kit (for an existing repo)" \
             --title "dot-claude-iff $TAG" \
-            --notes-file /tmp/release-notes.md
+            --notes-file /tmp/release-notes.md \
+            $KIND_FLAGS

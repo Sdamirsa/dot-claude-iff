@@ -13,6 +13,9 @@
 # LAW 2, gate half: if the judge exits non-zero, or python3 is missing entirely, we do a
 # last-resort grep for the protected prefixes and DENY on a match. That keeps a broken judge
 # from opening the protected tree without bricking every unrelated write in the session.
+# UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
+# hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
+export PYTHONUTF8=1
 
 set -u
 export CLAUDE_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
@@ -49,9 +52,9 @@ python3 "$HOOK_DIR/policy_gate.py" "$payload_file"
 status=$?
 
 if [ "$status" -ne 0 ]; then
-  # The judge did not judge. Fail closed for the protected tree only.
+  # The judge did not judge. Fail closed for the protected tree, the record and the ticket.
   # [/\\]+ accepts the posix form and the JSON-escaped Windows form (.claude\\config) alike.
-  if grep -qE '\.claude[/\\]+(hooks|tools|config|agents|protocols|skills|console)[/\\]|\.claude-iff|settings\.json|_claude_iff' "$payload_file" 2>/dev/null; then
+  if grep -qE '\.claude[/\\]+(hooks|tools|config|agents|protocols|skills|console)[/\\]|\.claude-iff|settings(\.local)?\.json|_claude_iff|ritual-ticket' "$payload_file" 2>/dev/null; then
     printf '%s\n' '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"the policy gate could not run (python3 missing or the judge crashed) and this call touches the protected tree. Failing closed. Fix the gate before editing it."}}'
   fi
 fi

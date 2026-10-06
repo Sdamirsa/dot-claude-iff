@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-26T12:35:42Z",
+  "generated_at": "2026-10-06T06:57:33Z",
   "counts": {
     "open": 0,
-    "resolved": 4,
+    "resolved": 5,
     "by_band": {
       "SEV0": 0,
       "SEV1": 0,
@@ -35,6 +35,12 @@
       "title": "Approve derived console ports + folder-name URLs",
       "answer": "approved and implemented: port 'auto' derives from folder name (7100-7899, walk-on-collision), explicit int stays decided-once, *.localhost Host accepted, kits ship auto+monitor-off; suite 225/225",
       "resolved": "2026-08-26T12:35:42Z"
+    },
+    {
+      "id": "NH-20261005174435-a6a6",
+      "title": "Approve tagging v0.3.0-alpha.1 and posting the issue replies",
+      "answer": "yes after CI; tagged v0.3.0-alpha.1, pre-release published, replies posted, issues kept open until stable",
+      "resolved": "2026-10-06T06:57:33Z"
     }
   ]
 }

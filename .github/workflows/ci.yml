@@ -1,0 +1,40 @@
+# CI: the whole suite on every push to dev or main and on every pull request, on both OS.
+#
+# release.yml runs the same matrix as its gate, but only when a tag is pushed; before this file
+# a red suite on dev was found at release time. Same commands as release.yml's test job, on
+# purpose: the interpreter name differs by runner (`python3` on ubuntu, `python` on windows).
+# The suite includes test_dist's rebuild-equality test, strict where _lib.zip_equality_required
+# says so (pushes to main, pull requests into main), so a stale zip goes red here, not in
+# someone's adoption. On dev it skips: the zips may lag until the release step rebuilds them.
+# It also includes the kit self-test (test_dist.TestKitSelfTest): the fresh zip built from this
+# tree, extracted into a temp git repo, must pass its own `checkctl doctor` and its own suite.
+
+name: ci
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            py: python3
+          - os: windows-latest
+            py: python
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        # Git Bash, not the runner's default PowerShell: on windows-latest a bare `bash` on
+        # PATH is the WSL launcher with no distro, so every hook test failed there. Under
+        # `shell: bash` Git's own bash comes first, which is also what Claude Code uses.
+        shell: bash
+        run: ${{ matrix.py }} .claude/tools/tests/run_tests.py -q

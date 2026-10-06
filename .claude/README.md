@@ -25,6 +25,46 @@ is what makes control truthful, the gates are what make interaction safe.
 Everything lives in `.claude/`. A thing lives elsewhere **if and only if** it must, which is
 what the name means.
 
+## What is new in 0.3
+
+Each item with the one command to try it.
+
+- **Modes**: how organised the work is - freestyle (the default: record, gates and ritual
+  only), guided-solo (a phase contract at session start), fableous-orchestrated (a lead
+  dispatching builders). `python3 .claude/tools/statectl.py mode guided-solo`
+- **Phases**: plan → build → review → deploy; leaving a phase runs its exit check.
+  `python3 .claude/tools/checkctl.py phase-exit --from plan`, then
+  `python3 .claude/tools/statectl.py phase build`
+- **The ritual is yours alone**: only your own prompt opens `/project-memory`, and it ends with
+  ROUTE (next phase, next mode, maturation pass). If the prompt hook never fires on your
+  install, run `python3 .claude/tools/checkctl.py ticket --grant` in your own terminal.
+- **Proposals**: ideas parked instead of built. `python3 .claude/tools/statectl.py proposal add
+  "idea" --source human`
+- **Fableous orchestration**: the lead cuts a worktree per builder and merges what passes.
+  `python3 .claude/tools/statectl.py dispatch <task>`, `statectl.py accept <task>`, and each
+  builder's envelope checked by `python3 .claude/tools/checkctl.py handoff <task> --run`.
+- **Progress view**: one model for the console panel and the terminal.
+  `python3 .claude/tools/statectl.py progress`
+- **Secrets check and doctor**: can this machine run the system, and are keys where they
+  belong (`reference/secrets.md`)? `python3 .claude/tools/checkctl.py doctor`
+- **Visibility and export**: keep the system tracked or ignored in git, and copy it into a
+  public checkout without this project's history. `python3 .claude/tools/distctl.py gitignore`,
+  `python3 .claude/tools/distctl.py export --to <checkout> --dry-run`
+  (`reference/public-private.md`). In the source repo, `distctl.py verify` says whether the
+  committed zips equal a rebuild.
+- **Folder context**: which guides and rules load where, and which are stale or noisy.
+  `python3 .claude/tools/mapctl.py context`
+- **`/adhd`**: a divergent brainstorm you invoke yourself; the agent may suggest it in one line,
+  never run it. Type `/adhd <question>`.
+
+**The policy gate is a tripwire for honest mistakes, not a sandbox.** It reads every Write,
+Edit, Bash and PowerShell call and refuses writes into the record, the ritual ticket and (for
+sub-agents) the protected tree. Reading shell statically cannot stop a determined adversary:
+a script written first and then run, a payload decoded at run time, a program missing from the
+gate's writer tables, a path assembled at run time inside interpreter code, an archive or patch
+applied in the main session's own root, and a renamed copy of the prompt hook all pass. Review
+of the diff, the git denylist and your own approval are the other layers.
+
 ## Install it into a project
 
 Open Claude Code in the target project and say *adopt the claude-iff system*, or run `/adopt`
@@ -34,8 +74,8 @@ with spine layers only, dispatches the anatomist to fill in relations, builds th
 **probes that hooks actually fire** (project hooks require your trust first, so "silently off"
 is a real state worth checking).
 
-Requirements: `bash` and `python3`. That is the whole floor for the hooks and the six core
-tools, forever. Project-registered steps and optional features may use `uv`.
+Requirements: `bash` and `python3`. That is the whole floor for the hooks and every tool in
+`.claude/tools/`, forever. Project-registered steps and optional features may use `uv`.
 
 ## The daily shape
 
@@ -50,7 +90,7 @@ behind your back is a second source of truth.
 
 | Tab | What it answers |
 |-----|-----------------|
-| **NOW** | Is anything running, what is the resume pointer, what needs a human, what did the last turns do, what have we spent |
+| **NOW** | How far the current milestone is (the Progress panel, same model as `statectl.py progress`), is anything running, what is the resume pointer, what needs a human, what did the last turns do, what have we spent |
 | **MAP** | What this system is made of, how the pieces relate, which layer each belongs to |
 | **STORY** | How the project evolved, on a dual clock (wall time, or cumulative output tokens) |
 | **WORK** | Active tasks and their next actions, the decision log, active watch-outs, research index |
@@ -107,14 +147,16 @@ traceback usually costs none.
 lesson". It becomes a row in `LESSONS.jsonl` with a mechanical prevention rule, and the agent
 will cite it back before repeating the mistake. That is the system learning; feed it.
 
-**5 · Close your blocks.** Run `/project-memory` at the end of a session, and answer gates when
-asked; silence is not approval. An unclosed block is the one thing this system cannot protect.
+**5 · Close your blocks.** Type `/project-memory` at the end of a session, and answer gates when
+asked; silence is not approval. Only you can open the ritual (the agent suggests it, and
+`checkctl` refuses a run your own prompt did not open). An unclosed block is the one thing this
+system cannot protect.
 
 ## Get it into your own project
 
 Grab a zip from the repo's **GitHub Releases** (built by CI from a tested tree), or from
-`.claude/dist/` in a checkout - the same generator builds both, rebuilt by every ritual so
-they can never go stale:
+`.claude/dist/` in a checkout of `main` or a release tag - the same generator builds both, and
+there they are guaranteed equal to a rebuild (on `dev` they may lag between releases):
 
 - **`dot-claude-iff-fresh.zip`**: for a NEW or empty repo. Unzip into the repo root, open
   Claude Code there, trust the hooks when asked, and follow the unzipped `START-HERE.md`.
@@ -125,7 +167,11 @@ they can never go stale:
 
 ## The one command
 
-`/project-memory` runs four phases and is the only place derived surfaces are rebuilt.
+`/project-memory` runs four phases, then ROUTE, and is the only place derived surfaces are
+rebuilt. You type
+it; the agent cannot. Your prompt mints a short-lived ritual ticket (the prompt hook writes
+`.claude/state/ritual-ticket.json`, which the gate denies to every agent), and `checkctl`
+refuses to open or complete a ritual without one. A tripwire, not cryptography.
 
 - **CHECK** - does reality match the record? Journal parses, heartbeat present, generators
   fresh, cards lint, knobs registered, prices present, record size, queue synced, task
@@ -135,9 +181,10 @@ they can never go stale:
   commit, and push per policy (default: ask once).
 - **EVOLVE** - a session digest goes to the retro-analyst, which proposes at most three
   evidence-backed changes; you confirm; the anatomist implements and updates the cards.
-
-`--hard` turns it into a maturation session: full anatomy audit, a pruning sweep against actual
-usage, task cards with pass-tests, and a decision list for you.
+- **ROUTE** - one question set the next session starts from: stay in the lifecycle phase or
+  advance (the exit check runs; review asks for your sign-off), keep or switch the mode, and
+  whether to run a maturation pass now: full anatomy audit, a pruning sweep against actual
+  usage, proposals turned into task cards for a plan phase, and a decision list for you.
 
 Why one command: in the system this was distilled from, the single regenerator that nobody
 wired into the ritual sat frozen for two and a half months while everything downstream quietly
@@ -164,7 +211,7 @@ served stale data. So there is exactly one ritual, every generator is registered
 .claude-iff/        committed record surface: anchor + redacted daily rollups (write-denied)
 <parent>/<repo>_claude_iff/
                     RECORD_ROOT: raw capture, sealed raw (kept forever), segments,
-                    transcripts, analysis products, vault snapshots
+                    transcripts, analysis products
 ```
 
 The record is a sibling folder rather than a hidden state directory so it stays visible and
@@ -175,9 +222,14 @@ inspectable next to the project it belongs to. Override it with `record_root` in
 
 ```
 python3 .claude/tools/statectl.py   pointer|task|milestone|decision|loop|note|need|refresh|resume
+                                    mode|phase|proposal|dispatch|accept|progress
 python3 .claude/tools/checkctl.py   run --phase check|polish|publish · probe · generators
+                                    phase-exit --from plan|build|review|deploy · doctor
+                                    handoff <task_id> [--run] [--root <worktree>]
+                                    ticket --grant   # you, in your own terminal; never an agent
+python3 .claude/tools/distctl.py    export --to <checkout> [--dry-run] · gitignore · verify
 python3 .claude/tools/obsctl.py     ingest|seal|rollup|anchor|report|story|size|analyze
-python3 .claude/tools/mapctl.py     scan|lint|compile|show
+python3 .claude/tools/mapctl.py     scan|lint|compile|show|context
 python3 .claude/tools/consolectl.py build|payload|serve
 python3 .claude/console/console.py                    # serve the console on 127.0.0.1
 python3 .claude/tools/tests/run_tests.py              # the whole suite

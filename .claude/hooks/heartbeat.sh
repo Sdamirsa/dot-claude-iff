@@ -8,6 +8,16 @@
 #
 # Overwrite, not append: the journal stays small and meaningful, and the console gets a
 # freshness number for free.
+#
+# Mid-turn, the activity pulse (_lib.activity_pulse, from the policy gate and the sub-agent
+# capture lane) rewrites the same file as {ts, note: "working", via}. This hook's note stays
+# "turn ended" (_lib.TURN_ENDED_NOTE), so a reader can tell a working turn from a finished one.
+#
+# The file is gitignored (it changes every turn) and the kits ship no state/ at all, so this
+# hook is what makes it exist: on a fresh install it creates state/ the first time a turn ends.
+# UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
+# hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
+export PYTHONUTF8=1
 
 set -u
 cat >/dev/null 2>&1 || true   # drain stdin; the payload is not needed
@@ -23,10 +33,11 @@ try:
     sys.path.insert(0, str(root / ".claude" / "tools"))
     import _lib
 
-    state = _lib.state_dir()
-    if not state.exists():
+    if not _lib.claude_dir().is_dir():
         raise SystemExit(0)
-    _lib.atomic_write_json(state / "heartbeat.json", {"ts": _lib.utc_now(), "note": "turn ended"})
+    # atomic_write_json creates state/ when it is missing (a fresh install ships none).
+    _lib.atomic_write_json(_lib.state_dir() / "heartbeat.json",
+                           {"ts": _lib.utc_now(), "note": "turn ended"})
 except Exception:
     pass
 PY

@@ -1,0 +1,20 @@
+{
+  "id": "config.orchestration",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Orchestration",
+  "path": ".claude/config/orchestration.json",
+  "description": "Lead-and-team routing in the fableous-orchestrated mode (.claude/protocols/orchestration.md).",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "ebbe1a3bcef74b5c576f10ffdc1305106b8e015aa841f6270f1a3e115b4a11ac",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

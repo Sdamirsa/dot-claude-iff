@@ -12,10 +12,15 @@ signal: ERROR findings fail CHECK (a wrong or missing card is worse than an hone
 findings only inform. `compile` folds every card into map.json, write-gated so an unchanged
 result never touches the file (and never shows up in a git diff). `show` prints a human summary.
 
+Guides (CLAUDE.md files) and rules (.claude/rules/) are not cards: ctxmap.py derives them into
+map.json's `context` section at compile, so a project can grow folder guides without writing a
+card per guide, and lint never asks for one. `context` asks what loads for a file.
+
     mapctl.py scan       # discover components, create/refresh stub cards
     mapctl.py lint       # two-tier validation; exit 1 on any ERROR
     mapctl.py compile    # write system-map/map.json (write-gated)
     mapctl.py show [--id ID]
+    mapctl.py context [<path>] [--json] | --suggest   # folder context (ctxmap.py)
 """
 
 import argparse
@@ -23,6 +28,8 @@ import ast
 import json
 import re
 from pathlib import Path
+
+import ctxmap
 
 # --------------------------------------------------------------------------- known, declared components
 #
@@ -54,6 +61,11 @@ KNOWN_STORES = [
      "description": "Async needs-human queue: SEV0-3 bands, queue-as-view. Bundles the append-only "
                      "source (needs-human.jsonl) and its derived projection (needs-human.json).",
      "glyphs": ["append-only", "derived"]},
+    {"id": "store.proposals", "path": ".claude/state/proposals.jsonl", "title": "Proposal box",
+     "description": "Ideas out of scope right now (statectl proposal add/list/resolve, ids PR-<n>): "
+                     "append-only, its own store like needs-human so a parked idea outlives any "
+                     "session. Open count lands in session.json; listed on the console WORK tab.",
+     "glyphs": ["append-only"]},
     {"id": "store.project_log", "path": ".claude/Project-log.jsonl", "title": "Project log",
      "description": "Append-only decision/deliverable/milestone/mistake/tooling log.",
      "glyphs": ["append-only"]},
@@ -80,24 +92,42 @@ KNOWN_STORES = [
                      "sibling folder, out of git.",
      "glyphs": ["read-only"], "external_to_repo": True},
     {"id": "store.heartbeat", "path": ".claude/state/heartbeat.json", "title": "Heartbeat",
-     "description": "Liveness signal, overwritten once per turn by the Stop hook. Not the resume "
+     "description": "Liveness signal, overwritten once per turn by the Stop hook ('turn ended') and "
+                     "mid-turn by the activity pulse ('working', via the policy gate and the "
+                     "sub-agent capture lane, throttled by progress.pulse_seconds). Not the resume "
                      "guarantee - the journal pointer is.",
      "glyphs": []},
     {"id": "store.memory_run", "path": ".claude/state/memory-run.json", "title": "Ritual run checkpoint",
-     "description": "The /project-memory transaction: run id, phase, step. PUBLISH refuses unless "
+     "description": "The /project-memory transaction: run id, phase, step, and who opened it "
+                     "(invoked_by: user-ticket, with the ticket's ts). PUBLISH refuses unless "
                      "POLISH completed in the same run id.",
+     "glyphs": []},
+    {"id": "store.ritual_ticket", "path": ".claude/state/ritual-ticket.json", "title": "Ritual ticket",
+     "description": "Proof the USER typed /project-memory or /adopt: {skill, ts, session_id, event}. "
+                     "Written by the prompt hook, or by `checkctl ticket --grant` that the human "
+                     "runs in their own terminal (the gate denies the file and that subcommand to "
+                     "every agent); checked by checkctl run and complete, consumed by complete. A "
+                     "tripwire, not cryptography; gitignored.",
      "glyphs": []},
     {"id": "store.handshakes", "path": ".claude/state/handshakes", "title": "Handshake envelopes",
      "description": "Agent-to-agent Structured Return envelopes (stub at dispatch, envelope at delivery).",
      "glyphs": ["envelope"]},
+    {"id": "store.orchestration", "path": ".claude/state/orchestration.json",
+     "title": "Orchestration runtime",
+     "description": "fableous-orchestrated runtime, per machine and gitignored: when each sub-agent "
+                     "began (the builder stop check's 'since'), the lead's code edits since the "
+                     "last dispatch (the delegation nudge), and when the periodic progress report "
+                     "last went to the lead (both organised modes). Written by the hooks only.",
+     "glyphs": []},
     {"id": "store.generators", "path": ".claude/state/generators.json", "title": "Generator ledger",
      "description": "Law-1 anti-rot ledger: content hash of each generator's inputs/output, stamped "
                      "after it runs through the ritual.",
      "glyphs": ["derived"]},
     {"id": "store.dist", "path": ".claude/dist", "title": "distribution zips",
      "description": "The two release artifacts: dot-claude-iff-fresh.zip (new repo) and "
-                     "dot-claude-iff-adopt-kit.zip (existing repo). Derived: rebuilt by every "
-                     "ritual so a download can never lag the repo.",
+                     "dot-claude-iff-adopt-kit.zip (existing repo). Derived: rebuilt by the "
+                     "ritual and by the release step; equal to a rebuild on main and on every "
+                     "tag, while between releases the copies on dev may lag. Never a builder's.",
      "glyphs": ["derived"]},
 ]
 
@@ -121,6 +151,9 @@ SINGLETONS = [
                      "token replaced by consolectl's payload at build time."},
 ]
 
+# Guides and rules are deliberately absent: they are derived context entries (ctxmap.py), so
+# neither the missing-card ERROR nor the ghost check ever applies to them. A hand-written card
+# for one is allowed and linted like any other card, but never required.
 GLOB_ID_PREFIXES = ("agent.", "skill.", "hook.", "tool.", "protocol.", "config.")
 SINGLETON_IDS = {s["id"] for s in SINGLETONS}
 
@@ -239,6 +272,7 @@ _LITERAL_TO_STORE = {
     "HANDOFF.md": "store.handoff",
     "needs-human.jsonl": "store.needs_human",
     "needs-human.json": "store.needs_human",
+    "proposals.jsonl": "store.proposals",
     "Project-log.jsonl": "store.project_log",
     "LESSONS.jsonl": "store.lessons",
     "map.json": "store.map",
@@ -247,7 +281,9 @@ _LITERAL_TO_STORE = {
     "rollups": "store.rollups",
     "heartbeat.json": "store.heartbeat",
     "memory-run.json": "store.memory_run",
+    "ritual-ticket.json": "store.ritual_ticket",
     "handshakes": "store.handshakes",
+    "orchestration.json": "store.orchestration",
     "generators.json": "store.generators",
 }
 
@@ -292,8 +328,15 @@ def resolve_path(path_str):
 
 def compute_hash(path: Path) -> str:
     """Content hash of a real, discovered source file. Never called for a declared
-    (store/human) card - see the KNOWN_STORES comment for why."""
-    return _lib.sha256_file(path) or ""
+    (store/human) card - see the KNOWN_STORES comment for why. Line endings are normalised
+    first: a Windows checkout (autocrlf) holds CRLF where git and every other OS hold LF, and
+    a raw-byte hash made every card read stale on the other OS."""
+    try:
+        data = Path(path).read_bytes()
+    except OSError:
+        return ""
+    import hashlib
+    return hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
 
 
 def _component(id_: str, kind: str, title: str, description: str, source: Path) -> dict:
@@ -575,6 +618,9 @@ def cmd_scan(_args) -> int:
               f"mapctl KNOWN_STORES - scan cannot account for it)")
     for m in malformed:
         print(f"  MALFORMED  {m}")
+    index = ctxmap.discover()
+    print(f"  CONTEXT    {len(index.guides())} guide(s), {len(index.rules)} rule(s): derived "
+          f"into map.json at compile, never cards")
 
     _lib.print_verdict("MAP", True, warn=bool(ghosts or malformed or undeclared))
     return 0
@@ -672,7 +718,7 @@ def _layer_order(layers_cfg) -> dict:
     return order
 
 
-def build_map(cards_by_id: dict, layers_cfg, errors: list, warnings: list) -> dict:
+def build_map(cards_by_id: dict, layers_cfg, errors: list, warnings: list, context=None) -> dict:
     order_by_layer = _layer_order(layers_cfg)
 
     def sort_key(card):
@@ -729,6 +775,7 @@ def build_map(cards_by_id: dict, layers_cfg, errors: list, warnings: list) -> di
             "unplaced": unplaced,
         },
         "lint": {"errors": errors, "warnings": warnings},
+        "context": context if context is not None else ctxmap.empty_section(),
     }
 
 
@@ -738,7 +785,7 @@ def cmd_compile(_args) -> int:
     errors, warnings = compute_lint(cards_by_id, malformed, dup, layers_cfg)
     errors = errors + missing_card_errors(cards_by_id)
 
-    map_obj = build_map(cards_by_id, layers_cfg, errors, warnings)
+    map_obj = build_map(cards_by_id, layers_cfg, errors, warnings, context=ctxmap.map_section())
 
     out_path = map_json_path()
     existing = _lib.read_json(out_path, None)
@@ -808,20 +855,41 @@ def cmd_show(args) -> int:
     return 1 if errors else 0
 
 
+# --------------------------------------------------------------------------- context
+
+def cmd_context(args) -> int:
+    """What Claude Code loads for a file, the context file list with its findings, or
+    evidence-based proposals. ctxmap.py is the engine; this only owns the verdict token,
+    which goes to stderr under --json so stdout stays pure JSON."""
+    if args.suggest and args.path:
+        print("mapctl context: give a path or --suggest, not both", file=sys.stderr)
+        _lib.print_verdict("MAP", False)
+        return 2
+    code, state = ctxmap.cli(args.path, suggest_mode=args.suggest, as_json=args.json)
+    print(f"MAP_{state}", file=sys.stderr if args.json else sys.stdout)
+    return code
+
+
 # --------------------------------------------------------------------------- cli
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="mapctl.py", description="The system map: scan / lint / compile / show.")
+    p = argparse.ArgumentParser(prog="mapctl.py", description="The system map: scan / lint / compile / show / context.")
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("scan", help="auto-discover components and create/refresh stub cards")
     sub.add_parser("lint", help="two-tier validation of the card set (ERROR fails, WARN informs)")
     sub.add_parser("compile", help="write .claude/system-map/map.json (write-gated)")
     sp = sub.add_parser("show", help="human-readable summary of the map or one card")
     sp.add_argument("--id", default=None)
+    cp = sub.add_parser("context", help="guides and rules that load for a path (none: list all)")
+    cp.add_argument("path", nargs="?", default=None, help="repo-relative (or absolute) path")
+    cp.add_argument("--suggest", action="store_true",
+                    help="propose folder guides / scoped rules from lessons and logged mistakes")
+    cp.add_argument("--json", action="store_true")
     return p
 
 
-COMMANDS = {"scan": cmd_scan, "lint": cmd_lint, "compile": cmd_compile, "show": cmd_show}
+COMMANDS = {"scan": cmd_scan, "lint": cmd_lint, "compile": cmd_compile, "show": cmd_show,
+            "context": cmd_context}
 
 
 def main(argv: list) -> int:

@@ -1,0 +1,20 @@
+{
+  "id": "protocol.orchestration",
+  "kind": "data",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "Orchestration protocol: the lead and its team",
+  "path": ".claude/protocols/orchestration.md",
+  "description": "Orchestration protocol: the lead and its team. How work is split in the `fableous-orchestrated` mode: the top model plans, designs and stays accountable; cheaper agents build and research; every handoff is a JSON envelope that is checked by code, not by trust.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "b8712ebf29a1b74f088c8635e4fd75f88df9a04db4fa9754e0be9c8779deaaa3",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

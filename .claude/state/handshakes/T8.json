@@ -1,0 +1,73 @@
+{
+  "task_id": "T8",
+  "agent_id": "builder-t8",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "ok",
+  "RESULT": "Both guides now carry a 7-line Communication block (same text in each) and name /adhd on the Skills line. .claude/skills/adhd/ holds the upstream MIT skill (LICENSE byte-identical to upstream, UPSTREAM.md pins the commit), adapted to be user-invoked, to read branch_count/frames/branch_model/critic_model from the new .claude/config/brainstorm.json, to drop score chips and to defer to honesty.md. Each knob has a registry card; the config file is watched by the registry lint; skill and config have probe entries and system-map cards; evolution.md says EVOLVE may retune brainstorm.json.",
+  "files_changed": [
+    ".claude/CLAUDE.md",
+    ".claude/skills/adopt/CLAUDE.template.md",
+    ".claude/skills/adhd/SKILL.md",
+    ".claude/skills/adhd/LICENSE",
+    ".claude/skills/adhd/UPSTREAM.md",
+    ".claude/config/brainstorm.json",
+    ".claude/config/registry.json",
+    ".claude/protocols/evolution.md",
+    ".claude/system-map/cards/skill.adhd.json",
+    ".claude/system-map/cards/config.brainstorm.json",
+    ".claude/tools/checkctl.py",
+    ".claude/tools/tests/_fixture.py",
+    ".claude/tools/tests/test_brainstorm.py",
+    ".claude/state/handshakes/T8.json"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_brainstorm -q",
+      "exit_code": 0,
+      "summary": "19 passed · 0 failed · 0 errored · 0 skipped / TESTS_OK"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "244 passed · 0 failed · 0 errored · 1 skipped / TESTS_OK (skip: POSIX-only directory fsync test, pre-existing)"
+    }
+  ],
+  "EVIDENCE": [
+    "gh api repos/UditAkhourii/adhd/contents/skills/adhd/SKILL.md and .../LICENSE -> both fetched, exit 0; last SKILL.md commit 55ed38514cd996f6096b51c8320331a8a5dced19, repo HEAD dd08acc3",
+    "sha256sum of installed LICENSE equals the fetched upstream file (3f08d24b...)",
+    "SCORE_CHIP_PATTERNS and skill_config_keys run against the upstream SKILL.md -> every chip/weighting pattern matches upstream, no brainstorm keys, no disable flag: the tests can fail",
+    "python3 .claude/tools/mapctl.py lint -> 0 errors; new WARNs: skill.adhd and config.brainstorm unplaced; stale hashes on config.registry, protocol.evolution, tool.checkctl (files this task edited)",
+    "python3 .claude/tools/checkctl.py probe -> 40 ok · 0 warn · 0 fail, including skill.adhd and config.brainstorm",
+    "checkctl.check_config_registry() on the worktree -> OK, 35 knobs registered, none dead, no unregistered-tunable warnings",
+    "checkctl.check_no_machine_paths() -> OK",
+    "distctl._payload_entries dry run -> the new files are only skipped as not git-tracked; no distctl change needed (brainstorm.json defaults are universal, no adopter rewrite)",
+    "claude-code-guide lookup of code.claude.com/docs/en/skills.md -> with disable-model-invocation: true the skill's description is not loaded into context; /name still works"
+  ],
+  "DEVIATIONS": [
+    "The 'agent may SUGGEST /adhd' rule is in the skill description as asked, AND on the Skills line of both guides: per the Claude Code docs, disable-model-invocation drops the description from the agent's context, so the description alone would never reach the agent. A test asserts both guides mention /adhd.",
+    "CLAUDE.md was already 93 lines before T8, over the anatomist's ~80 target. It is now 102 (+8 block with separator, +1 /adhd on the Skills line); the template went 80 -> 89. I did not tighten other sections, to keep hunks local while other wave tasks edit the same file. Reporting instead of trimming, as the lead allowed.",
+    "Deepen calls use brainstorm.critic_model (Phase 2 = critic on). The task names only branch and critic models; ideas-per-branch (6) and deepen count (3) stay fixed in the method text, not knobs.",
+    "Registry cards and system-map cards for brainstorm/adhd have layer null (unplaced). No spine owns brainstorming and the anatomist rules say not to guess. Every existing registry card has a string layer; nothing reads the field today.",
+    "The brainstorm.frames registry card's default is a descriptive string, not the 15-frame list.",
+    "Upstream's self-judge pre-flight was dropped, since the skill only runs on an explicit /adhd. Its suggest criteria moved into the description. The npm CLI and SOURCE-SPEC.md sections were removed (recorded in UPSTREAM.md).",
+    "This envelope has two keys beyond the brief's exact set: agent_id and status (done). The main checkout's post-write-validate.sh blocked the brief-shaped envelope because the current protocols/handshake.md contract requires agent_id, task_id and status (done|partial|blocked). The two contracts disagree; drop the extras if checkctl handoff (T5) wants the exact set."
+  ],
+  "UNCERTAINTIES": [
+    "I did not run the skill end to end. In particular I did not check that 'inherit = omit the Agent model parameter' runs on the session model when a default subagent model is configured.",
+    "Map card hashes for config.registry, protocol.evolution and tool.checkctl are now stale (WARN only). I left them so the hunks would not collide with other tasks."
+  ],
+  "needs_main": [
+    "git add the new files (skills/adhd/*, config/brainstorm.json, the two cards, test_brainstorm.py): distctl only ships tracked files",
+    "After the merge, run mapctl scan (or the ritual) to refresh the stale card hashes, then mapctl compile",
+    "Rebuild the dist zips at merge",
+    "Decide whether CLAUDE.md (102 lines) gets condensed, e.g. in T10 drift/cleanup",
+    "Decide the layer placement for skill.adhd and config.brainstorm (currently unplaced)",
+    "Reconcile the brief's envelope shape (STATUS ok|partial|blocked, no agent_id) with protocols/handshake.md and the post-write-validate.sh gate, which require agent_id and status done|partial|blocked. Other builders will hit the same block."
+  ],
+  "SUGGESTIONS": [
+    "evolution.md's proposal format and retro-analyst.md list change_type values without 'config'. A retune proposal for brainstorm.json has no natural type; consider adding 'config' to both (retro-analyst.md is in the protected tree).",
+    "Communication-block rule 4 partly repeats Working agreement item 1. A future condensation could merge them to win back lines."
+  ]
+}

@@ -175,6 +175,19 @@ class TestRitualRegistry(FixtureCase):
         self.assertEqual(orphans, [],
                          f"these generators are not run by any ritual phase and will rot: {orphans}")
 
+    def test_home_check_phase_runs_the_suite(self):
+        """The home repo's CHECK runs the whole suite as a project step. The fixture carries
+        the shipped memory.json, so a fixture CHECK lists it (here it fails fast: the fixture
+        has no tests to run, which is what keeps this from recursing)."""
+        if not checkctl.distribution_enabled():
+            self.skipTest("home-repo-only: kits ship project_steps empty")
+        steps = {s.get("name"): s for s in checkctl.project_steps("check")}
+        self.assertIn("test_suite", steps)
+        self.assertEqual(steps["test_suite"]["argv"][1:],
+                         [".claude/tools/tests/run_tests.py", "-q"])
+        results = checkctl.run_check(checkctl.start_run())
+        self.assertIn("test_suite", [r.name for r in results])
+
 
 class TestPublishTransaction(FixtureCase):
     """PUBLISH must refuse to run on a ritual whose POLISH did not complete."""
@@ -212,7 +225,8 @@ class TestPublishTransaction(FixtureCase):
         """
         # The exit code is beside the point here (a fixture project has configs but no agent
         # files, so its CHECK legitimately fails); what matters is which run id the next phase
-        # writes into.
+        # writes into. The ticket stands in for the user typing /project-memory.
+        self.grant_ticket()
         checkctl.main(["run", "--phase", "check", "--new"])
         opened = checkctl.load_run()["run_id"]
         checkctl.main(["run", "--phase", "polish"])
@@ -220,6 +234,7 @@ class TestPublishTransaction(FixtureCase):
                          "POLISH started a new run instead of continuing the one CHECK opened")
 
     def test_new_forces_a_fresh_run(self):
+        self.grant_ticket()
         checkctl.main(["run", "--phase", "check", "--new"])
         first = checkctl.load_run()["run_id"]
         checkctl.main(["run", "--phase", "check", "--new"])
@@ -472,6 +487,10 @@ class TestGitignoreShadowing(FixtureCase):
             self.skipTest(f"git init failed: {r.stderr}")
 
     def test_generic_dist_pattern_is_caught(self):
+        # The dist zips are probed by name only where distribution is on (the home repo).
+        cfg = _lib.load_config("memory")
+        cfg["distribution"] = {"enabled": True}
+        self.write_config("memory", cfg)
         (self.root / ".gitignore").write_text("dist/\n", encoding="utf-8")
         result = checkctl.check_gitignore_shadowing()
         self.assertEqual(result.status, checkctl.WARN)
@@ -479,6 +498,18 @@ class TestGitignoreShadowing(FixtureCase):
 
     def test_clean_ignores_pass(self):
         self.assertEqual(checkctl.check_gitignore_shadowing().status, checkctl.OK)
+
+    def test_a_file_level_pattern_is_caught(self):
+        """Paths reached git through text-mode stdin, which on Windows ends each line in CRLF:
+        git kept the CR as part of the path, so `*.md` never matched `notes.md<CR>` and only
+        directory patterns ever fired."""
+        (self.root / ".claude" / "reference").mkdir(parents=True, exist_ok=True)
+        (self.root / ".claude" / "reference" / "notes.md").write_text("x\n", encoding="utf-8")
+        (self.root / ".gitignore").write_text("*.md\n", encoding="utf-8")
+        result = checkctl.check_gitignore_shadowing()
+        self.assertEqual(result.status, checkctl.WARN, result.message)
+        self.assertTrue(any("notes.md" in d for d in result.details), result.details)
+        self.assertFalse(any("\r" in d for d in result.details), result.details)
 
     def test_deliberate_private_ignore_is_not_a_shadow(self):
         private = self.root / ".claude" / "reference" / "private"
@@ -492,10 +523,30 @@ class TestGitignoreShadowing(FixtureCase):
         _shutil.rmtree(self.root / ".git")
         self.assertEqual(checkctl.check_gitignore_shadowing().status, checkctl.SKIP)
 
+    def test_heartbeat_and_worktrees_are_deliberate_ignores(self):
+        """Both are gitignored on purpose (the kits' .gitignore says so); a check that warned
+        about them would cry wolf in every repo on every ritual."""
+        (self.root / ".claude" / "state" / "heartbeat.json").write_text("{}\n", encoding="utf-8")
+        wt = self.root / ".claude" / "worktrees" / "t1" / ".claude"
+        wt.mkdir(parents=True)
+        (wt / "CLAUDE.md").write_text("copy\n", encoding="utf-8")
+        (self.root / ".gitignore").write_text(
+            ".claude/state/heartbeat.json\n.claude/worktrees/\n", encoding="utf-8")
+        result = checkctl.check_gitignore_shadowing()
+        self.assertEqual(result.status, checkctl.OK, result.details)
+
 
 class TestChangelogParity(FixtureCase):
     """The release flow pins one CHANGELOG.md section per version; this check is the
     mechanical half of that promise, and it must stay silent outside the home repo."""
+
+    def setUp(self):
+        # The fixture IS a home repo: set the knob rather than inherit whatever the repo running
+        # the suite ships (a kit ships it false, and these tests must pass inside a kit too).
+        super().setUp()
+        cfg = _lib.load_config("memory")
+        cfg["distribution"] = {"enabled": True}
+        self.write_config("memory", cfg)
 
     def test_gated_off_outside_the_home_repo(self):
         cfg = _lib.load_config("memory")
@@ -524,6 +575,209 @@ class TestChangelogParity(FixtureCase):
         (self.root / "CHANGELOG.md").write_text(
             f"# Changelog\n\n## v{version}0 - 2026-01-01\n", encoding="utf-8")
         self.assertEqual(checkctl.check_changelog_parity().status, checkctl.FAIL)
+
+    def _stamp(self, version: str) -> None:
+        cfg = _lib.load_config("registry")
+        cfg["system_version"] = version
+        self.write_config("registry", cfg)
+
+    def _changelog(self, *headings: str) -> None:
+        body = "".join(f"## {h} - 2026-01-01\n\n- x\n\n" for h in headings)
+        (self.root / "CHANGELOG.md").write_text(f"# Changelog\n\n{body}", encoding="utf-8")
+
+    def test_a_prerelease_stamp_is_pinned_by_its_own_heading(self):
+        self._stamp("0.3.0-alpha.1")
+        self._changelog("v0.3.0-alpha.1")
+        self.assertEqual(checkctl.check_changelog_parity().status, checkctl.OK)
+
+    def test_a_prerelease_heading_does_not_satisfy_the_stable_stamp(self):
+        """'\\b' used to let '## v0.3.0-alpha.1' satisfy v0.3.0: the hyphen is a word boundary."""
+        self._stamp("0.3.0")
+        self._changelog("v0.3.0-alpha.1")
+        result = checkctl.check_changelog_parity()
+        self.assertEqual(result.status, checkctl.FAIL)
+        self.assertIn("missing '## v0.3.0'", result.details)
+
+    def test_a_stable_heading_does_not_satisfy_a_prerelease_stamp(self):
+        self._stamp("0.3.0-rc.2")
+        self._changelog("v0.3.0", "v0.3.0-rc.20")
+        self.assertEqual(checkctl.check_changelog_parity().status, checkctl.FAIL)
+
+    def test_a_stamp_outside_the_grammar_fails(self):
+        for bad in ("0.3", "0.3.0-alpha", "0.3.0-alpha1", "0.3.0-gamma.1", "v0.3.0"):
+            with self.subTest(stamp=bad):
+                self._stamp(bad)
+                self._changelog(f"v{bad}")
+                result = checkctl.check_changelog_parity()
+                self.assertEqual(result.status, checkctl.FAIL)
+                self.assertIn("is not X.Y.Z", result.message)
+
+    def test_prerelease_tags_need_a_section_and_junk_tags_are_ignored(self):
+        import shutil
+        import subprocess
+        if not shutil.which("git"):
+            self.skipTest("git not available")
+
+        def git(*args):
+            return subprocess.run(["git", *args], cwd=str(self.root), capture_output=True,
+                                  text=True, check=False)
+        self.assertEqual(git("init", "-q").returncode, 0)
+        commit = git("-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false",
+                     "commit", "-q", "--allow-empty", "-m", "x")
+        self.assertEqual(commit.returncode, 0, commit.stderr)
+        for tag in ("v0.3.0-beta.2", "vnext", "v0.3"):
+            self.assertEqual(git("tag", tag).returncode, 0)
+        self._stamp("0.3.0-alpha.1")
+        self._changelog("v0.3.0-alpha.1")
+        result = checkctl.check_changelog_parity()
+        self.assertEqual(result.status, checkctl.FAIL)
+        self.assertEqual(result.details, ["missing '## v0.3.0-beta.2'"],
+                         "a grammar tag needs its section; a non-version tag is not a release")
+        self._changelog("v0.3.0-beta.2", "v0.3.0-alpha.1")
+        self.assertEqual(checkctl.check_changelog_parity().status, checkctl.OK)
+
+
+class TestVersionGrammar(unittest.TestCase):
+    """One parser for the stamp, the tags, changelog parity and release.yml."""
+
+    def test_stable_and_prerelease_versions_parse(self):
+        self.assertEqual(_lib.parse_version("0.2.2"),
+                         {"major": 0, "minor": 2, "patch": 2, "pre": None, "pre_n": None,
+                          "prerelease": False})
+        for text, pre, n in (("0.3.0-alpha.1", "alpha", 1), ("1.0.0-beta.2", "beta", 2),
+                             ("10.20.30-rc.11", "rc", 11), ("0.3.0-alpha.0", "alpha", 0)):
+            with self.subTest(version=text):
+                parsed = _lib.parse_version(text)
+                self.assertEqual((parsed["pre"], parsed["pre_n"]), (pre, n))
+                self.assertTrue(_lib.is_prerelease(text))
+        self.assertFalse(_lib.is_prerelease("0.3.0"))
+
+    def test_outside_the_grammar_is_none(self):
+        for text in ("", "0.3", "0.3.0.1", "0.3.0-alpha", "0.3.0-alpha1", "0.3.0-Alpha.1",
+                     "0.3.0-gamma.1", "0.3.0-alpha.1.2", "01.2.3", "0.3.0-alpha.01", "v0.3.0",
+                     " 0.3.0", "0.3.0 ", None):
+            with self.subTest(text=text):
+                self.assertIsNone(_lib.parse_version(text))
+                self.assertFalse(_lib.is_prerelease(text))
+
+    def test_tags_carry_a_v(self):
+        self.assertTrue(_lib.is_prerelease("v0.3.0-alpha.1", tag=True))
+        self.assertIsNotNone(_lib.parse_version("v0.2.2", tag=True))
+        self.assertIsNone(_lib.parse_version("0.2.2", tag=True))
+        self.assertIsNone(_lib.parse_version("vv0.2.2", tag=True))
+
+    def test_the_shipped_stamp_is_in_the_grammar(self):
+        stamp = _lib.read_json(CLAUDE_DIR / "config" / "registry.json", {})["system_version"]
+        self.assertIsNotNone(_lib.parse_version(stamp), f"system_version {stamp!r}")
+
+    def test_release_kind_cli_for_the_workflow(self):
+        import subprocess
+        lib = str(CLAUDE_DIR / "tools" / "_lib.py")
+
+        def kind(tag):
+            res = subprocess.run([sys.executable, lib, "--release-kind", tag],
+                                 capture_output=True, text=True, timeout=30, check=False)
+            return res.returncode, res.stdout.strip()
+        self.assertEqual(kind("v0.3.0-alpha.1"), (0, "prerelease"))
+        self.assertEqual(kind("v0.3.0-rc.1"), (0, "prerelease"))
+        self.assertEqual(kind("v0.3.1"), (0, "stable"))
+        for bad in ("v0.3.0-alpha1", "0.3.0", "v0.3", "manual-20260101"):
+            with self.subTest(tag=bad):
+                self.assertEqual(kind(bad)[0], 1, "a malformed tag must fail the release job")
+
+    def test_changelog_section_is_exact(self):
+        log = ("# Changelog\n\n## Unreleased\n\n- next\n\n## v3.0.1 - 2026-02-01\n\n- a\n\n"
+               "## v0.3.0-alpha.1 - 2026-01-02\n\n- alpha\n- one\n\n## v0.2.2\n\n- last\n")
+        self.assertIsNone(_lib.changelog_section(log, "v3.0"))
+        self.assertIsNone(_lib.changelog_section(log, "v0.3.0"))
+        self.assertIsNone(_lib.changelog_section(log, "v0.3.0-alpha"))
+        self.assertEqual(_lib.changelog_section(log, "v3.0.1"), "- a")
+        self.assertEqual(_lib.changelog_section(log, "v0.3.0-alpha.1"), "- alpha\n- one")
+        self.assertEqual(_lib.changelog_section(log, "v0.2.2"), "- last",
+                         "a heading with no date suffix at end of file still matches")
+        self.assertEqual(_lib.changelog_section("## v1.0.0 - x\n## v0.9.0\n", "v1.0.0"), "",
+                         "an empty section is present (not None)")
+
+
+class TestNoDeadKnobs(unittest.TestCase):
+    """Knobs and actions nothing read: a knob that does nothing teaches the user that knobs
+    do nothing. Each was confirmed unread before it went; this keeps them gone."""
+
+    def test_the_removed_knobs_stay_removed(self):
+        memory = _lib.read_json(CLAUDE_DIR / "config" / "memory.json")
+        self.assertNotIn("snapshot", memory)
+        self.assertEqual(set(memory["phases"]), {"check", "polish", "publish"},
+                         "phases.<name> is read for check, polish and publish only")
+        self.assertEqual({k for k in memory["project_steps"] if not k.startswith("_")},
+                         {"check", "polish"}, "checkctl runs project steps of these kinds only")
+        keys = {e.get("key") for e in _lib.read_json(CLAUDE_DIR / "config" / "registry.json")["entries"]}
+        self.assertFalse({k for k in keys if k and k.startswith("memory.snapshot")})
+        self.assertNotIn("config", _lib.JOURNAL_ACTIONS, "no writer ever emitted it")
+
+    def test_the_analyze_provider_enum_agrees_everywhere(self):
+        entry = next(e for e in _lib.read_json(CLAUDE_DIR / "config" / "registry.json")["entries"]
+                     if e.get("key") == "observe.analyze.provider")
+        observe = _lib.read_json(CLAUDE_DIR / "config" / "observe.json")["analyze"]
+        code = {"none"} | set(obsctl.PROVIDER_BASE_URLS)
+        self.assertEqual(set(entry["enum"]), code, "registry.json enum vs obsctl")
+        self.assertEqual(set(observe["providers"]), code, "observe.json providers vs obsctl")
+        self.assertIn(observe["provider"], code)
+
+
+def _subcommands_named(text: str, tool: str) -> set:
+    """Words a guide names as `tool`'s subcommands: inline (`statectl mode`, `statectl.py
+    phase`) and in a commands block: the rest of the `tools/<tool>.py` line plus its indented
+    continuation lines."""
+    import re
+    out = set(re.findall(rf"\b{tool}(?:\.py)?\s+([a-z][a-z-]*)", text))
+    for m in re.finditer(rf"tools/{tool}\.py[ \t]+([^\n]*(?:\n[ \t]{{8,}}[^\n]*)*)", text):
+        out |= set(re.findall(r"[a-z][a-z-]*", m.group(1)))
+    return out
+
+
+class TestGuidesNameEveryCommand(unittest.TestCase):
+    """The guide and the manual are where a human or an agent learns a command exists: one
+    that neither names is a command nobody runs."""
+
+    COMMANDS = {
+        "statectl": ("mode", "phase", "proposal", "dispatch", "accept", "progress"),
+        "checkctl": ("doctor", "phase-exit", "handoff", "ticket"),
+        "distctl": ("export", "gitignore", "verify"),
+        "mapctl": ("context",),
+    }
+
+    def test_each_new_command_is_named(self):
+        texts = [(CLAUDE_DIR / name).read_text(encoding="utf-8")
+                 for name in ("CLAUDE.md", "README.md")]
+        for tool, subs in self.COMMANDS.items():
+            named = set().union(*(_subcommands_named(t, tool) for t in texts))
+            for sub in subs:
+                with self.subTest(tool=tool, sub=sub):
+                    self.assertIn(sub, named, f"neither CLAUDE.md nor README.md names "
+                                              f"`{tool} {sub}`")
+
+    def test_the_matcher_can_fail(self):
+        self.assertNotIn("ticket", _subcommands_named("python3 .claude/tools/checkctl.py doctor\n"
+                                                      "the ticket is minted", "checkctl"))
+
+    def test_the_guide_says_whose_the_ritual_is_and_that_adhd_is_suggested(self):
+        import re
+        for path in (CLAUDE_DIR / "CLAUDE.md", CLAUDE_DIR / "skills" / "adopt" / "CLAUDE.template.md"):
+            with self.subTest(guide=path.name):
+                text = re.sub(r"\s+", " ", path.read_text(encoding="utf-8"))
+                self.assertIn("The ritual is the user's command", text)
+                self.assertRegex(text, r"`/adhd` \([^)]*suggest it[^)]*never run it\)")
+                self.assertNotIn("six core tools", text)
+                self.assertNotIn("temp-to-analyse", text)
+
+    def test_the_readmes_say_the_gate_is_a_tripwire(self):
+        for path in (CLAUDE_DIR / "README.md", CLAUDE_DIR.parent / ".github" / "README.md"):
+            if not path.exists():
+                continue  # .github/ is the source repo's; a kit has none
+            with self.subTest(readme=path.parent.name):
+                text = path.read_text(encoding="utf-8")
+                self.assertIn("What is new in 0.3", text)
+                self.assertIn("not a sandbox", text)
 
 
 if __name__ == "__main__":

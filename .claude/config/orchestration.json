@@ -1,0 +1,28 @@
+{
+  "_comment": [
+    "Lead-and-team routing in the fableous-orchestrated mode (.claude/protocols/orchestration.md).",
+    "Nothing here acts in freestyle or guided-solo, except the progress object below.",
+    "",
+    "nudge_after: after this many Write/Edit calls by the lead on code (outside .claude/state/,",
+    ".claude/tasks/, docs/ and prose files) with no sub-agent dispatched, the post-write hook",
+    "hands the lead one advisory reminder to delegate, then counts again. 0 turns it off. It never",
+    "blocks and never changes a gate decision.",
+    "handoff_test_timeout: seconds each recorded test may run under `checkctl handoff <id> --run`.",
+    "A timeout is a FAIL for that test.",
+    "",
+    "progress: the long-run view (tools/progress.py, `statectl progress`, the console's Progress panel).",
+    "pulse_seconds: the policy gate (after its decision) and the sub-agent capture lane rewrite",
+    "state/heartbeat.json as 'working' once it is older than this, so 'last activity' stays true",
+    "through a multi-hour turn. Every mode. 0 turns it off.",
+    "report_minutes: in guided-solo and fableous-orchestrated, the post-write hook hands the lead the",
+    "compact progress block to post to the user once this many minutes have passed since the last",
+    "one. Advisory, main session only, never in freestyle. 0 turns it off."
+  ],
+  "version": 1,
+  "nudge_after": 8,
+  "handoff_test_timeout": 1800,
+  "progress": {
+    "pulse_seconds": 60,
+    "report_minutes": 30
+  }
+}

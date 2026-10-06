@@ -1,0 +1,22 @@
+{
+  "id": "agent.scout",
+  "kind": "agent",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "scout",
+  "path": ".claude/agents/scout.md",
+  "description": "Read-only researcher for the lead in the fableous-orchestrated mode - codebase surveys, \"where is X and who calls it\", docs and web lookups, a quick check of one fact. Returns findings with exact paths and line numbers, cheaply, so the lead's context stays for decisions. Never edits anything. NOT for implementing (builder) and NOT for checking a finished task (verifier).",
+  "reads": [],
+  "writes": [
+    "store.handshakes"
+  ],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "dd2f90f80269d5d655ae3db030993338e090faee4fea018ce54633887daa2253",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

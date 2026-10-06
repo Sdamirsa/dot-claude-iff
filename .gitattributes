@@ -1,0 +1,4 @@
+# Shell scripts are LF on every OS: a CRLF shebang breaks a hook outside Git Bash.
+*.sh text eol=lf
+# Everything a hook runs is LF on every OS (doctor checks it).
+.claude/hooks/* text eol=lf

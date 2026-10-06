@@ -190,8 +190,10 @@ class ConsoleHandler(http.server.BaseHTTPRequestHandler):
                     "ok": False,
                     "reason": "analysis engine not configured",
                     "how": ("Set analyze.base_url and analyze.model in "
-                            ".claude/config/observe.json, and for remote endpoints export "
-                            "ANALYZE_API_KEY in your shell. See the STORY tab's setup guide."),
+                            ".claude/config/observe.json, and for remote endpoints put "
+                            "ANALYZE_API_KEY in the env block of .claude/settings.local.json "
+                            "(or export it in the shell that runs this console). See the "
+                            "STORY tab's setup guide."),
                 })
                 return
             if (status.get("run") or {}).get("state") == "running":

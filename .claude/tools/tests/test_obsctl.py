@@ -254,6 +254,33 @@ class IngestTest(FixtureCase):
         mirrored_sub = self.record / "raw" / "transcripts" / self.slug / "session-1" / "subagents" / "agent-x.jsonl"
         self.assertTrue(mirrored_sub.exists())
 
+    def test_subagent_meta_names_the_agent_type(self):
+        """Claude Code writes agent-<id>.meta.json (agentType) beside a sub-agent transcript;
+        ingest carries the type, the agent id and is_subagent onto each usage event, and seal
+        keeps them, which is what `report --by agent` groups on."""
+        session_dir = self.proj_dir / "session-9"
+        sub = session_dir / "subagents"
+        sub.mkdir(parents=True, exist_ok=True)
+        (session_dir.parent / "session-9.jsonl").write_text(self._usage_line("m-main", 10, 1) + "\n")
+        rec = json.loads(self._usage_line("m-sub", 20, 2))
+        rec.update({"isSidechain": True, "agentId": "abc123"})
+        (sub / "agent-abc123.jsonl").write_text(json.dumps(rec) + "\n")
+        (sub / "agent-abc123.meta.json").write_text(json.dumps({"agentType": "builder",
+                                                                "model": "opus"}))
+        rc, _ = run(["ingest"])
+        self.assertEqual(rc, 0)
+        events = {e["message_id"]: e for e in _lib.read_jsonl(self.record / "spool" / "ingest.jsonl")}
+        self.assertEqual((events["m-sub"]["agent_type"], events["m-sub"]["agent_id"],
+                          events["m-sub"]["is_subagent"]), ("builder", "abc123", True))
+        self.assertNotIn("agent_type", events["m-main"])
+        self.assertIs(events["m-main"]["is_subagent"], False)
+
+        run(["seal", "--date", "2026-08-20"])
+        sealed = _lib.read_jsonl(self.record / "segments" / "2026-08-20.jsonl")
+        by_id = {e.get("agent_id"): e for e in sealed}
+        self.assertEqual(by_id["abc123"]["agent_type"], "builder")
+        self.assertIs(by_id[None]["is_subagent"], False, "the allowlist keeps the lead marker")
+
     def test_second_run_adds_nothing(self):
         session_dir = self.proj_dir / "session-2"
         session_dir.mkdir(parents=True, exist_ok=True)
@@ -288,6 +315,59 @@ class IngestTest(FixtureCase):
         spool_events = _lib.read_jsonl(self.record / "spool" / "ingest.jsonl")
         message_ids = [e.get("message_id") for e in spool_events]
         self.assertIn("msg-rotated", message_ids)
+
+
+class ReportByAgentTest(FixtureCase):
+    """`report --by agent`: tokens grouped by agent type, the main session as `lead`, a type
+    joined through agent_id when only the SubagentStart/Stop event names it, and rows with no
+    identity under `unknown` - counted, never dropped."""
+
+    def _usage(self, date: str, output: int, **identity) -> None:
+        self._n = getattr(self, "_n", 0) + 1  # a distinct identity per event, as capture stamps
+        self.spool_event(session="s1", _obs_ts=f"{date}T09:00:00Z", _obs_source="transcript",
+                         hook_event_name="llm.usage", _obs_uid=f"{self._n}-test",
+                         **{"gen_ai.request.model": "claude-x", "gen_ai.usage.input_tokens": 1,
+                            "gen_ai.usage.output_tokens": output}, **identity)
+
+    def rows(self, out: str) -> dict:
+        table = {}
+        for line in out.splitlines()[1:]:
+            parts = line.split()
+            if len(parts) == 5 and parts[1].isdigit():
+                table[parts[0]] = {"events": int(parts[1]), "output": int(parts[3])}
+        return table
+
+    def test_tokens_group_by_agent_type(self):
+        date = yesterday()
+        self._usage(date, 100, is_subagent=False)
+        self._usage(date, 40, is_subagent=False)
+        self._usage(date, 500, is_subagent=True, agent_type="builder", agent_id="b1")
+        self._usage(date, 30, is_subagent=True, agent_id="s1")  # type only on the hook event
+        self.spool_event(session="s1", _obs_ts=f"{date}T09:30:00Z", _obs_source="hook",
+                         hook_event_name="SubagentStop", agent_type="scout", agent_id="s1")
+        self._usage(date, 7)  # sealed before identity was kept: no marker at all
+        self.spool_event(session="s1", _obs_ts=f"{date}T08:00:00Z", _obs_source="hook",
+                         hook_event_name="SessionStart")
+        run(["seal"])
+        rc, out = run(["report", "--by", "agent"])
+        self.assertEqual(rc, 0)
+        self.assertIn("OBS_OK", out)
+        table = self.rows(out)
+        self.assertEqual(table["lead"], {"events": 3, "output": 140})
+        self.assertEqual(table["builder"], {"events": 1, "output": 500})
+        self.assertEqual(table["scout"], {"events": 2, "output": 30})
+        self.assertEqual(table["unknown"], {"events": 1, "output": 7})
+        self.assertIn("counted, not dropped", out)
+
+    def test_the_other_groupings_still_work(self):
+        date = yesterday()
+        self._usage(date, 9, is_subagent=False)
+        run(["seal"])
+        for by in ("model", "day", "session"):
+            with self.subTest(by=by):
+                rc, out = run(["report", "--by", by])
+                self.assertEqual(rc, 0)
+                self.assertNotIn("unknown:", out)
 
 
 class StoryContractTest(FixtureCase):

@@ -22,7 +22,7 @@ and only when a provider is configured.
     anchor      sealed segments -> .claude-iff/obs/anchor.json (tamper EVIDENCE, not
                 prevention: a sha256 chain anyone with disk access could also recompute
                 and overwrite - it proves nothing changed silently, it stops nobody)
-    report      aggregate segments by model|day|session, print a table
+    report      aggregate segments by model|day|session|agent, print a table
     story       segments+rollups+journal+anatomy+data_series -> state/story-feed.json
     size        record size by subtree (never deletes)
     analyze     the one sanctioned agent pathway over raw (network; degrades to a no-op)
@@ -72,9 +72,12 @@ def _project_slug(root: Path) -> str:
     return re.sub(r"[/.:\\]", "-", str(root.resolve()))
 
 
-def _usage_event_from_record(rec) -> dict | None:
+def _usage_event_from_record(rec, agent_type: str | None = None) -> dict | None:
     """One llm.usage spool event from a transcript JSONL record, or None when the line
-    carries no usage (most lines - tool_use, tool_result, user turns - don't)."""
+    carries no usage (most lines - tool_use, tool_result, user turns - don't). Agent identity
+    rides along as metadata: is_subagent (the record's isSidechain), agent_id (its agentId) and,
+    when the caller read it from the transcript's meta file, agent_type - what `report --by
+    agent` groups on."""
     if not isinstance(rec, dict):
         return None
     message = rec.get("message")
@@ -98,7 +101,23 @@ def _usage_event_from_record(rec) -> dict | None:
     }
     if message.get("model"):
         ev["gen_ai.request.model"] = message["model"]
+    if isinstance(rec.get("agentId"), str) and rec["agentId"]:
+        ev["agent_id"] = rec["agentId"]
+    if agent_type:
+        ev["agent_type"] = agent_type
     return ev
+
+
+def _transcript_agent_type(f: Path) -> str | None:
+    """The agent type of a sub-agent transcript, from the `agent-<id>.meta.json` Claude Code
+    writes beside `agent-<id>.jsonl` (its `agentType`); None for the main session's transcript
+    or when there is no readable meta file."""
+    meta = f.with_name(f.stem + ".meta.json")
+    if not f.stem.startswith("agent-") or not meta.is_file():
+        return None
+    data = _lib.read_json(meta, {})
+    value = data.get("agentType") if isinstance(data, dict) else None
+    return value if isinstance(value, str) and value else None
 
 
 def _ingest_one_file(f: Path, root: Path, tcursors: dict, spool_path: Path, seen_ids: set,
@@ -132,6 +151,7 @@ def _ingest_one_file(f: Path, root: Path, tcursors: dict, spool_path: Path, seen
 
     new_events = 0
     consumed = offset
+    agent_type = _transcript_agent_type(f)
     with f.open("rb") as fh:
         fh.seek(offset)
         chunk = fh.read()
@@ -147,7 +167,7 @@ def _ingest_one_file(f: Path, root: Path, tcursors: dict, spool_path: Path, seen
                 break  # torn tail (file mid-write): retried next run, offset stays behind it
             consumed += ln
             continue
-        ev = _usage_event_from_record(rec)
+        ev = _usage_event_from_record(rec, agent_type)
         if ev is not None:
             dedupe_key = ev.get("message_id") or f"{key}:{consumed}"
             if dedupe_key not in seen_ids:
@@ -536,18 +556,54 @@ def cmd_anchor(args) -> int:
 
 # --------------------------------------------------------------------------- report
 
+AGENT_IDENTITY_KEYS = ("agent_type", "agent_name", "subagent_type")
+SUBAGENT_LIFECYCLE_EVENTS = ("SubagentStart", "SubagentStop")
+
+
+def _agent_label(ev: dict, names_by_id: dict) -> str:
+    """Who spent an event, for `report --by agent`: the agent type it carries; else the type a
+    SubagentStart/Stop event recorded for its agent_id; `lead` for the main session (a token
+    row with is_subagent false, or a hook event with no agent identity, the policy gate's own
+    rule); `unknown` for everything else - rows sealed before agent identity was kept are
+    counted there, never dropped."""
+    for key in AGENT_IDENTITY_KEYS:
+        if isinstance(ev.get(key), str) and ev[key].strip():
+            return ev[key].strip()
+    agent_id = ev.get("agent_id")
+    if isinstance(agent_id, str) and agent_id in names_by_id:
+        return names_by_id[agent_id]
+    if ev.get("is_subagent") is False:
+        return "lead"
+    if (ev.get("_obs_source") == "hook" and not agent_id
+            and ev.get("hook_event_name") not in SUBAGENT_LIFECYCLE_EVENTS):
+        return "lead"
+    return "unknown"
+
+
 def cmd_report(args) -> int:
     paths = _lib.record_paths()
     segs = sorted(paths["segments"].glob("*.jsonl")) if paths["segments"].is_dir() else []
     prices = (_lib.load_config("model-prices", {}) or {}).get("per_million_tokens", {}) or {}
 
+    by_seg = {seg: _lib.read_jsonl(seg) for seg in segs}
+    names_by_id: dict[str, str] = {}
+    if args.by == "agent":
+        for events in by_seg.values():
+            for ev in events:
+                aid, name = ev.get("agent_id"), ev.get("agent_type") or ev.get("subagent_type")
+                if isinstance(aid, str) and isinstance(name, str) and aid and name:
+                    names_by_id[aid] = name
+
     agg: dict[str, dict] = {}
-    for seg in segs:
+    for seg, events in by_seg.items():
         date = seg.stem
-        for ev in _lib.read_jsonl(seg):
+        for ev in events:
             model = ev.get("gen_ai.request.model") or "(unknown)"
             sid = ev.get("session_id") or "(unknown)"
-            key = {"model": model, "day": date, "session": sid}[args.by]
+            if args.by == "agent":
+                key = _agent_label(ev, names_by_id)
+            else:
+                key = {"model": model, "day": date, "session": sid}[args.by]
             row = agg.setdefault(key, {"events": 0, "by_model": {}})
             row["events"] += 1
             bucket = row["by_model"].setdefault(
@@ -565,6 +621,10 @@ def cmd_report(args) -> int:
         outp = sum(m["output"] for m in row["by_model"].values())
         cost_disp = f"{cost['usd']:.4f}" if cost["known"] else "unknown"
         print(f"{str(key)[:28]:<28}{row['events']:>8}{inp:>12}{outp:>12}{cost_disp:>12}")
+    if args.by == "agent" and "unknown" in agg:
+        print("unknown: events with no agent identity in the sealed record (sealed before "
+              "agent_id/is_subagent were kept, or a sub-agent with no type on record); counted, "
+              "not dropped")
     _lib.print_verdict("OBS", True)
     return 0
 
@@ -647,8 +707,11 @@ def _collect_recent_raw(paths: dict, limit) -> list:
 # response_format; the reply is mechanically parsed, repaired and validated against the taxonomy.
 # Nothing here is "analyzed by Claude": it is a tool call with a schema, end to end.
 #
-# The API key comes from the ENVIRONMENT ONLY (observe.json is committed to git):
-#   export ANALYZE_API_KEY=...        preferred, provider-agnostic
+# The API key comes from the ENVIRONMENT ONLY (observe.json is committed to git). Its home is
+# the env block of .claude/settings.local.json (per-user, gitignored; Claude Code passes it to
+# every command and hook it runs); exporting it in a shell is the alternative for runs outside
+# Claude Code. See .claude/reference/secrets.md.
+#   ANALYZE_API_KEY                   preferred, provider-agnostic
 #   (OPENROUTER_API_KEY / OPENAI_API_KEY are honored as fallbacks)
 # A localhost base_url (Ollama, LM Studio, vLLM) needs no key at all.
 
@@ -886,8 +949,11 @@ def cmd_analyze(args) -> int:
             "     Any OpenAI-compatible endpoint works: https://openrouter.ai/api/v1 (get a key\n"
             "     at openrouter.ai/keys), https://api.openai.com/v1 (platform.openai.com), or a\n"
             "     local server like Ollama at http://localhost:11434/v1 (no key needed).\n"
-            "  2. For remote endpoints, put the key in your environment, never in config:\n"
-            "     export ANALYZE_API_KEY=sk-...   (add it to your shell profile)\n"
+            "  2. For remote endpoints, put the key in the env block of\n"
+            "     .claude/settings.local.json (per-user, gitignored), never in config:\n"
+            "       {\"env\": {\"ANALYZE_API_KEY\": \"sk-...\"}}\n"
+            "     Outside Claude Code, export ANALYZE_API_KEY in your shell instead.\n"
+            "     See .claude/reference/secrets.md.\n"
             "  3. Rerun this command. --dry-run shows what would be sent."
         )
         _lib.print_verdict("OBS", True)
@@ -1258,7 +1324,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("anchor", help="sealed segments -> .claude-iff/obs/anchor.json (tamper evidence)")
 
     rep = sub.add_parser("report", help="aggregate segments and print a table")
-    rep.add_argument("--by", choices=["model", "day", "session"], required=True)
+    rep.add_argument("--by", choices=["model", "day", "session", "agent"], required=True)
 
     sub.add_parser("story", help="build .claude/state/story-feed.json")
     sub.add_parser("size", help="record size by subtree (never deletes)")

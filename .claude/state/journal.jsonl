@@ -49,3 +49,78 @@
 {"ts": "2026-08-26T13:23:07Z", "action": "tooling", "change_type": "process", "what": "one release publisher: workflow uses the CHANGELOG section as notes; the skill's recipe now says push the tag and watch the run, never gh release create by hand", "evidence": "pushing v0.2.2 raced the workflow, which failed with 'a release with the same tag name already exists' - a red run behind a correct release"}
 {"ts": "2026-08-26T13:23:08Z", "action": "tooling", "change_type": "doc", "what": "reference/distribution-boundary.md + store.machine declared in mapctl KNOWN_STORES", "evidence": "the home-vs-adopter split was re-derived twice this session across three undocumented mechanisms; the new store card warned UNDECLARED until mapctl learned it"}
 {"ts": "2026-08-26T13:23:35Z", "action": "note", "text": "ritual complete (20260826T125020Z-603d1a) logo, Windows gate fail-open fixed, changelog pinning, derived ports, system monitor + device identity, v0.2.2, three evolution changes"}
+{"ts": "2026-10-05T11:56:28Z", "action": "pointer", "text": "v3.0-alpha planning: read issues 7-14, research options w/ Opus sub-agents, publish planning artifact, await user decisions"}
+{"ts": "2026-10-05T12:09:54Z", "action": "pointer", "text": "0.3-alpha planning artifact published (https://claude.ai/code/artifact/3dd5777d-3072-4f64-8a6b-9e1c9adc1dd2); WAITING on user decisions D1-D11; next: write .claude/tasks T1-T10 + milestone M-0.3.0-alpha, then build with Opus sub-agents"}
+{"ts": "2026-10-05T12:41:56Z", "action": "decision", "text": "0.3.0-alpha scope fixed: modes freestyle/guided/fableous; phases plan/build/review/deploy; ritual user-ticket with ROUTE step; fableous = protocol + builder/scout + validated JSON handoff + delegation nudge; secrets check + doctor; visibility knob + export; adhd skill vendored and tunable; folder context map + lint; Jev gate deferred to proposals; zips stay committed with freshness test; dev branch with main as last stable; v0.3.0-alpha.1 then v0.3.1", "why": "maintainer decisions 2026-10-05 after planning review of issues 7-14"}
+{"ts": "2026-10-05T12:41:56Z", "action": "milestone", "id": "M-0.3.0-alpha", "title": "v0.3.0-alpha.1: phases, modes, fableous, secrets, export, folder context", "note": "planned; tasks 030a-t1..t11"}
+{"ts": "2026-10-05T12:41:56Z", "action": "task", "id": "T1", "title": "030a T1", "status": "todo"}
+{"ts": "2026-10-05T12:41:56Z", "action": "task", "id": "T2", "title": "030a T2", "status": "todo"}
+{"ts": "2026-10-05T12:41:56Z", "action": "task", "id": "T3", "title": "030a T3", "status": "todo"}
+{"ts": "2026-10-05T12:41:57Z", "action": "task", "id": "T4", "title": "030a T4", "status": "todo"}
+{"ts": "2026-10-05T12:41:57Z", "action": "task", "id": "T5", "title": "030a T5", "status": "todo"}
+{"ts": "2026-10-05T12:41:57Z", "action": "task", "id": "T6", "title": "030a T6", "status": "todo"}
+{"ts": "2026-10-05T12:41:57Z", "action": "task", "id": "T7", "title": "030a T7", "status": "todo"}
+{"ts": "2026-10-05T12:41:58Z", "action": "task", "id": "T8", "title": "030a T8", "status": "todo"}
+{"ts": "2026-10-05T12:41:58Z", "action": "task", "id": "T9", "title": "030a T9", "status": "todo"}
+{"ts": "2026-10-05T12:41:58Z", "action": "task", "id": "T10", "title": "030a T10", "status": "todo"}
+{"ts": "2026-10-05T12:41:58Z", "action": "task", "id": "T11", "title": "030a T11", "status": "todo"}
+{"ts": "2026-10-05T12:41:59Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: wave 1 (T1 T2 T6 T8 T9) Opus builders in worktrees; task files .claude/tasks/030a-*.md; main session merges each diff into dev and verifies the Test"}
+{"ts": "2026-10-05T12:43:52Z", "action": "task", "id": "T1", "status": "doing", "note": "opus builder dispatched in worktree"}
+{"ts": "2026-10-05T12:43:53Z", "action": "task", "id": "T2", "status": "doing", "note": "opus builder dispatched in worktree"}
+{"ts": "2026-10-05T12:43:53Z", "action": "task", "id": "T6", "status": "doing", "note": "opus builder dispatched in worktree"}
+{"ts": "2026-10-05T12:43:53Z", "action": "task", "id": "T8", "status": "doing", "note": "opus builder dispatched in worktree"}
+{"ts": "2026-10-05T12:43:53Z", "action": "task", "id": "T9", "status": "doing", "note": "opus builder dispatched in worktree"}
+{"ts": "2026-10-05T12:43:53Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD wave 1 in flight (T1 T2 T6 T8 T9, 5 Opus builders in .claude/worktrees/agent-*). On each return: review diff, commit in worktree, merge to dev, run suite, rebuild zips. Then wave 2 (T4 T7), wave 3 (T3 T5), T10, T11 (human gate before tag/issue replies)"}
+{"ts": "2026-10-05T12:48:39Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD wave 1 re-dispatched: 5 Opus builders in LEAD-MADE worktrees .claude/worktrees/t1 t2 t6 t8 t9 (branches wt/tN from dev; harness isolation branches from origin/main so do not use it). On return: review diff in worktree, commit there, merge wt/tN into dev, run suite, rebuild zips, git rm --cached heartbeat. Then wave 2 (T4 T7), wave 3 (T3 T5), T10, T11 (human gate)"}
+{"ts": "2026-10-05T13:02:33Z", "action": "task", "id": "T12", "title": "030a T12 long-run progress", "status": "todo"}
+{"ts": "2026-10-05T13:02:33Z", "action": "decision", "text": "modes renamed: freestyle, guided-solo, fableous-orchestrated (short aliases accepted); T12 long-run progress added to M-0.3.0-alpha", "why": "maintainer request 2026-10-05 mid-build"}
+{"ts": "2026-10-05T13:15:57Z", "action": "task", "id": "T2", "status": "done", "note": "merged to dev; suite 279 passed"}
+{"ts": "2026-10-05T13:15:58Z", "action": "task", "id": "T8", "status": "done", "note": "merged to dev; suite 279 passed"}
+{"ts": "2026-10-05T13:18:11Z", "action": "task", "id": "T6", "status": "done", "note": "merged; suite 323 passed; doctor clean on home repo"}
+{"ts": "2026-10-05T13:19:57Z", "action": "task", "id": "T4", "status": "doing"}
+{"ts": "2026-10-05T13:19:57Z", "action": "task", "id": "T7", "status": "doing"}
+{"ts": "2026-10-05T13:19:58Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: merged T2 T6 T8 (dev pushed, suite 323 green locally). In flight in lead-made worktrees: T1 t1, T9 t9, T4 t4, T7 t7. After each merge: distctl build + full suite + commit zips + push; watch CI (ci.yml; Windows fixed to shell: bash, verify green). Then T3+T5 (need T1,T4), T12, T10, T11 (human gate before tag/issue replies)"}
+{"ts": "2026-10-05T13:43:53Z", "action": "task", "id": "T9", "status": "done", "note": "merged; suite 378 passed"}
+{"ts": "2026-10-05T13:43:54Z", "action": "note", "text": "T9 builder found: check_gitignore_shadowing pipes input to git in text mode; on Windows file-level ignore patterns never match. Fix in T10."}
+{"ts": "2026-10-05T13:52:37Z", "action": "task", "id": "T1", "status": "done", "note": "merged to dev"}
+{"ts": "2026-10-05T13:52:37Z", "action": "task", "id": "T7", "status": "done", "note": "merged to dev"}
+{"ts": "2026-10-05T13:57:32Z", "action": "task", "id": "T1", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:32Z", "action": "task", "id": "T2", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:33Z", "action": "task", "id": "T3", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:33Z", "action": "task", "id": "T4", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:33Z", "action": "task", "id": "T5", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:33Z", "action": "task", "id": "T6", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:34Z", "action": "task", "id": "T7", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:34Z", "action": "task", "id": "T8", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:34Z", "action": "task", "id": "T9", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:34Z", "action": "task", "id": "T10", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:34Z", "action": "task", "id": "T11", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:35Z", "action": "task", "id": "T12", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T13:57:35Z", "action": "task", "id": "T4", "status": "done"}
+{"ts": "2026-10-05T13:57:35Z", "action": "mode", "value": "fableous-orchestrated"}
+{"ts": "2026-10-05T13:57:35Z", "action": "phase", "value": "build"}
+{"ts": "2026-10-05T13:57:44Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: merged T1 T2 T4 T6 T7 T8 T9 (7/12; dev pushed, suite 523 green, CI green on both OS). Wave 3 in flight: T3 (worktree t3), T5 (t5). Then T12, T10, T11 (human gate before tag/issue replies). Method: lead-made worktrees from dev, merge, distctl build, full suite, push"}
+{"ts": "2026-10-05T14:38:21Z", "action": "task", "id": "T3", "status": "done", "note": "merged; suite 556 passed"}
+{"ts": "2026-10-05T14:46:20Z", "action": "task", "id": "T5", "status": "done", "note": "merged; suite 635 passed"}
+{"ts": "2026-10-05T14:46:46Z", "action": "task", "id": "T13", "title": "030a T13 dispatch + zip flow", "status": "todo", "milestone": "M-0.3.0-alpha"}
+{"ts": "2026-10-05T14:46:47Z", "action": "note", "text": "dispatched builder for T12 in .claude/worktrees/t12", "tags": ["dispatch"]}
+{"ts": "2026-10-05T14:46:47Z", "action": "note", "text": "dispatched builder for T13 in .claude/worktrees/t13", "tags": ["dispatch"]}
+{"ts": "2026-10-05T14:47:52Z", "action": "task", "id": "T12", "status": "doing"}
+{"ts": "2026-10-05T14:47:52Z", "action": "task", "id": "T13", "status": "doing"}
+{"ts": "2026-10-05T14:47:53Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: 9/13 merged (dev pushed, suite 635 green). In flight: T12 (worktree t12), T13 (t13), stubs via statectl dispatch. Then T10 cleanup (gate false positives, ticket escape hatch, kit self-test, docs), then T11 release (human gate before tag and issue replies). New hooks and agents load only in a NEW session"}
+{"ts": "2026-10-05T15:26:08Z", "action": "task", "id": "T13", "status": "done", "note": "merged"}
+{"ts": "2026-10-05T15:26:19Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: 10/13 merged (suite 659 green, dev pushed). In flight: T12 (worktree t12). Then T10 cleanup via statectl dispatch/accept, then T11 release (human gate before tag and issue replies)"}
+{"ts": "2026-10-05T15:45:13Z", "action": "note", "text": "accepted T12: merged wt/t12 into dev (41c95ccb9ac7)", "tags": ["accept"]}
+{"ts": "2026-10-05T15:49:04Z", "action": "task", "id": "T12", "status": "done", "note": "merged; suite 717 passed"}
+{"ts": "2026-10-05T15:49:07Z", "action": "note", "text": "dispatched builder for T10 in .claude/worktrees/t10", "tags": ["dispatch"]}
+{"ts": "2026-10-05T15:49:43Z", "action": "task", "id": "T10", "status": "doing"}
+{"ts": "2026-10-05T15:49:43Z", "action": "pointer", "text": "M-0.3.0-alpha BUILD: 11/13 merged (suite 717 green, dev pushed). In flight: T10 cleanup+hardening (real builder agent, worktree t10, dispatched via statectl dispatch). Then accept T10, then T11 release prep: version 0.3.0-alpha.1, CHANGELOG, alpha test checklist, distctl build+verify, verifier; STOP for user yes before tag and issue replies"}
+{"ts": "2026-10-05T17:00:42Z", "action": "note", "text": "accepted T10: merged wt/t10 into dev (88bf16c37170)", "tags": ["accept"]}
+{"ts": "2026-10-05T17:06:40Z", "action": "task", "id": "T10", "status": "done", "note": "merged; full suite green on dev"}
+{"ts": "2026-10-05T17:06:41Z", "action": "task", "id": "T11", "status": "doing"}
+{"ts": "2026-10-05T17:06:57Z", "action": "task", "id": "T10", "status": "doing", "note": "correction: suite on dev had 1 failure after merge; marked done too early"}
+{"ts": "2026-10-05T17:40:48Z", "action": "task", "id": "T10", "status": "done", "note": "merged; suite 747 green on dev; verifier pass"}
+{"ts": "2026-10-05T17:44:24Z", "action": "pointer", "text": "M-0.3.0-alpha: all build tasks merged; release candidate on dev (0.3.0-alpha.1, changelog, checklist, zips verified, suite 748 green locally, verifier pass). WAITING for the maintainer's yes before: git tag v0.3.0-alpha.1 on dev + push tag (release.yml publishes the pre-release), then post issue replies #7-#14. After: verify gh release view shows prerelease and both zips, latest still v0.2.2; set statectl phase review"}
+{"ts": "2026-10-06T06:57:33Z", "action": "task", "id": "T11", "status": "done", "no_envelope": "lead's own task: release steps run by hand and verified (gh release view: prerelease=true, both zips, latest still v0.2.2)"}
+{"ts": "2026-10-06T06:57:34Z", "action": "milestone", "id": "M-0.3.0-alpha", "title": "v0.3.0-alpha.1 published as a GitHub pre-release", "note": "13 tasks; issues 7-14 answered and kept open until 0.3.1"}
+{"ts": "2026-10-06T07:39:06Z", "action": "phase", "value": "review", "signoff": "none yet: the maintainer tests the alpha from docs/alpha-test-checklist.md", "from": "build"}

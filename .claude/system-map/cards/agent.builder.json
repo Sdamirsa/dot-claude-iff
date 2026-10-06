@@ -1,0 +1,26 @@
+{
+  "id": "agent.builder",
+  "kind": "agent",
+  "layer": "GOVERN",
+  "package": null,
+  "title": "builder",
+  "path": ".claude/agents/builder.md",
+  "description": "Implements ONE task card (a .claude/tasks/ file with a Definition of done and one Test command) inside a git worktree the lead created, in the fableous-orchestrated mode. Use when the lead dispatches a task with a filled builder brief and a worktree name. Writes code and tests in its worktree only, never commits, and hands back a validated JSON envelope. NOT for planning, research, review or merging.",
+  "reads": [
+    "store.handshakes"
+  ],
+  "writes": [
+    "store.handshakes"
+  ],
+  "invokes": [
+    "tool.checkctl"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-10-05",
+    "hash": "a8e4cd664623e485f82b189111654e06195bfbe37bdc1b48fa634ea4870480ef",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

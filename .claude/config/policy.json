@@ -1,12 +1,17 @@
 {
   "_comment": [
-    "Access policy enforced by hooks/policy-gate.sh (PreToolUse on Write|Edit|NotebookEdit|Bash).",
-    "LAW 2: gates fail closed. If this file is unreadable or malformed, writes under",
-    "fallback_protected are DENIED and everything else is allowed - a broken policy can",
-    "neither expose the protected tree nor brick the session.",
+    "Access policy enforced by hooks/policy-gate.sh (PreToolUse on Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell).",
+    "Every ring holds on every lane: Write/Edit by the target path, Bash and PowerShell by the",
+    "paths the command would write.",
+    "LAW 2: gates fail closed. If this file is unreadable or malformed, writes under the gate's",
+    "built-in fallback list (mirrored here as fallback_protected) are DENIED and everything else",
+    "is allowed - a broken policy can neither expose the protected tree nor brick the session.",
     "",
     "Identity comes from the hook payload's agent_type/agent_name; absent identity means the",
     "main session (the orchestrator), which is trusted for the protected tree.",
+    "",
+    "Not configurable here, on purpose: the record and .claude/state/ritual-ticket.json are",
+    "write-denied to EVERY identity, the main session included (built into the gate).",
     "",
     "record_root: leave null for the sibling default <parent>/<repo>_claude_iff. The gate and",
     "the tools both resolve it through _lib.record_root(), so the deny rule can never point",
@@ -14,6 +19,16 @@
   ],
   "version": 1,
   "record_root": null,
+  "secrets": {
+    "_comment": [
+      "checkctl's secrets_placement check (ritual CHECK and `checkctl doctor`). allow_paths:",
+      "paths (prefixes or globs, repo-relative) the scanner skips and whose per-user secret",
+      "files are committed on purpose - vendored fixtures, a stack that commits its .env.",
+      "Prefer an inline iff:allow-secret comment for a single line. Where keys belong:",
+      ".claude/reference/secrets.md."
+    ],
+    "allow_paths": []
+  },
   "_protected_comment": [
     "Every directory whose contents the gate itself executes or trusts. tools/ is here because",
     "policy_gate.py imports _lib from it on every tool call: a sub-agent that can write",
@@ -40,6 +55,8 @@
     ".claude/protocols/",
     ".claude/skills/",
     ".claude/console/",
+    ".claude/settings.json",
+    ".claude/settings.local.json",
     ".claude-iff/"
   ],
   "derived_files": {
@@ -73,10 +90,18 @@
       "git": ["diff", "log", "show", "status", "ls-files", "rev-parse", "blame", "describe",
               "shortlog", "cat-file", "grep", "show-ref", "for-each-ref",
               "count-objects", "var"]
-    },
-    "write_paths": [".claude/state/handshakes/", ".claude/tasks/", ".claude/research/"]
+    }
   },
   "agents": {
+    "builder": {
+      "_comment": [
+        "A builder holds NO grant in the protected tree. It works in a git worktree under",
+        ".claude/worktrees/ and the main session reviews and merges the diff. A grant on",
+        ".claude/tools/ would include _lib.py, which the gate itself imports on every call:",
+        "whoever can write it can switch the gate off."
+      ],
+      "write_paths": []
+    },
     "anatomist": {
       "_comment": [
         "skills/ is granted because implementing an approved evolution change with the smallest",

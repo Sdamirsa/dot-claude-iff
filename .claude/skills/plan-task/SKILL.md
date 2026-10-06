@@ -13,16 +13,35 @@ progress, the task needs a file.
 ## Creating a task
 
 1. Copy `.claude/tasks/_template.md` to `.claude/tasks/YYYYMMDD-<slug>.md` (date = today, slug =
-   short kebab-case, e.g. `20260720-backfill-q2.md`). One file per task.
+   short kebab-case, e.g. `20260720-backfill-q2.md`). One file per task. The file name without
+   `.md` is the task's id in the journal (`20260720-backfill-q2`).
 2. Fill the top sections:
+   - **Status line**: `_Created <today> · Status: todo_`, kept current as the work moves
+     (todo, doing, done, blocked). The console and the phase exit checks read it.
    - **Goal**: 1 to 2 sentences that include the definition of done. If you can't state what
      must exist or pass for the task to close, you aren't ready to plan it, ask.
+   - **Definition of done** and **Test**: the condition that closes the task, and on the
+     `**Test:**` line exactly one backticked command that proves it, such as
+     `python3 -m pytest tests/test_x.py -q`, run from the repo root without a shell. Leaving
+     the build phase reruns that command; a Test that cannot fail proves nothing.
    - **Context**: why now; link the Project log entries and `.claude/research/` files that
      motivated it, so a resumer doesn't re-derive the rationale.
    - **Plan**: a checklist of verifiable steps. Each step names its done-evidence: the file that
      will exist, the test that will pass, the output that will match. A step whose completion
      can't be checked from disk isn't a step, split or sharpen it.
-3. Register the task in `.claude/STATUS.md` under `## Active tasks` (link the file).
+3. Register the task in the journal under its milestone, in the same step:
+
+   ```
+   python3 .claude/tools/statectl.py task <id> --title "<name>" --status todo --milestone <mid>
+   ```
+
+   For a new body of work, register the milestone first
+   (`python3 .claude/tools/statectl.py milestone <mid> --title "<what it delivers>"`) and name
+   it on the file's `Milestone:` line. Leaving the plan phase checks that every open task file
+   is registered this way (`checkctl.py phase-exit --from plan`).
+4. Register the task in `.claude/STATUS.md` under `## Active tasks` (link the file).
+5. An idea that does not belong to this milestone is not a task: park it with
+   `python3 .claude/tools/statectl.py proposal add "<idea>" --source <human|agent:<name>|issue#N>`.
 
 A well-formed plan step versus a vague one:
 
@@ -99,18 +118,23 @@ task:
 When every Plan box is checked and each step's done-evidence has been verified (not assumed):
 
 1. Fill `## Outcome`: what shipped, and the Project log entry that records it.
-2. Change the status line to done and move the file to `.claude/tasks/archive/YYYYMMDD/` (create
-   the dated folder; add a README line there: what, archived, why, replacement).
+2. Change the status line to done, record it (`statectl.py task <id> --status done`), and move
+   the file to `.claude/tasks/archive/YYYYMMDD/` (create the dated folder; add a README line
+   there: what, archived, why, replacement). The build exit check still finds an archived
+   task's Test there.
 3. Append a `deliverable` or `milestone` entry to `.claude/Project-log.jsonl` if one doesn't
    already exist for this work.
 4. Update `.claude/STATUS.md`: remove the task from `## Active tasks`, refresh `## Next steps`.
 
-Closing normally happens inside `/project-memory` at session end, but close immediately if the
-task finishes mid-session: a done task lingering as active misleads the next resumer.
+Closing normally happens inside `/project-memory` at session end (the user types it; suggest it
+at a natural boundary), but close immediately if the task finishes mid-session: a done task
+lingering as active misleads the next resumer.
 
 ## Rules
 
 - One file per task. A task that grows a second goal becomes two files.
+- Every task file has a status line, a Definition of done, one backticked Test command, and a
+  journal entry under its milestone (`statectl.py task <id> --milestone <mid>`).
 - Every Plan step names its done-evidence; unverifiable steps get split or sharpened.
 - Never delete a task file; archive it under `.claude/tasks/archive/YYYYMMDD/`.
 - Checkpoint updates set the journal pointer in the same step (`statectl.py pointer ...`),

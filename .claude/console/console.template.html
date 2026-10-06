@@ -172,6 +172,9 @@ body {
 }
 .badge.badge-static { color: var(--sev1-bg); border-color: var(--sev1-bg); }
 .badge.badge-live { color: var(--live-color); border-color: var(--live-color); }
+/* the work-mode / lifecycle-phase dial; NOT the live/static badge beside it */
+.badge.badge-lifecycle { cursor: help; }
+.badge.badge-lifecycle.is-organised { color: var(--accent); border-color: var(--accent); }
 
 #tabs { display: flex; gap: 2px; margin-left: auto; }
 .tab-btn {
@@ -356,6 +359,32 @@ body {
 .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
 .copy-note { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
+/* -- progress panel (top of NOW): DATA.progress, the model `statectl progress` prints -- */
+.pg-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-bottom: 6px; }
+.pg-mid { font-family: var(--mono); font-weight: 700; }
+.pg-mtitle { color: var(--text-dim); font-size: 12.5px; min-width: 0; }
+.pg-bar { position: relative; height: 12px; border-radius: 999px; overflow: hidden;
+  background: var(--bg-sunken); border: 1px solid var(--border); }
+.pg-bar .pg-fill { position: absolute; top: 0; left: 0; bottom: 0; background: var(--accent); }
+.pg-bar.is-full .pg-fill { background: var(--color-data); }
+.pg-bar.pg-mini { height: 7px; }
+.pg-figures { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin: 5px 0 2px;
+  font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.pg-figures .pg-pct { font-size: 16px; font-weight: 700; }
+.pg-basis, .pg-meta { font-size: 11px; color: var(--text-dim); }
+.pg-meta { margin-top: 2px; }
+.pg-group { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-dim); margin: 10px 0 2px; }
+.pg-task { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) 80px 4.2em 6.2em; align-items: center;
+  gap: 2px 8px; padding: 4px 0; border-top: 1px solid var(--border); font-size: 12.5px; }
+.pg-task .status-pill { justify-self: end; }
+@media (max-width: 520px) { .pg-task { grid-template-columns: 2.6em minmax(0, 1fr) 44px 3.4em 5.8em; gap: 2px 5px; } }
+.pg-task .pg-tid { font-family: var(--mono); font-weight: 700; }
+.pg-task .pg-ttitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pg-task .pg-count { color: var(--text-dim); font-size: 11px; font-variant-numeric: tabular-nums; }
+.pg-task .pg-agent { grid-column: 2 / -1; font-size: 11px; color: var(--text-dim); }
+.pg-line { font-size: 12.5px; padding: 6px 0 0; margin-top: 6px; border-top: 1px solid var(--border); }
+
 /* ---------------------------------------------------------------- MAP tab */
 .analysis-info { border: 1px dashed var(--border-strong); border-radius: 9px;
   padding: 10px 14px; margin-bottom: 12px; font-size: 12.5px; color: var(--text-dim); }
@@ -439,6 +468,15 @@ dialog#node-dialog::backdrop { background: rgba(0,0,0,0.4); }
 .map-edges line.is-faded-edge { opacity: .15; }
 .map-edges line.is-focus-edge { stroke-width: 2.4; }
 
+/* -- context list: guides and rules, derived entries rather than map nodes -- */
+.ctx-summary { font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+.ctx-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 5px 0; border-top: 1px solid var(--border); font-size: 12.5px; }
+.ctx-row .ctx-path { flex: 1 1 16em; min-width: 0; }
+.ctx-row .ctx-kind { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--accent); }
+.ctx-row .ctx-scope { color: var(--text-dim); font-family: var(--mono); font-size: 11px; }
+.ctx-row .ctx-lines { color: var(--text-dim); font-variant-numeric: tabular-nums; font-size: 11px; }
+.ctx-row .ctx-findings { font-size: 11px; font-weight: 700; color: var(--sev1-bg); }
+
 /* ---------------------------------------------------------------- STORY tab */
 .clock-toggle { display: flex; gap: 6px; margin-bottom: 10px; }
 .clock-btn {
@@ -467,6 +505,9 @@ dialog#node-dialog::backdrop { background: rgba(0,0,0,0.4); }
 .status-pill.status-doing { color: var(--accent); border-color: var(--accent); }
 .status-pill.status-done { color: var(--color-data); border-color: var(--color-data); }
 .status-pill.status-blocked { color: var(--sev0-bg); border-color: var(--sev0-bg); }
+.status-pill.status-open { color: var(--accent); border-color: var(--accent); }
+.status-pill.status-planned { color: var(--color-data); border-color: var(--color-data); }
+.proposal-id { font-family: var(--mono); font-size: 11px; color: var(--text-dim); flex: 0 0 auto; }
 .nh-count { font-size: 11px; font-weight: 700; color: var(--sev1-bg); }
 .next-action { font-size: 12.5px; color: var(--text-dim); margin-top: 3px; }
 .next-action .k { color: var(--text); font-weight: 600; }
@@ -489,6 +530,7 @@ dialog#node-dialog::backdrop { background: rgba(0,0,0,0.4); }
       <span class="pulse-dot" id="pulse-dot" aria-hidden="true"></span>
       <span class="brand-name" id="project-name">console</span>
       <span class="badge" id="mode-badge">snapshot</span>
+      <span class="badge badge-lifecycle" id="lifecycle-badge" title="work mode · lifecycle phase">Freestyle</span>
     </div>
     <nav id="tabs" role="tablist" aria-label="Console sections">
       <button type="button" role="tab" data-tab="now" class="tab-btn active" aria-selected="true">NOW</button>
@@ -577,6 +619,19 @@ function humanAge(seconds) {
   if (seconds < 3600) return Math.floor(seconds / 60) + " m ago";
   if (seconds < 86400) return Math.floor(seconds / 3600) + " h ago";
   return Math.floor(seconds / 86400) + " d ago";
+}
+
+// A duration in the text block's own form (progress.fmt_duration): 45s, 12m, 3h05m, 2d03h.
+function fmtDuration(seconds) {
+  if (seconds === null || seconds === undefined) return "?";
+  const s = Math.max(0, Math.floor(seconds));
+  const pad = function (n) { return (n < 10 ? "0" : "") + n; };
+  if (s < 60) return s + "s";
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + "m";
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + "h" + pad(m % 60) + "m";
+  return Math.floor(h / 24) + "d" + pad(h % 24) + "h";
 }
 
 function parseTs(ts) {
@@ -702,15 +757,134 @@ function sectionHead(title, sectionKey) {
  * NOW
  * ========================================================================================== */
 
+// One needs-human item: band chip, title, the humanized context and action, the copy-context
+// bridge and the resolve command to copy. Shared by the Needs human card and the Progress
+// panel's "Needs you" list, so the two render an item identically.
+function appendNeedItem(card, item) {
+  const band = String(item.band || "SEV3");
+  const headRow = el("div", { class: "needs-human-row" }, [
+    el("span", { class: "chip", style: "background:var(--" + band.toLowerCase() + "-bg);color:var(--" + band.toLowerCase() + "-fg);" }, [band]),
+    el("span", { class: "title" }, [item.title || item.id]),
+    el("span", { class: "mono", style: "font-size:11px;color:var(--text-dim);" }, [item.id + (item.category ? " · " + item.category : "")])
+  ]);
+  const itemWrap = el("div", { class: "nh-item" }, [headRow]);
+  // "What's going on" / "What to do": full text, wrapped, never truncated - and skipped
+  // cleanly (no empty line) for an older item that predates these fields.
+  if (item.context) {
+    itemWrap.appendChild(el("div", { class: "next-action" }, [el("span", { class: "k" }, ["What's going on: "]), item.context]));
+  }
+  if (item.action) {
+    itemWrap.appendChild(el("div", { class: "next-action" }, [el("span", { class: "k" }, ["What to do: "]), item.action]));
+  }
+  if (item.reply_template) itemWrap.appendChild(el("div", { class: "nh-copy-row" }, [copyContextButton(item)]));
+  card.appendChild(itemWrap);
+  card.appendChild(copyBox('python3 .claude/tools/statectl.py need resolve ' + JSON.stringify(item.id), null));
+}
+
+// A progress bar: done of total, full (and green) only when done reaches total.
+function progressBar(done, total, mini) {
+  const pct = total ? Math.max(0, Math.min(100, Math.floor(100 * done / total))) : 0;
+  const fill = el("div", { class: "pg-fill", style: "width:" + pct + "%;" });
+  return el("div", { class: "pg-bar" + (mini ? " pg-mini" : "") + (total && done >= total ? " is-full" : ""),
+                     title: done + " / " + total }, [fill]);
+}
+
+// The Progress panel: DATA.progress, the same model `statectl progress` prints and the periodic
+// report hands the lead (tools/progress.py). Live with the rest of NOW; no timer of its own.
+function renderProgress(panel) {
+  const pg = DATA.progress;
+  if (!pg) return;  // a payload from before the model existed: nothing to show, nothing invented
+  const card = el("div", { class: "card", id: "progress-panel" }, [sectionHead("Progress", "progress")]);
+  const last = pg.last_activity || {};
+  const run = pg.run || {};
+  const meta = [pg.mode_label || "Freestyle", "phase " + (pg.phase || "unset")];
+  if (run.started) meta.push("run " + fmtDuration(run.elapsed));
+  meta.push("last activity " + (last.ts ? fmtDuration(last.age) + " ago - " + last.note : "none recorded yet"));
+  if (pg.empty || !pg.milestone) {
+    card.appendChild(el("div", { class: "empty-state" }, [pg.empty || "nothing to measure yet"]));
+    card.appendChild(el("div", { class: "pg-meta" }, [meta.join(" · ")]));
+    panel.appendChild(card);
+    return;
+  }
+  const t = pg.totals || {};
+  card.appendChild(el("div", { class: "pg-head" }, [
+    el("span", { class: "pg-mid" }, [pg.milestone.id]),
+    el("span", { class: "pg-mtitle" }, [pg.milestone.title || ""])
+  ]));
+  card.appendChild(progressBar(t.checklist_done || 0, t.checklist_total || 0, false));
+  card.appendChild(el("div", { class: "pg-figures" }, [
+    el("span", { class: "pg-pct" }, [(t.percent || 0) + "%"]),
+    el("span", { class: "pg-basis", title: t.basis || "" }, [
+      "of plan items checked (" + (t.checklist_done || 0) + " / " + (t.checklist_total || 0) + ")"]),
+    el("span", {}, [(t.tasks_done || 0) + " / " + (t.tasks_total || 0) + " tasks done"])
+  ]));
+  card.appendChild(el("div", { class: "pg-meta" }, [meta.join(" · ") + " · proposals open " + (pg.proposals_open || 0)]));
+
+  [["in progress", "In progress"], ["waiting", "Waiting"], ["done", "Done"]].forEach(function (g) {
+    const rows = (pg.tasks || []).filter(function (task) { return task.group === g[0]; });
+    if (!rows.length) return;
+    card.appendChild(el("div", { class: "pg-group" }, [g[1] + " (" + rows.length + ")"]));
+    rows.forEach(function (task) {
+      const total = task.checklist_total || 0;
+      const done = task.status === "done" ? total : (task.checklist_done || 0);
+      const row = el("div", { class: "pg-task" }, [
+        el("span", { class: "pg-tid" }, [task.id]),
+        pathLink(task.title || task.id, task.file, "pg-ttitle"),
+        progressBar(task.status === "done" && !total ? 1 : done, total || 1, true),
+        // A done task counts all its items (the percent's rule); the title keeps the file's ticks.
+        el("span", { class: "pg-count", title: (task.checklist_done || 0) + " of " + total + " ticked in the task file" },
+           [total ? done + "/" + total : "no list"]),
+        el("span", { class: "status-pill status-" + String(task.status || "todo").toLowerCase() }, [task.status || "todo"])
+      ]);
+      const f = task.in_flight;
+      if (f) {
+        row.appendChild(el("span", { class: "pg-agent" }, [kindChip("agent"), " " + f.agent + " · " + fmtDuration(f.elapsed)
+          + (f.worktree ? " · " + f.worktree : "")]));
+      } else if (task.has_valid_envelope && task.status !== "done") {
+        row.appendChild(el("div", { class: "pg-agent" }, [copyBox("python3 .claude/tools/checkctl.py handoff "
+          + task.id + " --run", "handoff ready: review it (add --root <worktree> before the merge)")]));
+      }
+      card.appendChild(row);
+    });
+  });
+
+  // -- needs you: the open needs-human items, rendered as on the Needs human card ----------
+  const needs = pg.needs_human || [];
+  if (needs.length) {
+    card.appendChild(el("div", { class: "pg-group" }, ["Needs you (" + needs.length + ")"]));
+    const full = {};
+    ((DATA.now && DATA.now.needs_human && DATA.now.needs_human.top) || []).forEach(function (it) { full[it.id] = it; });
+    needs.forEach(function (item) {
+      appendNeedItem(card, full[item.id] || { id: item.id, title: item.title + " (" + fmtDuration(item.age) + " open)", band: item.band });
+    });
+  }
+
+  // -- agents in flight: one line ------------------------------------------------------------
+  const agents = pg.agents_in_flight || [];
+  card.appendChild(el("div", { class: "pg-line" }, [
+    el("span", { class: "k", style: "color:var(--text-dim);" }, ["agents in flight: "]),
+    agents.length ? agents.map(function (a) { return a.agent + " " + a.task + " " + fmtDuration(a.elapsed); }).join(" · ") : "none"
+  ]));
+  panel.appendChild(card);
+}
+
 function renderNow() {
   const panel = document.getElementById("panel-now");
   clear(panel);
   const now = DATA.now || {};
 
+  // -- progress: the long-run view, first ---------------------------------------------------
+  renderProgress(panel);
+
   // -- heartbeat / resume pointer / phase --------------------------------------------------
+  // A "working" heartbeat is the activity pulse mid-turn; any other note is the Stop hook's.
   const hbCard = el("div", { class: "card" }, [sectionHead("Heartbeat", "now")]);
   const dot = el("span", { class: "pulse-dot" + (now.heartbeat_age_seconds !== null && now.heartbeat_age_seconds !== undefined && now.heartbeat_age_seconds < 120 ? " live" : "") });
-  hbCard.appendChild(el("div", { class: "kv-row" }, [dot, " ", humanAge(now.heartbeat_age_seconds), now.heartbeat && now.heartbeat.note ? (" - " + now.heartbeat.note) : ""]));
+  const beat = now.heartbeat || {};
+  const beatText = !beat.ts ? "no heartbeat yet"
+    : (beat.note === "working" ? "working, last activity " + humanAge(now.heartbeat_age_seconds)
+      : (beat.note || "last beat") + " " + humanAge(now.heartbeat_age_seconds));
+  hbCard.appendChild(el("div", { class: "kv-row" }, [dot, " ", beatText]));
   hbCard.appendChild(el("div", { class: "kv-row" }, [el("span", { class: "k" }, ["resume"]), el("div", { class: "pointer-box" }, [now.resume_pointer || "(none set)"])]));
   hbCard.appendChild(el("div", { class: "kv-row" }, [el("span", { class: "k" }, ["phase"]), el("span", { class: "v" }, [now.phase || "-"])]));
   hbCard.appendChild(el("div", { class: "kv-row" }, [el("span", { class: "k" }, ["session"]), el("span", { class: "v mono" }, [now.session_id || "-"])]));
@@ -729,7 +903,7 @@ function renderNow() {
       flightCard.appendChild(el("div", { class: "needs-human-row" }, [
         kindChip("agent"),
         el("span", { class: "title" }, [f.agent + " · " + f.task_id]),
-        el("span", { class: "mono", style: "color:var(--text-dim);font-size:11px;" }, ["since " + (f.since || "?")])
+        el("span", { class: "mono", style: "color:var(--text-dim);font-size:11px;" }, ["dispatched " + (f.dispatched_at || "?")])
       ]));
     });
   } else {
@@ -752,25 +926,7 @@ function renderNow() {
       "Copy an item's context, paste it in the Claude Code terminal, and type your answer "
       + "after 'My answer:' - the agent gets the full situation with your reply."
     ]));
-    nh.top.forEach(function (item) {
-      const headRow = el("div", { class: "needs-human-row" }, [
-        el("span", { class: "chip", style: "background:var(--" + item.band.toLowerCase() + "-bg);color:var(--" + item.band.toLowerCase() + "-fg);" }, [item.band]),
-        el("span", { class: "title" }, [item.title || item.id]),
-        el("span", { class: "mono", style: "font-size:11px;color:var(--text-dim);" }, [item.id + (item.category ? " · " + item.category : "")])
-      ]);
-      const itemWrap = el("div", { class: "nh-item" }, [headRow]);
-      // "What's going on" / "What to do": full text, wrapped, never truncated - and skipped
-      // cleanly (no empty line) for an older item that predates these fields.
-      if (item.context) {
-        itemWrap.appendChild(el("div", { class: "next-action" }, [el("span", { class: "k" }, ["What's going on: "]), item.context]));
-      }
-      if (item.action) {
-        itemWrap.appendChild(el("div", { class: "next-action" }, [el("span", { class: "k" }, ["What to do: "]), item.action]));
-      }
-      itemWrap.appendChild(el("div", { class: "nh-copy-row" }, [copyContextButton(item)]));
-      nhCard.appendChild(itemWrap);
-      nhCard.appendChild(copyBox('python3 .claude/tools/statectl.py need resolve ' + JSON.stringify(item.id), null));
-    });
+    nh.top.forEach(function (item) { appendNeedItem(nhCard, item); });
   } else {
     nhCard.appendChild(el("div", { class: "empty-state" }, ["queue is empty"]));
   }
@@ -977,6 +1133,7 @@ function renderMap() {
   panel.appendChild(el("div", { class: "map-hint" }, [
     "click a component to trace its connections · click again for details · Esc to clear"
   ]));
+  panel.appendChild(renderContextCard());
 
   function redraw() {
     drawEdges(canvas, svg, edges, nodeEls);
@@ -1008,6 +1165,36 @@ function renderMap() {
       if (ev.key === "Escape" && panel._mapClearFocus) panel._mapClearFocus();
     });
   }
+}
+
+// Context: the guides (CLAUDE.md files) and rules (.claude/rules/) Claude Code loads, derived
+// by ctxmap.py into map.json at compile and carried as DATA.context. A list, not map nodes:
+// guides and rules never need a card, so they are listed beside the canvas, not drawn on it.
+// Every field is optional on read so an older payload (or none) still renders.
+function renderContextCard() {
+  const ctx = DATA.context || { entries: [] };
+  const entries = ctx.entries || [];
+  const card = el("div", { class: "card" }, [sectionHead("Context", "map")]);
+  if (!entries.length) {
+    card.appendChild(el("div", { class: "empty-state" }, ["no guides or rules mapped yet"]));
+    return card;
+  }
+  const f = ctx.findings || {};
+  card.appendChild(el("div", { class: "ctx-summary" }, [
+    "always-on " + (ctx.always_on_lines || 0) + (ctx.always_on_budget ? " of " + ctx.always_on_budget : "")
+    + " lines · " + (f.fail || 0) + " fail · " + (f.warn || 0) + " warn"
+  ]));
+  entries.forEach(function (e) {
+    card.appendChild(el("div", { class: "ctx-row" }, [
+      pathLink(e.path, e.path, "ctx-path mono"),
+      el("span", { class: "ctx-kind" }, [(e.kind || "") + (e.loads ? " · " + e.loads : "")]),
+      el("span", { class: "ctx-scope", title: e.via ? ("imported by " + e.via) : null }, [e.scope || ""]),
+      el("span", { class: "ctx-lines" }, [String(e.lines || 0) + " lines"]),
+      e.findings ? el("span", { class: "ctx-findings" }, [e.findings + (e.findings === 1 ? " finding" : " findings")]) : null
+    ]));
+  });
+  card.appendChild(copyBox("python3 .claude/tools/mapctl.py context <path>", "what loads for one file, in order (copy and run it yourself)"));
+  return card;
 }
 
 // Six edge styles by name, as specified. mapctl.py's build_map() currently derives edges
@@ -1169,10 +1356,12 @@ function renderSetupGuide(analysis) {
   ]));
   wrap.appendChild(el("div", { class: "kv-row" }, [
     "Put base_url and model in .claude/config/observe.json under \"analyze\". The key itself "
-    + "goes in your ENVIRONMENT, never in that file:"
+    + "goes in the env block of .claude/settings.local.json (per-user, gitignored), never in "
+    + "that file:"
   ]));
-  wrap.appendChild(copyBox("export ANALYZE_API_KEY=sk-...",
-    "also accepted: " + (analysis.key_envs_accepted || []).join(", ")));
+  wrap.appendChild(copyBox("\"env\": { \"ANALYZE_API_KEY\": \"sk-...\" }",
+    "outside Claude Code: export ANALYZE_API_KEY=sk-... in your shell · also accepted: "
+    + (analysis.key_envs_accepted || []).join(", ") + " · see .claude/reference/secrets.md"));
 
   const statusRow = el("div", { class: "sev-row" });
   if (analysis.key_env) {
@@ -1256,7 +1445,8 @@ function renderAnalysisCard() {
     "JSON schema; every reply is validated mechanically (an off-taxonomy label fails its " +
     "whole chunk - nothing is judged by Claude). Plain code then aggregates the labels " +
     "per day into the Analysis-labels lane above. The API key lives only in your " +
-    "environment; with a local Ollama endpoint nothing leaves this machine, and products " +
+    "environment (the env block of .claude/settings.local.json, or your shell); with a " +
+    "local Ollama endpoint nothing leaves this machine, and products " +
     "stay in the record until a human promotes them into the repo."]));
   card.appendChild(info);
   card.appendChild(analysis.configured ? renderConfiguredStatus(analysis) : renderSetupGuide(analysis));
@@ -1444,6 +1634,33 @@ function renderWork() {
   }
   panel.appendChild(tasksCard);
 
+  // -- proposals: ideas parked for later (state/proposals.jsonl, statectl proposal ...) --------
+  const props = work.proposals || { open: 0, resolved: 0, items: [] };
+  const propCard = el("div", { class: "card" }, [sectionHead("Proposals (" + (props.open || 0) + " open)", "work.proposals")]);
+  if (props.items && props.items.length) {
+    props.items.forEach(function (p) {
+      const row = el("div", { class: "task-row" });
+      row.appendChild(el("div", { class: "head" }, [
+        el("span", { class: "proposal-id" }, [p.id || ""]),
+        el("span", { class: "title" }, [p.text || ""]),
+        el("span", { class: "status-pill status-" + (p.status || "open") }, [p.status || "open"])
+      ]));
+      row.appendChild(el("div", { class: "next-action" }, [
+        el("span", { class: "k" }, ["kind: "]), (p.kind || "-") + " · ",
+        el("span", { class: "k" }, ["source: "]), p.source || "-"
+      ]));
+      if (p.note) row.appendChild(el("div", { class: "next-action" }, [el("span", { class: "k" }, ["Note: "]), p.note]));
+      if (p.status === "open") {
+        row.appendChild(copyBox('python3 .claude/tools/statectl.py proposal resolve ' + JSON.stringify(p.id)
+          + ' --as planned --note "<where it was planned>"', "or --as rejected --note \"<why not>\""));
+      }
+      propCard.appendChild(row);
+    });
+  } else {
+    propCard.appendChild(el("div", { class: "empty-state" }, ["no proposals: park an out-of-scope idea with statectl proposal add"]));
+  }
+  panel.appendChild(propCard);
+
   const logCard = el("div", { class: "card" }, [sectionHead("Project log", "work.log_tail")]);
   if (work.log_tail && work.log_tail.length) {
     work.log_tail.slice().reverse().forEach(function (e) {
@@ -1581,6 +1798,23 @@ function renderChrome() {
     badge.className = "badge badge-static";
     dot.className = "pulse-dot";
   }
+  renderLifecycleBadge();
+}
+
+// The work-mode / lifecycle-phase dial (DATA.now.lifecycle, folded by _lib.lifecycle_state -
+// the same reader the SessionStart hook prints). The hover title carries the phase contract.
+function renderLifecycleBadge() {
+  const lb = document.getElementById("lifecycle-badge");
+  if (!lb) return;
+  const life = (DATA.now && DATA.now.lifecycle) || {};
+  const modeLabel = life.mode_label || "Freestyle";
+  lb.textContent = modeLabel + " · " + (life.phase_label || "no phase");
+  lb.className = "badge badge-lifecycle" + (life.organised ? " is-organised" : "");
+  const tip = ["work mode: " + modeLabel + (life.mode_set ? "" : " (unset = freestyle)"),
+               "phase: " + (life.phase || "unset") + (life.phase_since ? " since " + life.phase_since : "")];
+  (life.contract || []).forEach(function (line) { tip.push("- " + line); });
+  if (!life.organised) tip.push("no phase contract or exit checks in freestyle");
+  lb.title = tip.join("\n");
 }
 
 function renderAll() {

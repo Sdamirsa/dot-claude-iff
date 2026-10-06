@@ -11,24 +11,35 @@
     "config.observe",
     "config.registry",
     "store.journal",
-    "store.machine"
+    "store.machine",
+    "store.handshakes",
+    "store.orchestration",
+    "config.orchestration"
   ],
   "writes": [
     "store.journal",
-    "store.record"
+    "store.record",
+    "store.handshakes",
+    "store.orchestration"
   ],
   "invokes": [],
   "flows": [],
   "glyphs": [],
   "auto": {
     "discovered": "2026-08-25",
-    "hash": "f404ef628e665893ad70d63ed6a9a7b84777218f2eb6aa37808eb9c3d01c58c2",
+    "hash": "0613f47e2e56f02d1c6e48fd3f2f2a1cd09cc4738d42dee0fca2ff426af4c577",
     "suggested_reads": [
+      "store.heartbeat",
       "store.journal",
+      "store.orchestration",
+      "store.proposals",
       "store.record"
     ],
     "suggested_writes": [
+      "store.heartbeat",
       "store.journal",
+      "store.orchestration",
+      "store.proposals",
       "store.record"
     ]
   }

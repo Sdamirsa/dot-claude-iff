@@ -1,0 +1,56 @@
+{
+  "task_id": "T1",
+  "agent_id": "builder-T1",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "ok",
+  "RESULT": "policy_gate.py now reads Bash and PowerShell commands for the paths they would WRITE (redirect targets, writer operands, code handed to shells/interpreters, heredocs fed as code) and applies one shared ring check to all three rings: record and ritual ticket for every identity, protected tree for sub-agents less write_paths grants. The record-ring prose false positive is gone (heredocs read as data, quoted args, echo), and indirect forms (variables, cd, subshells, eval, bash -c, xargs, globs, braces, .NET calls, EncodedCommand, path tricks from worktrees) are denied. policy.json gains agents.builder, loses the unread default.write_paths, and its header and the CLAUDE.md protected-tree bullet are corrected.",
+  "files_changed": [
+    ".claude/hooks/policy_gate.py",
+    ".claude/hooks/policy-gate.sh",
+    ".claude/config/policy.json",
+    ".claude/tools/tests/test_hooks.py",
+    ".claude/CLAUDE.md",
+    ".claude/state/handshakes/T1.json"
+  ],
+  "tests": [
+    {"command": "python3 .claude/tools/tests/run_tests.py test_hooks -q", "exit_code": 0, "summary": "80 passed · 0 failed · 0 errored · 0 skipped / TESTS_OK"},
+    {"command": "python3 .claude/tools/tests/run_tests.py -q", "exit_code": 0, "summary": "248 passed · 0 failed · 0 errored · 1 skipped / TESTS_OK (the skip is the pre-existing POSIX-only test_statectl fsync test)"}
+  ],
+  "EVIDENCE": [
+    "Repro first: new TestRecordProse run against the UNCHANGED gate -> 15/15 prose cases denied (FAILED failures=15)",
+    "New test classes (TestShellLanes, TestRitualTicket, TestWorktrees, TestRecordProse) run against the old dev gate via a scratch harness -> 670 subtest failures across 21 tests; all pass on the new gate",
+    "Every pre-existing record-ring deny test in test_hooks.py passes unchanged",
+    "checkctl probe in the worktree -> 38 ok, 0 fail",
+    "mapctl lint -> 0 errors; config.policy and hook.policy-gate auto.hash stale (expected from these edits)",
+    "Timing probe: 267 KB prose heredoc, 219 KB python heredoc, 400-command Bash and PowerShell chains judged in about 1.8 s total in-process",
+    "Main-session merge flows probed and allowed: cp from a worktree into .claude/hooks, rsync worktree tools/ into tools/, git -C <wt> diff | git apply, rm -rf .claude/worktrees/t1"
+  ],
+  "DEVIATIONS": [
+    "Rewrote the shell half of the gate rather than bolting the protected tree onto the old record-ring check: the old check (path mention + mutator SUBSTRING in the same ;&|-segment) would have denied nearly every sub-agent command that names .claude/tools (e.g. `python3 .claude/tools/x.py 2>&1`), so 'reuse it' became 'replace it with one detector shared by all three rings'. The Write lane uses the same segment-wise matcher.",
+    "Segment-wise matching changes one Write-lane edge: `.claude/settings.json.bak` no longer matches the `.claude/settings.json` entry (string-prefix did). Directory entries are unaffected.",
+    "Added `.claude/settings.json` and `.claude/settings.local.json` to the gate's FALLBACK_PROTECTED (and policy.json fallback_protected, now pinned equal by a test): in degraded mode a sub-agent could write settings.json. Not in the task file; same ring.",
+    "policy-gate.sh fail-closed grep now also matches `ritual-ticket` and `settings.local.json`, so a crashed judge cannot open the ticket.",
+    "default.write_paths deleted (no reader found anywhere in the repo).",
+    "Implicit-target writes (tar -x / unzip / patch with no destination) are judged for the protected tree only, so the main session keeps `git apply` / `patch` in its own root; `git apply` itself is never a writer. Recorded as a residual in the gate docstring.",
+    "Handoff envelope uses the brief's key set exactly; it does not satisfy post-write-validate.sh's older contract (agent_id, status) - see needs_main."
+  ],
+  "UNCERTAINTIES": [
+    "Linux CI not run here. Platform-specific paths were reasoned through (backslash variants are added on every OS, case folding and trailing-dot folding only on nt, the symlink test uses os.symlink on POSIX and a junction on Windows), but not executed on Ubuntu.",
+    "The builder grant only applies when the payload's agent_type is literally 'builder'; no .claude/agents/builder.md exists, and this session ran as 'general-purpose', so the grant is untested live.",
+    "Static shell reading is not sound against a determined adversary; residuals are listed in the gate docstring (script files run later, base64 decoded at run time, unknown writers, run-time-assembled paths in interpreter code, archives/patches in the main root).",
+    "Main-session behaviour changes beyond the prose fix, all deliberate and all in the safe direction: recursive deletes/moves/tree-copies/extractions onto an ANCESTOR of the record or ticket (e.g. `rm -rf ..`, `rsync -a x/ .claude/`, `chmod -R 755 .`, `tar -xf x.tar -C .claude`) are now denied; a write whose path cannot be resolved is denied when the same command names the record or ticket."
+  ],
+  "needs_main": [
+    "Resolve the envelope contract conflict: the builder brief mandates {task_id, agent, model, STATUS: ok|partial|blocked, ...} while .claude/hooks/post-write-validate.sh requires {agent_id, task_id, status: done|partial|blocked}; this file follows the brief and will read as VALIDATE_FAIL to the current validator.",
+    "Run mapctl scan (ritual) to refresh the config.policy and hook.policy-gate card hashes/descriptions; the hook.policy-gate card text still lists the old two rings.",
+    "Rebuild the dist zips at merge (policy.json, both hook files changed).",
+    "settings.json matchers already cover Write|Edit|MultiEdit|NotebookEdit|Bash|PowerShell; no lane is missing, nothing to change there."
+  ],
+  "SUGGESTIONS": [
+    "Pushback on the builder grant: `.claude/tools/` contains `_lib.py`, which policy_gate.py imports on every call, so a builder holding that grant can own the gate on its next tool call - the exact hole policy.json's _protected_comment describes. Builders work in worktrees, where no grant is needed (worktree paths are not the protected tree, now pinned by TestWorktrees). Recommend dropping the grant, or keeping it but carving `.claude/tools/_lib.py` back out.",
+    "policy.json `fallback_protected` is never read by the gate (it cannot be: it is only needed when policy.json is unreadable); it is now a documented mirror pinned by test_fallback_list_in_policy_matches_the_gate. Consider deleting it instead.",
+    "Lesson candidate (L-6 extension): a text rule that matches SUBSTRINGS of verbs (`rm ` in 'confirm ', `dd ` in 'address ', `tee ` in 'committee ', `>` in '->') turns prose into writes; match program words and operator tokens after lexing, never substrings."
+  ]
+}

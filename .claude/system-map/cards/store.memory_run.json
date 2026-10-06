@@ -5,7 +5,7 @@
   "package": null,
   "title": "Ritual run checkpoint",
   "path": ".claude/state/memory-run.json",
-  "description": "The /project-memory transaction: run id, phase, step. PUBLISH refuses unless POLISH completed in the same run id.",
+  "description": "The /project-memory transaction: run id, phase, step, and who opened it (invoked_by: user-ticket, with the ticket's ts). PUBLISH refuses unless POLISH completed in the same run id.",
   "reads": [],
   "writes": [],
   "invokes": [],

@@ -42,7 +42,8 @@ def _read_heartbeat() -> tuple[dict, float | None]:
 
 
 def _read_session() -> tuple[str | None, str | None, str | None, list]:
-    # session.json is statectl.py's projection: {..., "session": {"id","phase","started"},
+    # session.json is statectl.py's projection: {..., "session": {"id","mode","phase",
+    # "phase_since","started"},
     # "resume_pointer", "open_loops": [{"id","text","ts"}], ...}. Read through THAT shape,
     # not a guessed flat one - see obsctl.py's ROLLUP_CONTRACT comment for why a console
     # reader that guesses at a producer's key names is exactly the bug class this system
@@ -117,6 +118,11 @@ def _journal_summary(ev: dict) -> str:
         return str(ev.get("what", ""))
     if action == "gate":
         return str(ev.get("question", ""))
+    if action == "mode":
+        return _lib.mode_label(ev.get("value"))
+    if action == "phase":
+        return (f"{ev.get('from') or 'unset'} -> {ev.get('value', '')}"
+                + (f" · override: {ev['override']}" if ev.get("override") else ""))
     for key in ("text", "title", "note", "what", "question"):
         if ev.get(key):
             return str(ev.get(key))
@@ -134,7 +140,15 @@ def _read_journal_tail() -> list:
     return out
 
 
-def _read_in_flight() -> list:
+def _read_in_flight(progress_model: dict | None = None) -> list:
+    # The progress model's in-flight rule when it computed (a stub whose task is not done and
+    # whose agent delivered no valid envelope since dispatch, worktrees included), so the
+    # Progress panel and this card can never disagree; else the plain stub-without-envelope
+    # reading below.
+    agents = (progress_model or {}).get("agents_in_flight")
+    if isinstance(agents, list):
+        return [{"agent": a["agent"], "task_id": a["task"], "dispatched_at": a["dispatched_at"]}
+                for a in agents]
     hs_dir = _lib.state_dir() / "handshakes"
     out = []
     if not hs_dir.is_dir():
@@ -144,19 +158,37 @@ def _read_in_flight() -> list:
         envelope = hs_dir / f"{task_id}.json"
         if envelope.exists():
             continue
-        data = _lib.read_json(stub, {}) or {}
-        # The envelope contract (post-write-validate.sh, handshake.md) is
-        # {agent_id, task_id, status, artifacts[], notes}; a stub is exempt from that
-        # contract's required-keys check but conventionally carries the same field names.
-        out.append({
-            "agent": str(data.get("agent_id") or data.get("agent") or ""),
-            "task_id": str(data.get("task_id") or task_id),
-            "since": str(data.get("since") or data.get("ts") or ""),
-        })
+        # The stub contract (handshake.md) is {task_id, agent, dispatched_at, worktree?};
+        # _lib.read_stub is its one reader and still reads the older since/ts names.
+        data = _lib.read_stub(stub)
+        out.append({"agent": data["agent"], "task_id": data["task_id"],
+                    "dispatched_at": data["dispatched_at"]})
     return out
 
 
-def _read_now() -> dict:
+def _read_lifecycle() -> dict:
+    """The mode/phase dials for the top-bar badge, through _lib's one reader - the same fold
+    the SessionStart hook prints, so the badge and the session start can never disagree.
+    Named `lifecycle`, not `mode`: the payload's top-level `mode` is live/static."""
+    try:
+        state = _lib.lifecycle_state()
+    except Exception:  # noqa: BLE001 - the console renders with or without a journal
+        state = {"mode": _lib.DEFAULT_MODE, "mode_set": False, "phase": None, "phase_since": None}
+    mode, phase = state["mode"], state["phase"]
+    organised = mode in _lib.ORGANISED_MODES
+    return {
+        "mode": mode,
+        "mode_label": _lib.mode_label(mode),
+        "mode_set": bool(state["mode_set"]),
+        "organised": organised,
+        "phase": phase,
+        "phase_label": _lib.phase_label(phase) if phase else None,
+        "phase_since": state["phase_since"],
+        "contract": _lib.phase_contract(phase) if (phase and organised) else [],
+    }
+
+
+def _read_now(progress_model: dict | None = None) -> dict:
     heartbeat, heartbeat_age = _read_heartbeat()
     resume_pointer, phase, session_id, open_loops = _read_session()
     return {
@@ -165,11 +197,28 @@ def _read_now() -> dict:
         "resume_pointer": resume_pointer,
         "phase": phase,
         "session_id": session_id,
+        "lifecycle": _read_lifecycle(),
         "open_loops": open_loops,
-        "in_flight": _read_in_flight(),
+        "in_flight": _read_in_flight(progress_model),
         "needs_human": _read_needs_human(),
         "journal_tail": _read_journal_tail(),
     }
+
+
+def _read_progress() -> dict:
+    """The NOW tab's Progress panel: progress.compute(), the one model `statectl progress` and
+    the periodic report print. Live on every poll. A model that cannot be computed degrades to
+    an honest empty state naming why, never to a missing key."""
+    try:
+        import progress
+        return progress.compute()
+    except Exception as exc:  # noqa: BLE001 - the console renders with or without the model
+        return {"empty": f"progress model unavailable ({type(exc).__name__}: {exc})",
+                "mode": _lib.DEFAULT_MODE, "mode_label": _lib.mode_label(None), "phase": None,
+                "milestone": None, "tasks": [], "totals": None, "needs_human": [],
+                "proposals_open": 0, "agents_in_flight": None,
+                "run": {"started": None, "elapsed": None},
+                "last_activity": {"ts": None, "age": None, "note": None, "source": None}}
 
 
 # --------------------------------------------------------------------------- tokens
@@ -240,7 +289,7 @@ def _read_tokens() -> dict:
 # --------------------------------------------------------------------------- work
 
 _TASK_TITLE_RE = re.compile(r"^#\s*Task:\s*(.+?)\s*$", re.MULTILINE)
-_TASK_STATUS_RE = re.compile(r"^_Created.*?·\s*Status:\s*([A-Za-z0-9_-]+)_?\s*$", re.MULTILINE)
+_TASK_STATUS_RE = _lib.TASK_STATUS_LINE_RE  # shared with checkctl's phase exits
 _SECTION_RE = "##\\s*{name}(.*?)(?:\\n##\\s|\\Z)"
 _CHECKPOINT_RE = re.compile(_SECTION_RE.format(name="Checkpoint"), re.DOTALL)
 _NEEDS_HUMAN_RE = re.compile(_SECTION_RE.format(name="NEEDS-HUMAN"), re.DOTALL)
@@ -281,10 +330,12 @@ def _parse_task_file(path: Path) -> dict:
 
 
 def _read_tasks() -> list:
+    """Task files on the WORK tab: `_`-prefixed files are scaffolds (the task template, the
+    builder brief), never tasks, the same rule checkctl's task readers apply."""
     tdir = _lib.claude_dir() / "tasks"
     if not tdir.is_dir():
         return []
-    return [_parse_task_file(f) for f in sorted(tdir.glob("*.md"))]
+    return [_parse_task_file(f) for f in sorted(tdir.glob("*.md")) if not f.name.startswith("_")]
 
 
 def _read_log_tail() -> list:
@@ -324,9 +375,27 @@ def _read_research() -> list:
     return out
 
 
+PROPOSALS_RESOLVED_SHOWN = 5
+
+
+def _read_proposals() -> dict:
+    """The proposal box (state/proposals.jsonl, folded by _lib.proposal_records - the reader
+    statectl uses too): every open proposal, oldest first, then the latest few resolved."""
+    try:
+        records = _lib.proposal_records()
+    except Exception:  # noqa: BLE001 - a broken store degrades to an empty box
+        records = []
+    keys = ("id", "text", "source", "kind", "status", "note")
+    open_items = [{k: r.get(k, "") for k in keys} for r in records if r.get("status") == "open"]
+    resolved = sorted((r for r in records if r.get("status") != "open"), key=lambda r: r.get("resolved", ""))
+    recent = [{k: r.get(k, "") for k in keys} for r in resolved[-PROPOSALS_RESOLVED_SHOWN:]]
+    return {"open": len(open_items), "resolved": len(resolved), "items": open_items + recent[::-1]}
+
+
 def _read_work() -> dict:
     return {
         "tasks": _read_tasks(),
+        "proposals": _read_proposals(),
         "log_tail": _read_log_tail(),
         "watch_outs": _read_watch_outs(),
         "research": _read_research(),
@@ -341,6 +410,17 @@ def _read_map():
 
 def _read_story():
     return _lib.read_json(_lib.state_dir() / "story-feed.json", None)
+
+
+def _read_context(map_data) -> dict:
+    """The MAP tab's Context list: map.json's `context` section (derived by ctxmap at compile,
+    so the live poll never re-walks the tree), read through ctxmap's own contract reader and
+    degrading to its empty shape when there is no map yet."""
+    try:
+        import ctxmap
+        return ctxmap.section_from_map(map_data)
+    except Exception:  # noqa: BLE001 - the console renders with or without the engine
+        return {"entries": []}
 
 
 # --------------------------------------------------------------------------- payload
@@ -372,7 +452,8 @@ def payload(live: bool = False) -> dict:
     """Build the ONE console payload. Called by `build` (live=False) and by console.py's
     /live/console.json handler (live=True). Never raises on a missing/malformed source
     file - every reader above degrades to nulls, zeros or empty collections instead."""
-    now = _read_now()
+    progress_model = _read_progress()
+    now = _read_now(progress_model)
     tokens = _read_tokens()
     work = _read_work()
     map_data = _read_map()
@@ -415,12 +496,15 @@ def payload(live: bool = False) -> dict:
             **_repo_links(),
         },
         "now": now,
+        "progress": progress_model,
         "tokens": tokens,
         "work": work,
         "map": map_data,
+        "context": _read_context(map_data),
         "story": story_data,
         "analysis": analysis,
-        "freshness": {"live": ["now", "analysis"], "ritual": ["tokens", "work.log_tail", "map", "story"]},
+        "freshness": {"live": ["now", "analysis", "work.proposals", "progress"],
+                      "ritual": ["tokens", "work.log_tail", "map", "story"]},
         "warnings": warnings,
     }
 
@@ -460,8 +544,9 @@ def build(demo: bool = False, out: str | None = None) -> dict:
     rebuild that touches it on every ritual even when nothing happened is exactly the kind
     of noise that makes "did anything actually change" unanswerable from git status - the
     same reasoning behind statectl.py's `_write_gated`, mirrored here for the same reason.
-    Comparison masks only the two wall-clock fields, the top-level `generated_at` and
-    `now.heartbeat_age_seconds` (a nested `generated_at`, e.g. a story-feed rebuild's own,
+    Comparison masks only the wall-clock fields, the top-level `generated_at`,
+    `now.heartbeat_age_seconds` and the progress model's ages (`progress.CLOCK_KEYS`) (a nested
+    `generated_at`, e.g. a story-feed rebuild's own,
     is a genuine content change and is deliberately NOT masked), and compares the full
     RENDERED page, not just the payload - a template edit with an unchanged payload must
     still reach the output, or the ledger marks the generator fresh while the file on disk
@@ -494,6 +579,16 @@ def build(demo: bool = False, out: str | None = None) -> dict:
                 and "heartbeat_age_seconds" in old_data["now"]:
             comparable["now"] = dict(comparable["now"])
             comparable["now"]["heartbeat_age_seconds"] = old_data["now"]["heartbeat_age_seconds"]
+        # The progress model's ages and elapsed times are wall clock too: equal apart from
+        # them is unchanged (progress.CLOCK_KEYS). Every other progress field compares unmasked.
+        old_prog, new_prog = old_data.get("progress"), comparable.get("progress")
+        if isinstance(old_prog, dict) and isinstance(new_prog, dict):
+            try:
+                import progress
+                if progress.without_clock(old_prog) == progress.without_clock(new_prog):
+                    comparable["progress"] = old_prog
+            except Exception:  # noqa: BLE001 - unmasked: at worst one needless rewrite
+                pass
         wrote = render(comparable) != old_text
     if wrote:
         _lib.atomic_write_text(out_path, render(data), durable=False)
