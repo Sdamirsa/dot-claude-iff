@@ -5,8 +5,8 @@ the v0.3.0-alpha.1 close-out; the first ritual of 0.3 rewrites it properly._
 
 ## Current focus
 
-v0.3.0-alpha.1 is published as a GitHub pre-release from `dev` (2026-10-06); `main` and
-"latest" stay on v0.2.2 until the stable release. The alpha adds modes, phases, the user-only
+v0.3.0-alpha.1 is published as a GitHub pre-release (2026-10-06) and, at the maintainer's
+decision, merged to `main` (PR #15); the GitHub "latest" release stays v0.2.2 until the stable tag. The alpha adds modes, phases, the user-only
 ritual with ROUTE, Fableous Orchestrated mode, the progress view, secrets check and doctor,
 visibility and export, folder context, and `/adhd`. Issues #7 to #14 are answered and kept
 open. None of the new hooks has run in a live session yet.
@@ -23,7 +23,7 @@ open. None of the new hooks has run in a live session yet.
    `python3 .claude/tools/checkctl.py ticket --grant` in your own terminal.
 2. Work through the rest of `docs/alpha-test-checklist.md` over the testing weeks; file
    findings as issues or with `statectl proposal add`.
-3. When satisfied: a pull request `dev` -> `main`, then the stable tag on `main`
+3. When satisfied: merge `dev` -> `main` again, then the stable tag on `main`
    (`.claude/reference/release-flow.md`). Before that, the maturation pass (proposal PR-4).
 
 ## Blockers / open decisions
