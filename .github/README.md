@@ -31,6 +31,94 @@ end to end. This repo may already have a .claude directory: merge, never overwri
 every conflict to me before deciding.
 ```
 
+```mermaid
+flowchart TD
+
+  subgraph group_session["Session harness"]
+    node_hooks["Session hooks<br/>[hooks]"]
+    node_policy["Policy gate<br/>[policy_gate.py]"]
+    node_checks["Secrets and system checks<br/>[checkctl.py]"]
+  end
+
+  subgraph group_memory["Memory and ritual"]
+    node_record[("Event record<br/>[state]")]
+    node_heartbeat["Heartbeat and usage<br/>[heartbeat.sh]"]
+    node_ritual["Project memory ritual<br/>[SKILL.md]"]
+    node_check["Reality check<br/>[project-memory]"]
+    node_polish["Memory rebuild<br/>[project-memory]"]
+    node_publish["Seal and publish<br/>[project-memory]"]
+    node_evolve["Evidence-based evolution<br/>[project-memory]"]
+    node_route["Next-session routing<br/>[project-memory]"]
+    node_state["Modes and phases<br/>[statectl.py]"]
+  end
+
+  subgraph group_visibility["Visibility and control"]
+    node_console["Command console<br/>[console.py]"]
+    node_systemmap["Clickable system map<br/>[mapctl.py]"]
+    node_export["Visibility and export<br/>[distctl.py]"]
+    node_progress["Progress view<br/>[progress.py]"]
+  end
+
+  subgraph group_extension["Orchestration and adoption"]
+    node_orchestration["Fableous orchestration<br/>[orchestration.md]"]
+    node_dispatch["Worktree dispatch<br/>[statectl.py]"]
+    node_adoption["Merge-based adoption<br/>[SKILL.md]"]
+  end
+
+  node_human(("Human maintainer"))
+  node_agent(("Claude Code agent"))
+
+  node_human -->|"starts"| node_ritual
+  node_agent -->|"suggests"| node_ritual
+  node_ritual -->|"checks reality"| node_check
+  node_ritual -->|"rebuilds memory"| node_polish
+  node_ritual -->|"publishes"| node_publish
+  node_ritual -->|"proposes changes"| node_evolve
+  node_ritual -->|"routes session"| node_route
+  node_human -->|"approves changes"| node_evolve
+  node_hooks -->|"captures events"| node_record
+  node_heartbeat -->|"records turns"| node_record
+  node_policy -->|"gates mistakes"| node_agent
+  node_state -->|"sets mode and phase"| node_route
+  node_console -->|"shows status"| node_human
+  node_console -->|"presents questions"| node_human
+  node_human -->|"returns contextual answer"| node_agent
+  node_systemmap -->|"maps components"| node_console
+  node_progress -->|"shows progress"| node_human
+  node_export -->|"offers export"| node_human
+  node_orchestration -->|"defines dispatch"| node_dispatch
+  node_dispatch -->|"dispatches builders"| node_agent
+  node_adoption -->|"guides installation"| node_agent
+  node_checks -->|"reports findings"| node_human
+
+  classDef toneBlue fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
+  classDef toneAmber fill:#fef3c7,stroke:#d97706,stroke-width:1.5px,color:#78350f
+  classDef toneMint fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+  classDef toneRose fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
+  classDef toneIndigo fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
+  class node_hooks,node_policy,node_checks toneBlue
+  class node_record,node_heartbeat,node_ritual,node_check,node_polish,node_publish,node_evolve,node_route,node_state toneAmber
+  class node_console,node_systemmap,node_export,node_progress toneMint
+  class node_orchestration,node_dispatch,node_adoption toneRose
+  class node_human,node_agent toneIndigo
+```
+
+| Component | Source |
+|---|---|
+| Session hooks | [.claude/hooks/](.claude/hooks) |
+| Policy gate | [policy_gate.py](.claude/hooks/policy_gate.py) |
+| Secrets and system checks | [checkctl.py](.claude/tools/checkctl.py) |
+| Event record | [.claude/state/](.claude/state) |
+| Heartbeat and usage | [heartbeat.sh](.claude/hooks/heartbeat.sh) |
+| Project memory ritual (reality check, rebuild, seal and publish, evolution, routing) | [project-memory/SKILL.md](.claude/skills/project-memory/SKILL.md) |
+| Modes and phases, worktree dispatch | [statectl.py](.claude/tools/statectl.py) |
+| Command console | [console.py](.claude/console/console.py) |
+| System map | [mapctl.py](.claude/tools/mapctl.py) |
+| Visibility and export | [distctl.py](.claude/tools/distctl.py) |
+| Progress view | [progress.py](.claude/tools/progress.py) |
+| Orchestration | [orchestration.md](.claude/protocols/orchestration.md) |
+| Merge-based adoption | [adopt/SKILL.md](.claude/skills/adopt/SKILL.md) |
+
 ---
 
 <details>
