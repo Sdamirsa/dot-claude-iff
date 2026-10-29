@@ -1,108 +1,159 @@
-# v0.3.0-alpha.1 - what to test by hand
+# v0.3.0 - the road to beta: what to test by hand
 
-The automated suite passes on Windows and Ubuntu. What it cannot cover is anything that only
-happens inside a live Claude Code session: hooks firing, prompts, the console in a browser.
-Those are below, most important first. Write findings as GitHub issues or straight into the
-proposal box (`python3 .claude/tools/statectl.py proposal add "<text>" --source human`).
+The automated suite passes on Windows and Ubuntu (CI, every push). What it cannot cover is
+anything that only happens inside a live Claude Code session: hooks firing, prompts, the
+console in a browser, a second repository adopting the kit. Those are below. When every box
+is ticked once by a human, or its failure fixed and re-ticked, 0.3.0 goes to beta.
 
-Start every test in a **new** Claude Code session: hooks and agents load at session start.
+Write findings as GitHub issues, or straight into the proposal box from a session in this
+repo: `python3 .claude/tools/statectl.py proposal add "<text>" --source human`.
 
-## 1. The ritual opens for you and only for you
+## Where things run
 
-- [ ] Type `/project-memory`. The ritual should start (CHECK runs). If it refuses with "no
-      ritual ticket", the prompt hook did not fire: note your Claude Code version, then run
-      `python3 .claude/tools/checkctl.py ticket --grant` in your own terminal and try again.
-- [ ] In a fresh session, ask the agent to "run the project-memory ritual" without typing the
-      command. It should ask you to type it, and `checkctl run` should refuse if it tries.
-- [ ] At the end, the ROUTE step asks about next phase, next mode and a maturation pass.
-- [ ] `STATUS.md` is rewritten and no longer mentions `--hard`.
+Every step names one of these four places. Start every test in a **new** session: hooks and
+agents load at session start.
 
-## 2. Session start
+| Place | What it is | How to get there |
+|-------|------------|------------------|
+| **A. Main session** | Claude Code started in this repo's main checkout | `cd` to the repo root, run `claude` |
+| **B. Your terminal** | A plain shell in the repo root, no Claude Code involved | PowerShell, Git Bash or the VS Code terminal, in the repo root |
+| **C. Browser** | Any browser on this machine | Open the URL the session start prints (`http://dot-claude-iff.localhost:7146/console.html` here) |
+| **D. Elsewhere** | Claude Code started somewhere else: inside a worktree, or in another repository | Named in the step |
 
-- [ ] The start block shows the mode and, in Guided Solo or Fableous Orchestrated, the
-      phase with its contract (five lines at most). Freestyle shows only the mode line.
-- [ ] No hook errors appear. If Claude Code reports a problem with `settings.json` (for
-      example an unknown `UserPromptExpansion` event), record the exact message: on an older
-      version that key may be rejected.
+"Session start" means the block Claude Code prints before your first prompt. "The ritual"
+means typing `/project-memory` yourself; nothing else opens it.
 
-## 3. Doctor
+## Already evidenced (2026-10-29, the alpha.2 session)
 
-- [ ] `python3 .claude/tools/checkctl.py doctor` shows no FAIL on your machine.
-- [ ] On a second machine or a fresh clone it still shows no FAIL (line endings, bash, python).
+These ran live during the session that cut alpha.2 and need no repeat unless something
+changes: the session-start block (resume pointer, mode and phase line, ritual nudge, console
+URL), `checkctl doctor` clean, the progress-report advisory firing on a file write in
+Fableous Orchestrated mode, the console serving its page and live payload over HTTP, and the
+worktree rules against a real `git worktree add` (suite only, not a live session).
 
-## 4. Console
+## 1. The ritual opens for you and only for you - Place A
 
-- [ ] Open the console URL the session start prints. The NOW tab shows a Progress panel, the
+The biggest unknown: CHECK, POLISH, PUBLISH and ROUTE have never run end to end live.
+
+- [ ] Type `/project-memory`. Expect: the ritual starts and CHECK runs. If it refuses with
+      "no ritual ticket", the prompt hook did not fire: note your Claude Code version, then in
+      **Place B** run `python3 .claude/tools/checkctl.py ticket --grant` and type the command
+      again in the same session.
+- [ ] In a fresh session, ask the agent in plain words to "run the project-memory ritual"
+      without typing the command. Expect: it asks you to type it; if it tries `checkctl run`
+      anyway, that refuses.
+- [ ] At the end, ROUTE asks about the next phase, the next mode and a maturation pass.
+- [ ] `.claude/STATUS.md` is rewritten by the ritual (the hand-written copy disappears).
+
+## 2. Session start - Place A
+
+- [ ] Evidenced once. Re-check only after a Claude Code update: the block shows the mode
+      and, in Guided Solo or Fableous Orchestrated, the phase with its contract (five lines at
+      most). Freestyle shows only the mode line.
+- [ ] No hook errors. If Claude Code reports a problem with `settings.json` (for example an
+      unknown `UserPromptExpansion` event), record the exact message.
+
+## 3. Doctor - Place B
+
+- [ ] Evidenced on this machine. On a second machine or a fresh clone:
+      `python3 .claude/tools/checkctl.py doctor` shows no FAIL (line endings, bash, python).
+
+## 4. Console - Place C, with a session open in Place A
+
+- [ ] Open the URL the session start prints. Expect: the NOW tab shows a Progress panel, the
       top bar shows mode and phase, WORK lists proposals, MAP lists context files.
-- [ ] Leave it open during a long turn: "last activity" keeps moving and the panel updates
-      without a reload.
+- [ ] Leave it open during a long turn. Expect: "last activity" keeps moving and the panel
+      updates without a reload.
 - [ ] Check it in dark mode and at half-screen width.
 
-## 5. Modes and phases
+## 5. Modes and phases - Place A, commands in Place B
 
-- [ ] `statectl mode guided-solo`, then `statectl phase plan`, create a task with
-      `/plan-task`, then `statectl phase build`: the plan exit check should pass only when the
-      task file has a Definition of done, one Test command and a milestone.
-- [ ] `statectl phase review` refuses until the task's Test passes; `--override "<why>"` lets
-      you through and is logged.
-- [ ] In deploy, ask for a new feature: the agent should file a proposal instead of coding it.
+- [ ] In B: `python3 .claude/tools/statectl.py mode guided-solo`, then `statectl.py phase
+      plan`. In A: create a task with `/plan-task`. In B: `statectl.py phase build`. Expect:
+      the plan exit check passes only when the task file has a Definition of done, one Test
+      command and a milestone.
+- [ ] `statectl.py phase review` refuses until the task's Test passes; `--override "<why>"`
+      lets you through and is logged in the journal.
+- [ ] In B: `statectl.py phase deploy`. In A: ask for a new feature. Expect: the agent files a
+      proposal instead of coding it.
 
-## 6. Fableous Orchestrated
+## 6. Fableous Orchestrated - Place A
 
-- [ ] `statectl mode fableous`, then give a task big enough to delegate. The lead should
-      write a task file, run `statectl dispatch <id>`, and start a `builder` in the worktree.
-- [ ] When the builder returns, `statectl accept <id>` validates the envelope and merges.
+- [ ] In B: `python3 .claude/tools/statectl.py mode fableous`. In A: give a task big enough
+      to delegate. Expect: the lead writes a task file, runs `statectl dispatch <id>`, and
+      starts a `builder` in the worktree it cut.
+- [ ] When the builder returns, the lead runs `statectl accept <id>`: the envelope validates
+      and the branch merges.
 - [ ] The lead posts a progress block at merges and roughly every 30 minutes of work.
-- [ ] `python3 .claude/tools/obsctl.py report --by agent` shows tokens split by agent after a
-      ritual has ingested the session.
-- [ ] Try to have a sub-agent edit `.claude/hooks/` or `.claude/config/` with Write, Bash and
-      PowerShell: each should be denied.
+- [ ] After a ritual has ingested the session, in B: `python3 .claude/tools/obsctl.py report
+      --by agent` shows tokens split by agent.
+- [ ] Ask the lead to have a sub-agent edit `.claude/hooks/` or `.claude/config/` with Write,
+      with Bash and with PowerShell. Expect: each denied, with a reason.
 
-## 7. Adopt into a second repository
+## 7. Adopt into a second repository - Place D
 
-- [ ] Fresh zip into an empty repo: `doctor` is clean, the first `/project-memory` completes.
-- [ ] Adopt kit into an existing repo: `/adopt` asks the visibility question once, defaults
-      to `ignored` for a public remote, and the `.gitignore` block appears.
-- [ ] `/adopt --upgrade` from v0.2.2: nothing of yours is overwritten; drift is reported.
+- [ ] Fresh zip into an empty repo: unzip `.claude/dist/dot-claude-iff-fresh.zip` into a new
+      folder with `git init`, start Claude Code there. Expect: `doctor` is clean and the first
+      `/project-memory` completes.
+- [ ] Adopt kit into an existing repo: start Claude Code in that repo and type `/adopt` with
+      the kit path. Expect: the visibility question once, defaulting to `ignored` for a public
+      remote, and the `.gitignore` block appears.
+- [ ] `/adopt --upgrade` in `extrct_private` (it runs v0.2-era files plus its own worker
+      rules). Expect: nothing of yours is overwritten, drift is reported, and the two new
+      `CLAUDE.md` sections (worker, reviewer) land in its filled guide.
 
-## 8. Secrets and export
+## 8. Secrets and export - Places A and B
 
-- [ ] Put a fake key (for example `sk-` followed by forty letters) in a tracked file: the
-      ritual CHECK and `doctor` both fail and neither prints the key.
-- [ ] `python3 .claude/tools/distctl.py export --to <empty folder with git init> --dry-run`,
-      then without `--dry-run`: the folder has your project files, no `.claude/state`, no logs.
+- [ ] Put a fake key (`sk-` followed by forty letters) in a tracked file. Expect: the ritual
+      CHECK (A) and `doctor` (B) both fail and neither prints the key. Remove it after.
+- [ ] In B: `python3 .claude/tools/distctl.py export --to <empty folder with git init>
+      --dry-run`, then without `--dry-run`. Expect: the folder has your project files, no
+      `.claude/state`, no logs.
 
-## 9. Folder context and brainstorm
+## 9. Folder context and brainstorm - Places B and A
 
-- [ ] `python3 .claude/tools/mapctl.py context <some file>` lists the guides that load for it.
+- [ ] In B: `python3 .claude/tools/mapctl.py context <some file>` lists the guides that load
+      for it.
 - [ ] Add a `CLAUDE.md` in a subfolder and a rule under `.claude/rules/` with a `paths:` glob
-      that matches nothing: the next CHECK warns about the dead glob.
-- [ ] `/adhd <an open question>`: five branches run on the cheaper model, then one critic
-      pass; the answer has clusters, a shortlist with one pick, and traps, with no score chips.
+      that matches nothing. Expect: the next CHECK (in the ritual, A) warns about the dead glob.
+- [ ] In A: `/adhd <an open question>`. Expect: five branches on the cheaper model, then one
+      critic pass; clusters, a shortlist with one pick, and traps, with no score chips.
 
-## 10. A session in a worktree (Cview-ready backbone, alpha.2)
+## 10. A session in a worktree (Cview-ready backbone) - Place D
 
-- [ ] `git worktree add .claude/worktrees/t1 -b worktree-t1`, write a `TASK.md` there, start
-      Claude Code inside it: the first thing printed is a WORKTREE SESSION block, the first
-      prompt is accepted with no tool call, and nothing of main's orientation (resume block,
-      RITUAL, CONSOLE) appears.
-- [ ] In that session: `python3 .claude/tools/statectl.py pointer x` refuses in one line;
-      `/project-memory` is refused by `checkctl` in one line; a `git commit` on the branch
-      goes through; a Write to `.claude/state/journal.jsonl` is denied by the gate with a
-      reason naming DONE.md.
-- [ ] End a turn with `TASK.md` present and no `DONE.md`: one advisory line appears, the turn
+- [ ] In B: `git worktree add .claude/worktrees/t1 -b worktree-t1`, then write a `TASK.md`
+      in that folder. Start Claude Code inside `.claude/worktrees/t1`. Expect: the first thing
+      printed is a WORKTREE SESSION block, the first prompt is accepted with no tool call, and
+      nothing of main's orientation (resume block, RITUAL, CONSOLE) appears.
+- [ ] In that session: ask for `python3 .claude/tools/statectl.py pointer x` (refuses in one
+      line); type `/project-memory` (`checkctl` refuses in one line); ask for a `git commit`
+      on the branch (goes through); ask for a Write to `.claude/state/journal.jsonl` (the gate
+      denies it with a reason naming DONE.md).
+- [ ] End a turn with `TASK.md` present and no `DONE.md`. Expect: one advisory line, the turn
       is not blocked. Write `DONE.md`: the line stops.
-- [ ] `git status --short` in both checkouts is empty after the session (the worker's own
-      commits aside); the capture landed in the main checkout's sibling record root, and no
-      `t1_claude_iff` folder appeared under `.claude/worktrees/`.
-- [ ] Under Cview: paste the agent block at the end of its `docs/setup/repo-claude-setup.md`
-      into a fresh `/adopt` of an empty repo; it should report eight PASS with no edits.
-      Remove the worktree after: `git worktree remove .claude/worktrees/t1`.
+- [ ] In B: `git status --short` in both checkouts is empty (the worker's own commits aside);
+      the capture landed in `../dot-claude-iff_claude_iff/spool/`, and no `t1_claude_iff`
+      folder appeared under `.claude/worktrees/`. Clean up: `git worktree remove
+      .claude/worktrees/t1` and `git branch -d worktree-t1`.
+- [ ] Under Cview (Place D, an empty repo adopted with the fresh zip): paste the agent block
+      at the end of Cview's `docs/setup/repo-claude-setup.md` as the first prompt. Expect:
+      eight PASS with no edits.
+
+## Beta criteria
+
+- Every box above ticked once by a human, or its failure fixed and re-ticked.
+- One upgrade adoption (item 7, `extrct_private`) and one fresh adoption green on their own
+  `doctor`.
+- CI green on both OS at the release commit (it is today).
+- Then, in Place A, say "release 0.3.0-beta.1": the release steps in the project-memory skill
+  bump the stamp and the citation, pin the changelog, rebuild the zips and tag on `dev`.
 
 ## Known limits of this alpha
 
-- No hook has run in a live session before this release.
 - The policy gate reads shell commands statically. It stops honest mistakes; it is not a
-  sandbox, and its resistance to deliberate evasion was not independently verified.
+  sandbox, and its resistance to deliberate evasion was not independently verified. Not a
+  beta blocker.
 - The periodic progress report fires on the lead's next file write, not on a timer.
 - Between releases the zips on `dev` may lag the tree; `main` and every tag are exact.
+- The Claude Chrome extension could not be reached from the alpha.2 session, so item 4 has
+  only the HTTP half of its evidence.

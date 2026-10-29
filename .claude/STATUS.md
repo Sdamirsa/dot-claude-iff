@@ -26,10 +26,12 @@ the stable tag. Live-session testing of the 0.3 hooks is still the open job
 1. **In a new session, type `/project-memory`.** It is item 1 of `docs/alpha-test-checklist.md`
    and the first live test of the ritual ticket. If it refuses, run
    `python3 .claude/tools/checkctl.py ticket --grant` in your own terminal.
-2. Work through the rest of `docs/alpha-test-checklist.md` over the testing weeks; file
-   findings as issues or with `statectl proposal add`.
-3. When satisfied: merge `dev` -> `main` again, then the stable tag on `main`
-   (`.claude/reference/release-flow.md`). Before that, the maturation pass (proposal PR-4).
+2. Work through the rest of `docs/alpha-test-checklist.md` (each item names where it runs:
+   main session, your terminal, browser, elsewhere); file findings as issues or with
+   `statectl proposal add`. When every box is ticked once: "release 0.3.0-beta.1" from `dev`.
+3. After the beta holds: merge `dev` -> `main` again, then the stable tag on `main`
+   (`.claude/reference/release-flow.md`), with the CHANGELOG move to `.github/` and the
+   Zenodo switch (proposal PR-13). Before that, the maturation pass (proposal PR-4).
 
 ## Blockers / open decisions
 
