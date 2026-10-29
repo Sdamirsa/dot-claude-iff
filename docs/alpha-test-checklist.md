@@ -80,6 +80,25 @@ Start every test in a **new** Claude Code session: hooks and agents load at sess
 - [ ] `/adhd <an open question>`: five branches run on the cheaper model, then one critic
       pass; the answer has clusters, a shortlist with one pick, and traps, with no score chips.
 
+## 10. A session in a worktree (Cview-ready backbone, alpha.2)
+
+- [ ] `git worktree add .claude/worktrees/t1 -b worktree-t1`, write a `TASK.md` there, start
+      Claude Code inside it: the first thing printed is a WORKTREE SESSION block, the first
+      prompt is accepted with no tool call, and nothing of main's orientation (resume block,
+      RITUAL, CONSOLE) appears.
+- [ ] In that session: `python3 .claude/tools/statectl.py pointer x` refuses in one line;
+      `/project-memory` is refused by `checkctl` in one line; a `git commit` on the branch
+      goes through; a Write to `.claude/state/journal.jsonl` is denied by the gate with a
+      reason naming DONE.md.
+- [ ] End a turn with `TASK.md` present and no `DONE.md`: one advisory line appears, the turn
+      is not blocked. Write `DONE.md`: the line stops.
+- [ ] `git status --short` in both checkouts is empty after the session (the worker's own
+      commits aside); the capture landed in the main checkout's sibling record root, and no
+      `t1_claude_iff` folder appeared under `.claude/worktrees/`.
+- [ ] Under Cview: paste the agent block at the end of its `docs/setup/repo-claude-setup.md`
+      into a fresh `/adopt` of an empty repo; it should report eight PASS with no edits.
+      Remove the worktree after: `git worktree remove .claude/worktrees/t1`.
+
 ## Known limits of this alpha
 
 - No hook has run in a live session before this release.

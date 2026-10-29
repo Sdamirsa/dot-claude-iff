@@ -74,7 +74,14 @@ def _write_gated(path: Path, content, durable: bool = False) -> None:
     exactly the kind of noise that makes "did anything actually change" unanswerable
     from git status; comparing content with the timestamp masked out keeps rebuilds
     silent when they should be silent.
+
+    Inside a linked worktree (a Cview worker, a builder running the tools from its dispatch
+    worktree: `_lib.worktree_info`) nothing is written at all: the projections there are main's
+    copy, and a rebuilt copy committed on the task branch would merge back over main's.
+    Readers (`resume`, `status`) still get the built projection in memory.
     """
+    if _lib.worktree_info() is not None:
+        return
     if isinstance(content, dict):
         new_stripped = {k: v for k, v in content.items() if k != "generated_at"}
         old = _lib.read_json(path, default=None)
@@ -1070,6 +1077,7 @@ def _next_proposal_id() -> str:
 
 
 def cmd_proposal_add(args) -> int:
+    _lib.main_state_guard("the proposal box")
     text = (args.text or "").strip()
     if not text:
         print("a proposal needs text", file=sys.stderr)
@@ -1099,6 +1107,7 @@ def cmd_proposal_list(args) -> int:
 
 
 def cmd_proposal_resolve(args) -> int:
+    _lib.main_state_guard("the proposal box")
     records = {r["id"]: r for r in _lib.proposal_records()}
     rec = records.get(args.id)
     if rec is None:
@@ -1213,6 +1222,7 @@ def cmd_need_open(args) -> int:
             file=sys.stderr,
         )
         warn = True
+    _lib.main_state_guard("the needs-human queue")
     _lib.append_jsonl(_needs_jsonl_path(), {
         "ts": _lib.utc_now(), "op": "open", "id": nid, "title": args.title, "category": args.category,
         "band": band, "blocks": args.blocks or 0, "note": args.note or "",
@@ -1225,6 +1235,7 @@ def cmd_need_open(args) -> int:
 
 
 def cmd_need_amend(args) -> int:
+    _lib.main_state_guard("the needs-human queue")
     records = _load_need_records()
     rec = records.get(args.id)
     if rec is None:
@@ -1262,6 +1273,7 @@ def cmd_need_amend(args) -> int:
 
 
 def cmd_need_resolve(args) -> int:
+    _lib.main_state_guard("the needs-human queue")
     records = _load_need_records()
     if args.id not in records:
         print(f"no such need: {args.id}", file=sys.stderr)
@@ -1287,6 +1299,7 @@ def cmd_need_list(args) -> int:
 
 
 def cmd_refresh(args) -> int:
+    _lib.main_state_guard("the projections")
     refresh_all()
     _lib.print_verdict("STATE", True)
     return 0
@@ -1588,7 +1601,14 @@ def main(argv: list) -> int:
     if getattr(args, "cmd", None) == "need" and getattr(args, "need_cmd", None) == "amend":
         if args.band is None and args.note is None and args.context is None and args.action is None:
             parser.error("need amend requires at least one of --band, --note, --context, --action")
-    return args.func(args)
+    try:
+        return args.func(args)
+    except _lib.LibError as exc:
+        # A caller-visible refusal (the worker rule, an unknown journal action): one line, no
+        # traceback, nothing written.
+        print(f"refused: {exc}", file=sys.stderr)
+        _lib.print_verdict("STATE", False)
+        return 1
 
 
 if __name__ == "__main__":

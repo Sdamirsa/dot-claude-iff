@@ -169,6 +169,75 @@ def project_root(start: Path | None = None) -> Path:
     return cwd
 
 
+def worktree_info(root: Path | None = None):
+    """Where this checkout stands: None in the main checkout (or outside git), else a dict for
+    a LINKED git worktree - `root` (the worktree), `main` (the checkout that owns `.git/`),
+    `name` (the worktree's name) and `branch` (its checked-out branch, '' when detached).
+
+    A session started INSIDE a linked worktree (`.claude/worktrees/<task>/`: a Cview worker,
+    or a builder running the tools from its dispatch worktree) runs this whole system with the
+    worktree as its project root: the same hooks, the same gate, a full copy of .claude/
+    including the tracked state. The state there is main's, cut at the branch point; a worker
+    that rewrote and committed it would merge a stale copy back over main's. This is the one
+    detector every worker rule hangs on (the WORKTREE SESSION block, `main_state_guard`, the
+    gate's worker identity, the ritual's refusal). No subprocess: a linked worktree's `.git`
+    is a FILE, `gitdir: <main>/.git/worktrees/<name>`, which git writes absolute (the same
+    answer `git rev-parse --git-common-dir` gives, without a process per hook call); a
+    directory `.git` is the main checkout; a submodule's file points at `.git/modules/<x>` and
+    does not count. Any parse problem reads as the main checkout, so a broken `.git` file can
+    never switch the worker rules on in main.
+    """
+    r = (root or project_root()).resolve()
+    dot_git = r / ".git"
+    try:
+        if not dot_git.is_file():
+            return None
+        text = dot_git.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        return None
+    if not text.startswith("gitdir:"):
+        return None
+    gitdir = Path(text[len("gitdir:"):].strip()).expanduser()
+    if not gitdir.is_absolute():
+        gitdir = r / gitdir
+    gitdir = Path(os.path.normpath(str(gitdir)))
+    if gitdir.parent.name != "worktrees" or gitdir.parent.parent.name != ".git":
+        return None
+    main = gitdir.parent.parent.parent
+    branch = ""
+    try:
+        head = (gitdir / "HEAD").read_text(encoding="utf-8", errors="replace").strip()
+        if head.startswith("ref: refs/heads/"):
+            branch = head[len("ref: refs/heads/"):]
+    except OSError:
+        pass
+    return {"root": r, "main": main, "name": gitdir.name, "branch": branch}
+
+
+def main_checkout() -> Path:
+    """The checkout that owns `.git/`: the project root in main, the owning checkout from a
+    linked worktree. Paths that are the PROJECT's, not the checkout's (the record root, the
+    console's pidfile), resolve against this one."""
+    info = worktree_info()
+    return info["main"] if info else project_root()
+
+
+# A Cview task, seen from the hooks: TASK.md at the checkout root is the brief; DONE.md or
+# BLOCKED.md there is the report. dot-claude-iff reads these names and writes none of them -
+# they are Cview's contract (its docs/setup/repo-claude-setup.md); the handshake envelope
+# stays this system's.
+WORKER_TASK_FILE = "TASK.md"
+WORKER_REPORT_FILES = ("DONE.md", "BLOCKED.md")
+
+
+def worker_task(root: Path | None = None) -> dict:
+    """{task, report} for the checkout: `task` is True when TASK.md exists at its root,
+    `report` names the first of DONE.md / BLOCKED.md that exists, else None."""
+    r = root or project_root()
+    report = next((n for n in WORKER_REPORT_FILES if (r / n).is_file()), None)
+    return {"task": (r / WORKER_TASK_FILE).is_file(), "report": report}
+
+
 def claude_dir() -> Path:
     return project_root() / ".claude"
 
@@ -200,8 +269,10 @@ def map_dir() -> Path:
 
 def default_record_root(root: Path | None = None) -> Path:
     """Sibling folder: <parent>/<repo-name>_claude_iff/ - out of the repo, out of git,
-    but visible next to the project it belongs to."""
-    r = (root or project_root()).resolve()
+    but visible next to the project it belongs to. From a linked worktree the sibling of the
+    MAIN checkout: one record per project, and a worktree under .claude/worktrees/ has no
+    sibling of its own worth writing to (it would land inside the main checkout)."""
+    r = (root or main_checkout()).resolve()
     return r.parent / f"{r.name}_claude_iff"
 
 
@@ -238,6 +309,8 @@ def record_root() -> Path:
     -> policy.json record_root (committed, so relative values only belong there)
     -> the sibling default. The policy gate resolves the same value through this
     function, so the deny rule can never disagree with where we actually write.
+    A relative value (and the default) is anchored at the MAIN checkout (`main_checkout()`):
+    one record per project, whether the session runs in main or in a linked worktree.
     """
     env = os.environ.get("CLAUDE_IFF_RECORD_ROOT") or dotenv_get("CLAUDE_IFF_RECORD_ROOT")
     if env:
@@ -246,7 +319,7 @@ def record_root() -> Path:
     if configured:
         p = Path(str(configured)).expanduser()
         if not p.is_absolute():
-            p = project_root() / p
+            p = main_checkout() / p
         return p.resolve()
     return default_record_root()
 
@@ -620,9 +693,31 @@ def journal_path() -> Path:
     return state_dir() / "journal.jsonl"
 
 
+def main_state_guard(what: str = "the journal") -> None:
+    """Refuse a write to main's tracked state from inside a linked worktree (LibError).
+
+    .claude/state/ in a worktree is a copy of main's, cut at the branch point. A worker that
+    appended to the journal or rebuilt the projections there, then committed, would merge a
+    stale, diverged copy back over main's at the next merge: the one way a task branch can
+    corrupt the memory spine. Workers report through their task's handoff files (DONE.md /
+    BLOCKED.md under Cview, the envelope under the lead's own dispatch), never through
+    statectl. Main is never subject to this: `worktree_info()` is None there."""
+    info = worktree_info()
+    if info is None:
+        return
+    raise LibError(
+        f"{what} is main's state and this session runs inside the linked worktree "
+        f"'{info['name']}' (branch {info['branch'] or 'detached'}; main checkout "
+        f"{tilde(info['main'])}). Nothing tracked under .claude/state/ is written from a "
+        f"worktree: say it in DONE.md or BLOCKED.md at the worktree root (or your handoff "
+        f"envelope) and the main session records it."
+    )
+
+
 def journal_append(action: str, **fields) -> dict:
     """Append one journal event. The journal is the source of truth; session.json,
     HANDOFF.md and the graph are projections of it and are never hand-edited."""
+    main_state_guard("the journal")
     if action not in JOURNAL_ACTIONS:
         raise LibError(
             f"unknown journal action {action!r}; add it to JOURNAL_ACTIONS in _lib.py "

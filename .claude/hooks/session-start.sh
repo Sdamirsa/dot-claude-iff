@@ -13,6 +13,13 @@
 #      capture off the count is unknown and the nudge says so and goes by age alone.
 #   3. Optionally start the console server, guarded by a pidfile so N sessions start one server.
 #
+# Inside a LINKED WORKTREE (.claude/worktrees/<task>/, where Cview starts one Claude session
+# per task) it prints a WORKTREE SESSION block instead of all of the above and exits 0: the
+# resume block, the ritual nudge and the console are the main checkout's, and a worker that
+# read "set a pointer" or "ask for /project-memory" would act on main's state from a copy.
+# NEVER BLOCKS: no prompt, no ticket, no gate stands before a session's first turn, in main or
+# in a worktree. Those apply to the ritual commands a user types, not to orientation.
+#
 # Read-only with respect to project state: it never writes to the journal.
 # UTF-8 for every python child, whatever the machine's locale: on a cp1252 Windows box the
 # hook's own output (it contains non-ASCII characters) was otherwise mis-encoded.
@@ -42,6 +49,38 @@ except Exception:
     raise SystemExit(0)
 
 lines = []
+
+# 0. a WORKER session: started inside a linked worktree. Its own block and nothing of main's;
+# `statectl resume` is not run either (its projections are main's; the write is a no-op in a
+# worktree since 2026-10-29, but the block would still be main's orientation, not the worker's).
+try:
+    wt = _lib.worktree_info()
+except Exception:
+    wt = None
+if wt:
+    try:
+        task = _lib.worker_task(root)
+    except Exception:
+        task = {"task": False, "report": None}
+    brief = ("TASK.md at the worktree root" if task["task"] else
+             "no TASK.md at the worktree root: your brief is the prompt that started you")
+    report = (f"{task['report']} is already written here; add to it rather than start over"
+              if task["report"] else
+              "write DONE.md (`# DONE`, `summary:`, `tests:`) or BLOCKED.md (your question) at "
+              "the worktree root when you stop for good")
+    print(
+        f"=== WORKTREE SESSION (a worker, not the main session) ===\n"
+        f"Worktree: {wt['name']} · branch: {wt['branch'] or 'detached'} · main checkout: "
+        f"{_lib.tilde(wt['main'])}\n"
+        f"Your brief: {brief}. Edit only the files it names, commit often on this branch, never "
+        f"push, never edit TASK.md.\n"
+        f"Finish: {report}; then stop and wait.\n"
+        f".claude/ here is a copy of the main checkout's: its state (journal, HANDOFF.md, "
+        f"session.json, needs-human) is main's and statectl refuses to write it; never stage "
+        f"anything under .claude/state/. The ritual (/project-memory) is main's, not a worker's.\n"
+        f"The main session reviews your diff and records the outcome; questions go in BLOCKED.md."
+    )
+    raise SystemExit(0)
 
 # 1. the resume block
 statectl = tools / "statectl.py"

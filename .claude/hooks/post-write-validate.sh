@@ -133,9 +133,12 @@ try:
         sys.path.insert(0, TOOLS)
     import _lib
 
-    note = _lib.advisory_output("PostToolUse", _lib.lead_advisories(payload))
-    if note:
-        print(note)
+    # The notes are the LEAD's (delegate, post the progress block). A worker session inside
+    # a linked worktree is not the lead: no note, and no orchestration counter touched there.
+    if _lib.worktree_info() is None:
+        note = _lib.advisory_output("PostToolUse", _lib.lead_advisories(payload))
+        if note:
+            print(note)
 except Exception:
     pass
 sys.exit(0)

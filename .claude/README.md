@@ -41,6 +41,10 @@ Each item with the one command to try it.
 - **Proposals**: ideas parked instead of built. `python3 .claude/tools/statectl.py proposal add
   "idea" --source human`
 - **Fableous orchestration**: the lead cuts a worktree per builder and merges what passes.
+- **Worktree sessions (Cview-ready)**: a session started inside a linked worktree
+  (`.claude/worktrees/<task>/`) is a worker: SessionStart prints a WORKTREE SESSION block,
+  main's state is refused to it, the record stays the project's one record, and `CLAUDE.md`
+  tells it what to write (`DONE.md` / `BLOCKED.md`). Nothing depends on Cview.
   `python3 .claude/tools/statectl.py dispatch <task>`, `statectl.py accept <task>`, and each
   builder's envelope checked by `python3 .claude/tools/checkctl.py handoff <task> --run`.
 - **Progress view**: one model for the console panel and the terminal.

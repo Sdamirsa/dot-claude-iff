@@ -91,12 +91,15 @@ class GateCase(HookCase):
             GateCase._module = module
         return GateCase._module
 
-    def judge(self, payload: dict):
+    gate_root: Path | None = None  # a test that judges from a worktree sets it (the worker rule)
+
+    def judge(self, payload: dict, full: bool = False):
         import _lib
         _lib.clear_config_cache()  # a fresh process reads policy.json fresh too
+        root = self.gate_root or self.root
         data = dict(payload)
-        data.setdefault("cwd", str(self.root))
-        data["_project_root"] = str(self.root)  # what the wrapper adds
+        data.setdefault("cwd", str(root))
+        data["_project_root"] = str(root)  # what the wrapper adds
         path = Path(self._tmp.name) / "payload.json"
         path.write_text(json.dumps(data), encoding="utf-8")
         out, saved, code = io.StringIO(), list(sys.path), 0
@@ -110,6 +113,8 @@ class GateCase(HookCase):
             sys.path[:] = saved
         self.assertEqual(code, 0, f"the gate crashed on {payload!r}; the wrapper would fall back")
         text = out.getvalue().strip()
+        if full:
+            return json.loads(text)["hookSpecificOutput"] if text else None
         return json.loads(text)["hookSpecificOutput"]["permissionDecision"] if text else None
 
     def sh(self, command: str, who: str | None = None, lane: str = "Bash"):

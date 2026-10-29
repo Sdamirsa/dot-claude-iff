@@ -1,15 +1,20 @@
 # STATUS
 
 _Rewritten by `/project-memory`. Read this first, every session. This copy was hand-updated at
-the v0.3.0-alpha.1 close-out; the first ritual of 0.3 rewrites it properly._
+the v0.3.0-alpha.2 close-out (2026-10-29); the first ritual of 0.3 rewrites it properly._
 
 ## Current focus
 
-v0.3.0-alpha.1 is published as a GitHub pre-release (2026-10-06) and, at the maintainer's
-decision, merged to `main` (PR #15); the GitHub "latest" release stays v0.2.2 until the stable tag. The alpha adds modes, phases, the user-only
-ritual with ROUTE, Fableous Orchestrated mode, the progress view, secrets check and doctor,
-visibility and export, folder context, and `/adhd`. Issues #7 to #14 are answered and kept
-open. None of the new hooks has run in a live session yet.
+v0.3.0-alpha.2 (2026-10-29, cut from `dev`) adds the Cview-ready backbone: a session inside
+a linked worktree is a worker (`_lib.worktree_info`), main's state is written only from the
+main checkout, the journal's projections are gitignored, and `CLAUDE.md` carries the worker
+and reviewer sections. The design record and the point-by-point mapping are in
+`.claude/research/2026-10-29-cview-backbone-issue.md`. v0.3.0-alpha.1 (2026-10-06) added
+modes, phases, the user-only ritual with ROUTE, Fableous Orchestrated mode, the progress view,
+secrets check and doctor, visibility and export, folder context, and `/adhd`; it was merged to
+`main` (PR #15) at the maintainer's decision. The GitHub "latest" release stays v0.2.2 until
+the stable tag. Live-session testing of the 0.3 hooks is still the open job
+(`docs/alpha-test-checklist.md`, now with item 10 for the worktree session).
 
 ## Active tasks
 

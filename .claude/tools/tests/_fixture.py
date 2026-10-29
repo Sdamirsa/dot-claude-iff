@@ -88,6 +88,69 @@ class FixtureCase(unittest.TestCase):
     def journal(self, action: str, **fields) -> dict:
         return _lib.journal_append(action, **fields)
 
+    def linked_worktree(self, name: str = "todo-note", branch: str | None = None) -> Path:
+        """Lay out a LINKED git worktree of the fixture project the way `git worktree add`
+        does, without git: `.git/` in the project (main), `.git/worktrees/<name>/HEAD` on the
+        branch, and `.claude/worktrees/<name>/` holding a `.git` FILE that points back plus a
+        copy of `.claude/` (config, tools, state) - what a Cview worker finds when its session
+        starts there. Returns the worktree path; point CLAUDE_PROJECT_DIR at it to BE the
+        worker (`as_worktree`). For the real thing, `git_worktree`."""
+        branch = branch or f"worktree-{name}"
+        git_dir = self.root / ".git"
+        wt_git = git_dir / "worktrees" / name
+        wt_git.mkdir(parents=True, exist_ok=True)
+        (wt_git / "HEAD").write_text(f"ref: refs/heads/{branch}\n", encoding="utf-8")
+        (wt_git / "commondir").write_text("../..\n", encoding="utf-8")
+        wt = self.root / ".claude" / "worktrees" / name
+        wt.mkdir(parents=True, exist_ok=True)
+        (wt / ".git").write_text(f"gitdir: {wt_git.as_posix()}\n", encoding="utf-8")
+        for sub in ("config", "tools", "state", "system-map", "console"):
+            src = self.root / ".claude" / sub
+            if src.is_dir():
+                shutil.copytree(src, wt / ".claude" / sub, dirs_exist_ok=True,
+                                ignore=shutil.ignore_patterns("worktrees", "__pycache__"))
+        for name_ in ("CLAUDE.md", "STATUS.md"):
+            src = self.root / ".claude" / name_
+            if src.is_file():
+                shutil.copy(src, wt / ".claude" / name_)
+        return wt
+
+    def as_worktree(self, wt: Path) -> None:
+        """Make `wt` the project root for the rest of the test, as a session started inside
+        it would have it (hooks get CLAUDE_PROJECT_DIR = the worktree)."""
+        os.environ["CLAUDE_PROJECT_DIR"] = str(wt)
+        _lib.clear_config_cache()
+
+    def git_worktree(self, name: str = "todo-note") -> Path:
+        """The real thing: `git init` the fixture project, commit its .claude/ (the hooks and
+        tools copied from this repo, so the worktree holds them too), then `git worktree add
+        .claude/worktrees/<name> -b worktree-<name>`. Skips the test when git is missing.
+        Returns the worktree path."""
+        import subprocess
+        if shutil.which("git") is None:
+            self.skipTest("git is not installed")
+        for sub in ("hooks", "tools"):
+            shutil.copytree(CLAUDE_DIR / sub, self.root / ".claude" / sub, dirs_exist_ok=True,
+                            ignore=shutil.ignore_patterns("__pycache__", "tests"))
+        (self.root / "README.md").write_text("fixture\n", encoding="utf-8")
+        env = dict(os.environ, GIT_AUTHOR_NAME="fixture", GIT_AUTHOR_EMAIL="f@x",
+                   GIT_COMMITTER_NAME="fixture", GIT_COMMITTER_EMAIL="f@x")
+
+        def git(*args):
+            res = subprocess.run(["git", *args], cwd=str(self.root), capture_output=True,
+                                 text=True, timeout=60, env=env, check=False)
+            if res.returncode != 0:
+                self.skipTest(f"git {' '.join(args)} failed: {res.stderr.strip()[:200]}")
+            return res.stdout
+
+        git("init", "-q", "-b", "main")
+        git("config", "core.autocrlf", "false")
+        git("add", "-A")
+        git("commit", "-q", "-m", "fixture")
+        wt = self.root / ".claude" / "worktrees" / name
+        git("worktree", "add", "-q", wt.as_posix(), "-b", f"worktree-{name}")
+        return wt
+
     def grant_ticket(self, skill: str = "project-memory", ts: str | None = None,
                      session_id: str = "test-session") -> dict:
         """Write the ritual ticket exactly as hooks/ritual-ticket.sh does when the user types

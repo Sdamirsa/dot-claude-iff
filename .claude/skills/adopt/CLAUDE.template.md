@@ -19,6 +19,24 @@ to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gat
 - **End:** the user types `/project-memory`; you suggest it at a natural boundary. The ritual
   is the user's command: `checkctl` refuses a run without the ticket their prompt mints.
 
+## In a worktree (a worker)
+
+Applies when the SessionStart hook printed a WORKTREE SESSION block (this checkout is a linked
+worktree under `.claude/worktrees/`) or TASK.md sits at the checkout root. The task is
+TASK.md: edit only the files its Owns section lists; commit often on this branch, never push;
+never edit TASK.md. When done, write DONE.md (`# DONE`, `summary:`, `tests:`); when stuck,
+BLOCKED.md with the question; then stop. .claude/state/ here is the main checkout's copy:
+`statectl` and the gate refuse to write it, never stage it, and the ritual (`/project-memory`)
+is the main checkout's: `checkctl` refuses it here. The main session reviews the diff and
+records the outcome.
+
+## Reviewing under Cview (the main session)
+
+Applies when .cview/ exists at the repo root. `REVIEW <task> round <n>` messages arrive in
+this terminal: run `/code-review main...worktree-<task>`, decide with
+`cview verdict <task> pass|reject --reasons "..."`, and never edit files in a worktree or
+merge: the human merges from Cview's Intake and is the only one who pushes.
+
 ## Working agreement
 
 1. **Faithful reporting.** Failures come with their output; skipped steps are named; "done"

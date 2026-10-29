@@ -40,6 +40,15 @@ Three commands are refused on the shell lanes, whatever they write:
   - `statectl dispatch` and `accept`, to sub-agents: the lead's, and their git calls happen
     inside Python where the git word match cannot see them.
 
+A WORKER (since 2026-10-29): the main identity whose project root is a LINKED git worktree
+(.claude/worktrees/<task>/, where Cview starts one Claude session per task; `_lib.worktree_info`
+is the one detector). It keeps main's trust for git (it commits on its branch) and for its
+copy of the protected tree (the main session reviews the diff before any merge, exactly as it
+does for a builder's), but `statectl dispatch` and `accept` are refused to it, and the tracked
+state in its copy (.claude/state/, handshakes/ excepted) is nobody's to write: a stale copy
+committed on the task branch would merge back over main's. The same state ring guards the
+worktrees INSIDE a checkout (the lead's builders), for every identity.
+
 The shell lanes
 ---------------
 A command is judged by the paths it would WRITE, never by the words it merely contains. The
@@ -685,11 +694,14 @@ def split_literals(text: str):
 
 
 class Zone:
-    __slots__ = ("kind", "parts", "label")
+    __slots__ = ("kind", "parts", "label", "carve")
 
-    def __init__(self, kind: str, path, label: str) -> None:
+    def __init__(self, kind: str, path, label: str, carve=()) -> None:
         self.kind, self.label = kind, label
         self.parts = _fold(os.path.realpath(str(path)))
+        # Paths inside the zone that are NOT guarded (the handshakes/ folder of a state ring:
+        # a builder writes its envelope there, in its worktree).
+        self.carve = [_fold(os.path.realpath(str(c))) for c in carve]
 
 
 class Rings:
@@ -715,6 +727,8 @@ class Rings:
                 if z.kind == "protected" and any(_within(parts, g, globs=False)
                                                  for g in self.grants):
                     continue
+                if z.carve and any(_within(parts, c, globs=False) for c in z.carve):
+                    continue
                 return z, form
         return None
 
@@ -734,7 +748,25 @@ class Rings:
         return None
 
 
-def build_rings(root: Path, record_root: Path, protected, write_paths, is_main: bool) -> Rings:
+def _state_zone(checkout: Path, label: str) -> Zone:
+    """The tracked-state ring of one worktree copy: .claude/state/ there, handshakes/ carved
+    out (a builder's envelope is written in its worktree and committed by `accept`)."""
+    state = checkout / ".claude" / "state"
+    return Zone("wstate", state, label, carve=[state / "handshakes"])
+
+
+def _worktree_dirs(root: Path) -> list:
+    """The linked worktrees inside this checkout (.claude/worktrees/<name>/ holding a `.git`
+    file), where the lead's builders work. Empty when there are none or the folder is absent."""
+    base = root / ".claude" / "worktrees"
+    try:
+        return sorted(p for p in base.iterdir() if (p / ".git").is_file())
+    except OSError:
+        return []
+
+
+def build_rings(root: Path, record_root: Path, protected, write_paths, is_main: bool,
+                worker: bool = False) -> Rings:
     zones = [Zone("record", record_root, str(record_root)),
              Zone("record", root / ".claude-iff", ".claude-iff/")]
     zones += [Zone("ticket", root / rel, rel) for rel in EVERY_IDENTITY_DENY]
@@ -742,6 +774,12 @@ def build_rings(root: Path, record_root: Path, protected, write_paths, is_main: 
     if not is_main:
         zones += [Zone("protected", root / p, p) for p in protected]
         grants = [_fold(os.path.realpath(str(root / g))) for g in write_paths or ()]
+    # Main's tracked state, as copied into worktrees: this checkout when it IS a worktree (a
+    # worker session), and every worktree inside it (the lead's builders), for every identity.
+    if worker:
+        zones.append(_state_zone(root, ".claude/state/ of this worktree"))
+    zones += [_state_zone(wt, f".claude/worktrees/{wt.name}/.claude/state/")
+              for wt in _worktree_dirs(root)]
     no_exec = [Zone("exec", root / rel, rel) for rel in EVERY_IDENTITY_NO_EXEC]
     return Rings(root, zones, grants, no_exec)
 
@@ -912,7 +950,7 @@ class ShellReader:
 
     def verdict(self):
         if self.hits:
-            order = {"record": 0, "ticket": 1, "protected": 2}
+            order = {"record": 0, "ticket": 1, "protected": 2, "wstate": 3}
             return min(self.hits, key=lambda h: order[h[0].kind])
         if self.unresolved and self.named is not None:
             return self.named, self.unresolved[0], "unresolved"
@@ -1379,7 +1417,7 @@ def load_payload(path: str) -> dict:
 
 
 RING_NAME = {"record": "the append-only record", "ticket": "the ritual ticket",
-             "protected": "the protected tree"}
+             "protected": "the protected tree", "wstate": "main's state in a worktree copy"}
 RING_WHY = {
     "record": "Nothing writes there by hand: the capture hook appends and obsctl seals. Read it "
               "freely (ls, cat, du, grep); to analyse it run "
@@ -1389,6 +1427,11 @@ RING_WHY = {
     "protected": "The main session owns the gate, the tools it executes, the configs, the agents "
                  "and the protocols: a sub-agent must not be able to edit what governs it. Return "
                  "the change as a proposal in your Structured Return.",
+    "wstate": "A worktree's .claude/state/ is the main checkout's journal and projections, cut "
+              "at the branch point; a copy changed and committed on the task branch would merge "
+              "back over main's. Only the main checkout writes its state (statectl refuses from "
+              "a worktree). Say it in DONE.md or BLOCKED.md at the worktree root, or in your "
+              "handoff envelope under .claude/state/handshakes/, and the main session records it.",
 }
 
 
@@ -1433,6 +1476,11 @@ def explain_forbidden(item, identity: str) -> str:
         return ("`checkctl ticket` is the human's escape hatch: the user runs it in their own "
                 "terminal, never through a tool call (every identity is refused, the main session "
                 "included). Ask the user to type /project-memory. " + GRANT_HINT)
+    if identity == "worker":
+        return (f"`{what}` is the lead's command (the main checkout's session): it cuts worktrees "
+                f"and merges branches. This session runs inside a linked worktree (a worker); "
+                f"finish the task, write DONE.md or BLOCKED.md at the worktree root, and the main "
+                f"session merges.")
     return (f"`{what}` is the lead's command (the main session's): it cuts worktrees and merges "
             f"branches through git calls the git word match cannot see. Sub-agent '{identity}' "
             f"may not run it; report back to the lead instead.")
@@ -1534,9 +1582,27 @@ def main(argv: list) -> int:
                 ro = default.get("read_only_subcommands") or {}
             read_only = ro if isinstance(ro, dict) else {}
 
+    # A WORKER: the main identity (no agent_type) whose project root is a linked git worktree
+    # (.claude/worktrees/<task>/, where Cview starts one Claude session per task). It keeps
+    # main's trust for git (it commits on its branch) and for its copy of the protected tree
+    # (the main session reviews the diff before any merge, as for a builder's), but the lead's
+    # commands (statectl dispatch/accept) are refused and main's tracked state in the copy is
+    # ring-guarded. Detection goes through _lib (the one detector); any failure reads as main,
+    # like a missing _lib does elsewhere in this gate.
+    worker = None
+    if is_main:
+        try:
+            worker = _lib.worktree_info()
+        except Exception:
+            worker = None
+    lead = is_main and worker is None
+    if worker is not None:
+        identity = "worker"
+
     if record_root is None:
         record_root = root.parent / f"{root.name}_claude_iff"
-    rings = build_rings(root, record_root, protected, grants.get("write_paths"), is_main)
+    rings = build_rings(root, record_root, protected, grants.get("write_paths"), is_main,
+                        worker=worker is not None)
 
     if tool in WRITE_TOOLS:
         target = (tool_input.get("file_path") or tool_input.get("path")
@@ -1588,7 +1654,7 @@ def main(argv: list) -> int:
             f"it can fire on a harmless mention: if that happened, ask the main session to run it."
         )
 
-    reader = ShellReader(rings, "ps" if tool == "PowerShell" else "sh", is_main)
+    reader = ShellReader(rings, "ps" if tool == "PowerShell" else "sh", lead)
     try:
         reader.level(command, cwd, 0)
     except Exception:

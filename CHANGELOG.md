@@ -13,6 +13,28 @@ this project's own release history structurally never reaches an adopting repo.
 
 - Nothing yet.
 
+## v0.3.0-alpha.2 - 2026-10-29
+
+Pre-release for testing, cut from `dev`; "latest" does not move. Work through item 10 of
+`docs/alpha-test-checklist.md` (a session in a worktree) before relying on it.
+
+- Cview-ready backbone: a session started inside a linked git worktree
+  (`.claude/worktrees/<task>/`, where [Cview](https://github.com/Sdamirsa/Cview) runs one
+  worker per task) is detected by `_lib.worktree_info` and treated as a worker. SessionStart
+  prints a WORKTREE SESSION block and exits 0 (no ticket or gate before a first turn); the
+  record root anchors at the main checkout (one record per project); `statectl` and
+  `checkctl run` refuse to write main's state from a worktree in one line; the policy gate
+  rings a worktree copy's `.claude/state/` (handshakes/ excepted) for every identity and
+  refuses `dispatch`/`accept` to a worker; the Stop hook adds one advisory line while
+  `TASK.md` is open without `DONE.md` or `BLOCKED.md`. `CLAUDE.md` and the adopt template gain
+  two short role sections (worker, reviewer under Cview). Nothing depends on Cview.
+- The managed `.gitignore` block now ignores the journal's projections (`session.json`,
+  `HANDOFF.md`, `needs-human.json`): a checkout that only ran a session ends clean, and a
+  worktree's stale copy never merges back. The journal stays tracked. Existing adoptions:
+  rerun `distctl.py gitignore --apply`, then `git rm --cached` the three files once.
+- Tests: `test_worktree.py` pins the eight points against a real `git worktree add`, and the
+  no-git-from-hooks rule as an ast probe over the tools.
+
 ## v0.3.0-alpha.1 - 2026-10-05
 
 Pre-release for testing. The suite passes on Windows and Ubuntu, but none of the new hooks

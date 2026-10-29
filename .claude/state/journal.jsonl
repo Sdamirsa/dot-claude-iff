@@ -128,3 +128,4 @@
 {"ts": "2026-10-06T08:00:03Z", "action": "pointer", "text": "PR #15 dev->main open for v0.3.0-alpha.1; wait for CI (strict zip check on PRs into main), merge with a merge commit, verify main == dev tree, then update STATUS wording about main"}
 {"ts": "2026-10-06T08:17:33Z", "action": "decision", "text": "keep /adhd branch_model=sonnet for the alpha; compare against inherit during testing", "why": "maintainer 2026-10-06: needs testing before changing"}
 {"ts": "2026-10-06T08:18:12Z", "action": "pointer", "text": "v0.3.0-alpha.1 on main (PR #15 merged) and published as pre-release; phase review. Next: the maintainer tests from docs/alpha-test-checklist.md in a new session (first /project-memory). Nothing in flight."}
+{"ts": "2026-10-29T15:06:14Z", "action": "pointer", "text": "Cview backbone on dev: implement worktree_info/main_checkout in _lib, worker rules in statectl/checkctl/gate/hooks, CLAUDE.md sections, tests; then suite, console check, alpha.2 release"}

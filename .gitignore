@@ -33,7 +33,14 @@ settings.local.json
 # Orchestration runtime (agent start times, the delegation counter), rewritten by hooks
 .claude/state/orchestration.json
 
-# Agent worktrees (build-time scratch copies of the repo)
+# Projections of the journal, rebuilt by statectl on every write and at session start; the
+# journal itself stays tracked. Ignored so a checkout that only ran a session ends clean and a
+# worktree's stale copy never merges back (Cview's merge refuses a dirty main checkout)
+.claude/state/session.json
+.claude/state/HANDOFF.md
+.claude/state/needs-human.json
+
+# Agent worktrees (build-time scratch copies of the repo; a Cview task's worktree lives here too)
 .claude/worktrees/
 
 # Atomic-write leftovers (the temp file of a write that died before its rename)

@@ -83,7 +83,8 @@ class KnobCase(FixtureCase):
 class TestGitignoreBlock(KnobCase):
     PER_USER = (".env", "*.env", ".env*.local", "settings.local.json", "__pycache__/", "*.pyc")
     DERIVED = (".claude/console/*.pid", ".claude/console/*.log", ".claude/state/heartbeat.json",
-               ".claude/worktrees/")
+               ".claude/worktrees/", ".claude/state/session.json", ".claude/state/HANDOFF.md",
+               ".claude/state/needs-human.json")
 
     def test_tracked_ignores_only_per_user_and_derived_files(self):
         lines = distctl.render_gitignore_block("tracked").splitlines()

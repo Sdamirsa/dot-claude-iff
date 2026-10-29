@@ -704,6 +704,8 @@ def _deliberately_ignored(rel: str) -> bool:
         return True
     if rel == ".claude/state/orchestration.json":  # per-machine runtime counters, rewritten by hooks
         return True
+    if rel in DERIVED_STATE_IGNORED:  # projections of the journal; statectl rebuilds them
+        return True
     if rel.endswith((".pyc", ".tmp", ".pid", ".log")):
         return True
     if "__pycache__" in rel:
@@ -711,6 +713,14 @@ def _deliberately_ignored(rel: str) -> bool:
     if rel.endswith("settings.local.json") or rel.endswith("/.env"):
         return True
     return False
+
+
+# The journal's projections. Derived (policy.json derived_files), rebuilt by statectl on every
+# write and at session start, so a checkout that only ran a session would otherwise end dirty:
+# the managed .gitignore block (distctl) ignores them by default, and a merge into main (Cview's,
+# or the lead's accept) never carries a worktree's stale copy. The journal itself stays tracked.
+DERIVED_STATE_IGNORED = (".claude/state/session.json", ".claude/state/HANDOFF.md",
+                         ".claude/state/needs-human.json")
 
 
 def check_gitignore_shadowing() -> Result:
@@ -2490,6 +2500,18 @@ def main(argv=None) -> int:
             render(results, f"handoff {args.task_id}")
         _lib.print_verdict("CHECK", not failed)
         return 1 if failed else 0
+
+    # From here on every command opens, continues or completes the ritual. The ritual is the
+    # main checkout's: its generators rebuild tracked state that is main's, so inside a linked
+    # worktree (a Cview worker) it is refused in one line before anything is written.
+    wt = _lib.worktree_info()
+    if wt is not None:
+        print(f"refused: the ritual is the main checkout's and this session runs inside the "
+              f"linked worktree '{wt['name']}' (branch {wt['branch'] or 'detached'}). Finish the "
+              f"task, write DONE.md or BLOCKED.md at the worktree root, and the main session "
+              f"runs /project-memory.")
+        _lib.print_verdict("CHECK", False)
+        return 1
 
     if args.command == "complete":
         run = load_run()
