@@ -885,7 +885,28 @@ def check_changelog_parity() -> Result:
         return Result("changelog_parity", FAIL,
                       f"{len(missing)} released version(s) lack a CHANGELOG.md section",
                       [f"missing '## {v}'" for v in missing])
-    return Result("changelog_parity", OK, f"{len(versions)} version(s) pinned in CHANGELOG.md")
+    # CITATION.cff (GitHub's "Cite this repository", Zenodo) carries the same version: a
+    # citation that lags the tag cites a release that no longer exists.
+    cited = citation_version(root)
+    if cited is not None and cited != stamp:
+        return Result("changelog_parity", FAIL,
+                      f"CITATION.cff says version {cited}, system_version is {stamp}",
+                      ["set `version:` (and `date-released:`) in CITATION.cff with the release"])
+    return Result("changelog_parity", OK, f"{len(versions)} version(s) pinned in CHANGELOG.md"
+                  + (", CITATION.cff in step" if cited is not None else ""))
+
+
+def citation_version(root: Path):
+    """The `version:` line of <root>/CITATION.cff, or None when the file is absent (an adopting
+    project) or carries no such line. A plain line scan: no YAML parser in the stdlib."""
+    try:
+        text = (root / "CITATION.cff").read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        if line.startswith("version:"):
+            return line.partition(":")[2].strip().strip("\"'") or None
+    return None
 
 
 # --------------------------------------------------------------------------- secrets placement

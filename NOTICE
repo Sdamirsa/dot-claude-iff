@@ -1,0 +1,9 @@
+dot-claude-iff
+Copyright 2026 Seyed Amir Ahmad Safavi-Naini
+
+Licensed under the Apache License, Version 2.0; see LICENSE.
+
+Third-party components:
+- The /adhd skill (.claude/skills/adhd/) is adapted from UditAkhourii/adhd,
+  MIT License, Copyright (c) 2026 ADHD contributors; its license text is at
+  .claude/skills/adhd/LICENSE.

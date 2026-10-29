@@ -11,7 +11,10 @@ this project's own release history structurally never reaches an adopting repo.
 
 ## Unreleased
 
-- Nothing yet.
+- License: the project is now under Apache-2.0 (`LICENSE`, `NOTICE` at the root; both ship inside
+  `.claude/` of every kit so they travel with the system, never as the adopter's root license).
+  `CITATION.cff` added for GitHub's "Cite this repository" and Zenodo; `changelog_parity` also
+  checks its `version` against `system_version`.
 
 ## v0.3.0-alpha.2 - 2026-10-29
 

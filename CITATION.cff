@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use dot-claude-iff, please cite it using the metadata below."
+type: software
+title: "dot-claude-iff: a harness for human and agent collaboration in Claude Code, built on shared memory, handoff, and ritual"
+abstract: >-
+  A generalizable .claude/ operating system that a repository adopts as a drop-in: a journal
+  and its projections for session continuity, fail-closed gates (a policy gate on every write
+  lane, a validator on every structured write), an out-of-repo record of every session, a
+  user-only end-of-session ritual that regenerates every derived surface, a live console, and
+  modes for solo and orchestrated work (a lead with builders in git worktrees). Hooks and tools
+  are bash and Python standard library only.
+authors:
+  - given-names: "Seyed Amir Ahmad"
+    family-names: "Safavi-Naini"
+    orcid: "https://orcid.org/0000-0001-9295-9283"
+    affiliation: "Independent, Switzerland"
+repository-code: "https://github.com/Sdamirsa/dot-claude-iff"
+url: "https://sdamirsa.github.io/dot-claude-iff/"
+license: Apache-2.0
+version: 0.3.0-alpha.2
+date-released: 2026-10-29
+keywords:
+  - Claude Code
+  - agent operating system
+  - session continuity
+  - hooks
+  - policy gate
+  - git worktrees
+  - developer tooling

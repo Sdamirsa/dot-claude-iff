@@ -264,6 +264,30 @@ class TestPayload(DistCase):
                 self.assertIn(".claude/state/heartbeat.json", lines)
                 self.assertIn(".claude/worktrees/", lines)
 
+    def test_license_and_notice_travel_inside_claude_of_every_kit(self):
+        """Apache-2.0: LICENSE and NOTICE go with every copy. They ship inside .claude/ so they
+        license the system, not the adopting project, and /adopt carries them by copying
+        .claude/. The home repo's three files stay in step: Apache text at the root, the NOTICE
+        naming the copyright holder, CITATION.cff naming the same license."""
+        (self.root / "LICENSE").write_text("Apache License\nVersion 2.0\n", encoding="utf-8")
+        (self.root / "NOTICE").write_text("fixture\nCopyright 2026 fixture\n", encoding="utf-8")
+        distctl.build(self.root)
+        for zip_name, prefix in (("dot-claude-iff-fresh.zip", ""),
+                                 ("dot-claude-iff-adopt-kit.zip", "dot-claude-iff-kit/")):
+            with self.subTest(zip=zip_name):
+                self.assertTrue(self.read(zip_name, f"{prefix}.claude/LICENSE").startswith("Apache License"))
+                self.assertIn("Copyright", self.read(zip_name, f"{prefix}.claude/NOTICE"))
+                with self.assertRaises(KeyError):  # never at the adopter's root
+                    self.read(zip_name, f"{prefix}LICENSE")
+        # Where this suite runs: the home repo keeps the files at its root (with CITATION.cff);
+        # an adopted copy, this suite included, carries them inside .claude/ and no citation.
+        home = REPO_ROOT
+        where = home if (home / "LICENSE").is_file() else home / ".claude"
+        self.assertIn("Apache License", (where / "LICENSE").read_text(encoding="utf-8")[:200])
+        self.assertIn("Copyright 2026", (where / "NOTICE").read_text(encoding="utf-8"))
+        if (home / "CITATION.cff").is_file():
+            self.assertIn("license: Apache-2.0", (home / "CITATION.cff").read_text(encoding="utf-8"))
+
     def test_shipped_gitignore_is_the_managed_block_whatever_the_home_visibility(self):
         """One renderer for every install path: the kits carry the block for the visibility
         they ship (tracked), never this repo's own choice."""

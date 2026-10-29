@@ -155,7 +155,8 @@ Never `--force`, never `--no-verify`, never push when CHECK failed.
 are the maintainer's call, never yours. When they say "release vX.Y.Z":
 
 1. Set `system_version` to `X.Y.Z` in `.claude/config/registry.json` - the tag and the stamp
-   move in step.
+   move in step. Set `version:` and `date-released:` in `CITATION.cff` (repo root) to the
+   same value and the release date; `changelog_parity` FAILS when the citation lags the stamp.
 2. Pin the changelog: in `CHANGELOG.md` (repo root), retitle `## Unreleased` to
    `## vX.Y.Z - YYYY-MM-DD` and curate it from `Project-log.jsonl` since the previous tag -
    written for readers of the release, not a commit dump - then start a fresh `## Unreleased`
