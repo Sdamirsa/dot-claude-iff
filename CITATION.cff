@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use dot-claude-iff, please cite it using the metadata below."
 type: software
-title: "dot-claude-iff: a harness for human and agent collaboration in Claude Code, built on shared memory, handoff, and ritual"
+title: "dot-claude-iff: a harness for human and agent collaboration in Claude Code, built on shared mental memory, collaborative handoff, and self-evolving ritual"
 abstract: >-
   A generalizable .claude/ operating system that a repository adopts as a drop-in: a journal
   and its projections for session continuity, fail-closed gates (a policy gate on every write
