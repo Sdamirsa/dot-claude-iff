@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-08-26T13:16:48Z",
+  "generated_at": "2026-10-29T17:07:43Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -50,7 +50,7 @@
       "package": null,
       "title": "Session Start",
       "path": ".claude/hooks/session-start.sh",
-      "description": "session-start.sh - the orientation hook. Its stdout is injected into the fresh session's context, which makes it the one place where \"where were we\" arrives without anyone asking. Three jobs, in order of importance: 1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts). 2. Nudge if the ritual has not run in a while. The nudge lives HERE rather than on SessionEnd because SessionStart's stdout->context path is the one we can prove works. 3. Optionally start the console server, guarded by a pidfile so N sessions start one server. Read-only with respect to project state: it never writes to the journal.",
+      "description": "session-start.sh - the orientation hook. Its stdout is injected into the fresh session's context, which makes it the one place where \"where were we\" arrives without anyone asking. Three jobs, in order of importance: 1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts), then one MODE/PHASE line; in the guided-solo and fableous-orchestrated modes also the current phase's contract (at most five lines, from config/phases.json). 2. Nudge the agent to ASK THE USER for the ritual when it has not run in a while (only the user can open it). The nudge lives HERE rather than on SessionEnd because SessionStart's stdout->context path is the one we can prove works. Sessions are counted from the capture lane's SessionStart events (spool + sealed segments), plus this one; with that capture off the count is unknown and the nudge says so and goes by age alone. 3. Optionally start the console server, guarded by a pidfile so N sessions start one server. Read-only with respect to project state: it never writes to the journal.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -186,6 +186,30 @@
       "exists": true
     },
     {
+      "id": "agent.builder",
+      "kind": "agent",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "builder",
+      "path": ".claude/agents/builder.md",
+      "description": "Implements ONE task card (a .claude/tasks/ file with a Definition of done and one Test command) inside a git worktree the lead created, in the fableous-orchestrated mode. Use when the lead dispatches a task with a filled builder brief and a worktree name. Writes code and tests in its worktree only, never commits, and hands back a validated JSON envelope. NOT for planning, research, review or merging.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "agent.scout",
+      "kind": "agent",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "scout",
+      "path": ".claude/agents/scout.md",
+      "description": "Read-only researcher for the lead in the fableous-orchestrated mode - codebase surveys, \"where is X and who calls it\", docs and web lookups, a quick check of one fact. Returns findings with exact paths and line numbers, cheaply, so the lead's context stays for decisions. Never edits anything. NOT for implementing (builder) and NOT for checking a finished task (verifier).",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
       "id": "agent.verifier",
       "kind": "agent",
       "layer": "GOVERN",
@@ -193,6 +217,18 @@
       "title": "verifier",
       "path": ".claude/agents/verifier.md",
       "description": "Adversarial quality-check agent. Given a claim, a deliverable, or done-criteria, independently verify it against reality (run tests, read outputs, recompute numbers) and return a verdict as a handshake envelope. Use after substantial work products, before reporting \"done\" on multi-step tasks, or whenever a skill's QC step calls for independent verification. NOT for producing or fixing work, it only checks.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "hook.handoff-guard",
+      "kind": "code",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Handoff Guard",
+      "path": ".claude/hooks/handoff-guard.sh",
+      "description": "handoff-guard.sh - SubagentStart / SubagentStop, fableous-orchestrated mode only. SubagentStart: records when the agent began (state/orchestration.json) and resets the lead's delegation-nudge counter, because a dispatch is exactly what the nudge asks for. SubagentStop: a `builder` that is stopping without a valid handoff envelope written since it started, for an open builder stub, is sent back ONCE to write it ({\"decision\": \"block\", \"reason\": ...}, the documented Stop/SubagentStop blocking output). When the harness says stop_hook_active (this stop was already sent back once), the builder stops: the hook can never loop. Every other agent type stops untouched. BEST EFFORT, on purpose. The payload fields read here (hook_event_name, agent_type, agent_id, agent_transcript_path, stop_hook_active) are what the harness sends today and may change; a missing field reads as \"cannot tell\" and the agent stops normally. The HARD guarantee is not this hook: it is `statectl task <id> --status done`, which in fableous-orchestrated refuses without a valid envelope whose tests passed. LAW 2, telemetry half: FAILS OPEN. A malformed payload, a missing python3 or any internal error means no output and exit 0. In freestyle and guided-solo it does nothing at all. The payload goes through a temp file, not an environment variable: a SubagentStop payload can carry the agent's whole last message, and an env string is capped (see policy-gate.sh).",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -222,6 +258,42 @@
       "exists": true
     },
     {
+      "id": "hook.ritual-ticket",
+      "kind": "code",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Ritual Ticket",
+      "path": ".claude/hooks/ritual-ticket.sh",
+      "description": "ritual-ticket.sh - UserPromptSubmit + UserPromptExpansion hook. Mints the ritual ticket. The ritual (/project-memory) and the installer (/adopt) are the USER's to open. checkctl refuses to open, continue or complete a ritual run without a fresh ticket in .claude/state/ritual-ticket.json, and the policy gate denies that file to every agent identity on every write lane. This hook is its one writer: when the user's own prompt starts with /project-memory or /adopt (UserPromptSubmit `user_input`, `prompt` in older releases), or Claude Code expands one of those two commands (UserPromptExpansion `command_name`), it writes {skill, ts, session_id, event}. A prompt that merely mentions the command mid-sentence writes nothing, and neither does a turn Claude Code starts on its own. A tripwire, not cryptography: an agent-opened ritual fails loudly, and every issue lands in the record. It does not make forging impossible. NEVER blocks or alters the prompt: every path exits 0 and prints nothing (stdout on these two events would be injected into the context). If it breaks, no ticket is written and checkctl refuses the ritual: fail closed overall, through checkctl, never by blocking the user here. The payload goes to a temp FILE, as in policy-gate.sh: a prompt can be far larger than an environment variable may hold.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "config.orchestration",
+      "kind": "data",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Orchestration",
+      "path": ".claude/config/orchestration.json",
+      "description": "Lead-and-team routing in the fableous-orchestrated mode (.claude/protocols/orchestration.md).",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "config.phases",
+      "kind": "data",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Phases",
+      "path": ".claude/config/phases.json",
+      "description": "The lifecycle phases (plan -> build -> review -> deploy): what work each phase allows, and the check that must pass to leave it.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
       "id": "config.policy",
       "kind": "data",
       "layer": "GOVERN",
@@ -229,6 +301,18 @@
       "title": "Policy",
       "path": ".claude/config/policy.json",
       "description": "Access policy enforced by hooks/policy-gate.sh (PreToolUse on Write|Edit|NotebookEdit|Bash).",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "config.publish",
+      "kind": "data",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Publish",
+      "path": ".claude/config/publish.json",
+      "description": "What distctl.py export may publish from .claude/ and .claude-iff/ into a clean public copy: an include list of globs that can only narrow a hard-coded floor (state, logs, lessons, status, tasks, research, the record surface, local settings and env files never export). Kits ship it empty.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -282,6 +366,42 @@
       "exists": true
     },
     {
+      "id": "protocol.orchestration",
+      "kind": "data",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Orchestration protocol: the lead and its team",
+      "path": ".claude/protocols/orchestration.md",
+      "description": "Orchestration protocol: the lead and its team. How work is split in the `fableous-orchestrated` mode: the top model plans, designs and stays accountable; cheaper agents build and research; every handoff is a JSON envelope that is checked by code, not by trust.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "reference.public-private",
+      "kind": "data",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Public and private",
+      "path": ".claude/reference/public-private.md",
+      "description": "The recommended pattern: work with the agent in a private repo, publish releases to a public repo with distctl.py export. What the record is and why it never leaves, what visibility tracked vs ignored means for a team, the exact commands, and that the export never commits or pushes.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "reference.secrets",
+      "kind": "data",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Secrets",
+      "path": ".claude/reference/secrets.md",
+      "description": "Where each kind of key belongs (tool keys in the env block of .claude/settings.local.json, MCP keys via claude mcp add --env or ${VAR} in .mcp.json), what never goes in git, and how the secrets_placement check and checkctl doctor enforce it.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
       "id": "store.handshakes",
       "kind": "data",
       "layer": "GOVERN",
@@ -307,6 +427,44 @@
         "append-only",
         "derived"
       ],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "store.orchestration",
+      "kind": "data",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Orchestration runtime",
+      "path": ".claude/state/orchestration.json",
+      "description": "fableous-orchestrated runtime, per machine and gitignored: when each sub-agent began (the builder stop check's 'since'), the lead's code edits since the last dispatch (the delegation nudge), and when the periodic progress report last went to the lead (both organised modes). Written by the hooks only.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "store.proposals",
+      "kind": "data",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Proposal box",
+      "path": ".claude/state/proposals.jsonl",
+      "description": "Ideas out of scope right now (statectl proposal add/list/resolve, ids PR-<n>): append-only, its own store like needs-human so a parked idea outlives any session. Open count lands in session.json; listed on the console WORK tab.",
+      "glyphs": [
+        "append-only"
+      ],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "store.ritual_ticket",
+      "kind": "data",
+      "layer": "GOVERN",
+      "package": null,
+      "title": "Ritual ticket",
+      "path": ".claude/state/ritual-ticket.json",
+      "description": "Proof the USER typed /project-memory or /adopt: {skill, ts, session_id, event}. Written by the prompt hook, or by `checkctl ticket --grant` that the human runs in their own terminal (the gate denies the file and that subcommand to every agent); checked by checkctl run and complete, consumed by complete. A tripwire, not cryptography; gitignored.",
+      "glyphs": [],
       "flows": [],
       "exists": true
     },
@@ -389,7 +547,7 @@
       "package": null,
       "title": "Heartbeat",
       "path": ".claude/state/heartbeat.json",
-      "description": "Liveness signal, overwritten once per turn by the Stop hook. Not the resume guarantee - the journal pointer is.",
+      "description": "Liveness signal, overwritten once per turn by the Stop hook ('turn ended') and mid-turn by the activity pulse ('working', via the policy gate and the sub-agent capture lane, throttled by progress.pulse_seconds). Not the resume guarantee - the journal pointer is.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -461,6 +619,18 @@
       "exists": true
     },
     {
+      "id": "tool.ctxmap",
+      "kind": "code",
+      "layer": "CONSOLE",
+      "package": null,
+      "title": "Ctxmap",
+      "path": ".claude/tools/ctxmap.py",
+      "description": "ctxmap.py - folder context: which guides and rules Claude Code loads for a file, and whether that context is healthy.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
       "id": "tool.mapctl",
       "kind": "code",
       "layer": "CONSOLE",
@@ -468,6 +638,30 @@
       "title": "Mapctl",
       "path": ".claude/tools/mapctl.py",
       "description": "",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "tool.progress",
+      "kind": "code",
+      "layer": "CONSOLE",
+      "package": null,
+      "title": "Progress",
+      "path": ".claude/tools/progress.py",
+      "description": "progress.py - the progress model: one computation, three renderings.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "tool.sysmon",
+      "kind": "code",
+      "layer": "CONSOLE",
+      "package": null,
+      "title": "Sysmon",
+      "path": ".claude/tools/sysmon.py",
+      "description": "sysmon.py - optional system-monitor probes: CPU, RAM, GPU/VRAM.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -577,7 +771,7 @@
       "package": null,
       "title": "project-memory",
       "path": ".claude/skills/project-memory/SKILL.md",
-      "description": "The one ritual - check, polish, publish, evolve. Invoke at the end of a working session, after a milestone, or when the user says \"update memory\", \"log this session\", \"update the log\", \"curate memory\", \"update status\", \"wrap up\", or \"run the ritual\". Add --hard for a dedicated maturation session that deeply refines the .claude system itself. NOT for planning or resuming work (use /plan-task), and NOT for a cold \"where were we\" (read .claude/STATUS.md).",
+      "description": "The one ritual - check, polish, publish, evolve, then route the next session (phase, mode, optional maturation pass). Only the user opens it, by typing /project-memory at the end of a working session or after a milestone. When the user says \"update memory\", \"log this session\", \"update the log\", \"curate memory\", \"update status\", \"wrap up\", or \"run the ritual\", ask them to type /project-memory. NOT for planning or resuming work (use /plan-task), and NOT for a cold \"where were we\" (read .claude/STATUS.md).",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -601,7 +795,7 @@
       "package": null,
       "title": "Distctl",
       "path": ".claude/tools/distctl.py",
-      "description": "distctl.py - build the distribution zips: the system, packaged for other repos.",
+      "description": "distctl.py - build the distribution zips, write the managed .gitignore block, and export a clean public copy.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -625,7 +819,7 @@
       "package": null,
       "title": "distribution zips",
       "path": ".claude/dist",
-      "description": "The two release artifacts: dot-claude-iff-fresh.zip (new repo) and dot-claude-iff-adopt-kit.zip (existing repo). Derived: rebuilt by every ritual so a download can never lag the repo.",
+      "description": "The two release artifacts: dot-claude-iff-fresh.zip (new repo) and dot-claude-iff-adopt-kit.zip (existing repo). Derived: rebuilt by the ritual and by the release step; equal to a rebuild on main and on every tag, while between releases the copies on dev may lag. Never a builder's.",
       "glyphs": [
         "derived"
       ],
@@ -653,7 +847,19 @@
       "package": null,
       "title": "Ritual run checkpoint",
       "path": ".claude/state/memory-run.json",
-      "description": "The /project-memory transaction: run id, phase, step. PUBLISH refuses unless POLISH completed in the same run id.",
+      "description": "The /project-memory transaction: run id, phase, step, and who opened it (invoked_by: user-ticket, with the ticket's ts). PUBLISH refuses unless POLISH completed in the same run id.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "skill.adhd",
+      "kind": "code",
+      "layer": null,
+      "package": null,
+      "title": "adhd",
+      "path": ".claude/skills/adhd/SKILL.md",
+      "description": "Parallel divergent ideation - isolated branches under different cognitive frames, then a separate critic pass that clusters, flags traps and shortlists. User-invoked only (/adhd), because one run costs about ten agent calls. For an open, divergent question (architecture, public API or SDK surface, schema, naming a real product, a fuzzy bug with no known root cause) you may SUGGEST \"/adhd <problem>\" in one line; never run it unasked. Not for lookups, syntax, bugs with a known root cause, or asks phrased \"quick\", \"just\", \"standard\" or \"textbook\".",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -671,13 +877,13 @@
       "exists": true
     },
     {
-      "id": "tool.sysmon",
-      "kind": "code",
+      "id": "config.brainstorm",
+      "kind": "data",
       "layer": null,
       "package": null,
-      "title": "Sysmon",
-      "path": ".claude/tools/sysmon.py",
-      "description": "sysmon.py - optional system-monitor probes: CPU, RAM, GPU/VRAM.",
+      "title": "Brainstorm",
+      "path": ".claude/config/brainstorm.json",
+      "description": "Brainstorm tuning for the /adhd skill: how many isolated branches diverge, which frames they pick from, and which model runs each phase.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -737,6 +943,21 @@
       "type": "invokes"
     },
     {
+      "from": "agent.builder",
+      "to": "store.handshakes",
+      "type": "reads"
+    },
+    {
+      "from": "agent.builder",
+      "to": "store.handshakes",
+      "type": "writes"
+    },
+    {
+      "from": "agent.builder",
+      "to": "tool.checkctl",
+      "type": "invokes"
+    },
+    {
       "from": "agent.retro-analyst",
       "to": "protocol.evolution",
       "type": "reads"
@@ -762,6 +983,11 @@
       "type": "reads"
     },
     {
+      "from": "agent.scout",
+      "to": "store.handshakes",
+      "type": "writes"
+    },
+    {
       "from": "agent.verifier",
       "to": "store.handshakes",
       "type": "writes"
@@ -782,6 +1008,31 @@
       "type": "invokes"
     },
     {
+      "from": "hook.handoff-guard",
+      "to": "store.handshakes",
+      "type": "reads"
+    },
+    {
+      "from": "hook.handoff-guard",
+      "to": "store.journal",
+      "type": "reads"
+    },
+    {
+      "from": "hook.handoff-guard",
+      "to": "store.orchestration",
+      "type": "reads"
+    },
+    {
+      "from": "hook.handoff-guard",
+      "to": "store.orchestration",
+      "type": "writes"
+    },
+    {
+      "from": "hook.handoff-guard",
+      "to": "tool._lib",
+      "type": "invokes"
+    },
+    {
       "from": "hook.heartbeat",
       "to": "store.heartbeat",
       "type": "writes"
@@ -793,7 +1044,17 @@
     },
     {
       "from": "hook.obs-capture",
+      "to": "config.orchestration",
+      "type": "reads"
+    },
+    {
+      "from": "hook.obs-capture",
       "to": "store.record",
+      "type": "writes"
+    },
+    {
+      "from": "hook.obs-capture",
+      "to": "store.heartbeat",
       "type": "writes"
     },
     {
@@ -802,9 +1063,54 @@
       "type": "reads"
     },
     {
+      "from": "hook.policy-gate",
+      "to": "config.orchestration",
+      "type": "reads"
+    },
+    {
+      "from": "hook.policy-gate",
+      "to": "store.heartbeat",
+      "type": "writes"
+    },
+    {
       "from": "hook.post-write-validate",
       "to": "store.handshakes",
       "type": "reads"
+    },
+    {
+      "from": "hook.post-write-validate",
+      "to": "store.journal",
+      "type": "reads"
+    },
+    {
+      "from": "hook.post-write-validate",
+      "to": "store.orchestration",
+      "type": "reads"
+    },
+    {
+      "from": "hook.post-write-validate",
+      "to": "store.orchestration",
+      "type": "writes"
+    },
+    {
+      "from": "hook.post-write-validate",
+      "to": "tool.progress",
+      "type": "invokes"
+    },
+    {
+      "from": "hook.ritual-ticket",
+      "to": "config.observe",
+      "type": "reads"
+    },
+    {
+      "from": "hook.ritual-ticket",
+      "to": "store.ritual_ticket",
+      "type": "writes"
+    },
+    {
+      "from": "hook.ritual-ticket",
+      "to": "store.record",
+      "type": "writes"
     },
     {
       "from": "hook.session-start",
@@ -828,6 +1134,21 @@
     },
     {
       "from": "hook.session-start",
+      "to": "config.phases",
+      "type": "reads"
+    },
+    {
+      "from": "hook.session-start",
+      "to": "config.observe",
+      "type": "reads"
+    },
+    {
+      "from": "hook.session-start",
+      "to": "store.record",
+      "type": "reads"
+    },
+    {
+      "from": "hook.session-start",
       "to": "tool.statectl",
       "type": "invokes"
     },
@@ -835,6 +1156,11 @@
       "from": "hook.session-start",
       "to": "console.server",
       "type": "invokes"
+    },
+    {
+      "from": "skill.adhd",
+      "to": "config.brainstorm",
+      "type": "reads"
     },
     {
       "from": "skill.adopt",
@@ -933,12 +1259,37 @@
     },
     {
       "from": "tool._lib",
+      "to": "store.handshakes",
+      "type": "reads"
+    },
+    {
+      "from": "tool._lib",
+      "to": "store.orchestration",
+      "type": "reads"
+    },
+    {
+      "from": "tool._lib",
+      "to": "config.orchestration",
+      "type": "reads"
+    },
+    {
+      "from": "tool._lib",
       "to": "store.journal",
       "type": "writes"
     },
     {
       "from": "tool._lib",
       "to": "store.record",
+      "type": "writes"
+    },
+    {
+      "from": "tool._lib",
+      "to": "store.handshakes",
+      "type": "writes"
+    },
+    {
+      "from": "tool._lib",
+      "to": "store.orchestration",
       "type": "writes"
     },
     {
@@ -963,6 +1314,21 @@
     },
     {
       "from": "tool.checkctl",
+      "to": "config.policy",
+      "type": "reads"
+    },
+    {
+      "from": "tool.checkctl",
+      "to": "config.console",
+      "type": "reads"
+    },
+    {
+      "from": "tool.checkctl",
+      "to": "config.phases",
+      "type": "reads"
+    },
+    {
+      "from": "tool.checkctl",
       "to": "store.journal",
       "type": "reads"
     },
@@ -983,12 +1349,37 @@
     },
     {
       "from": "tool.checkctl",
+      "to": "store.session",
+      "type": "reads"
+    },
+    {
+      "from": "tool.checkctl",
+      "to": "store.ritual_ticket",
+      "type": "reads"
+    },
+    {
+      "from": "tool.checkctl",
+      "to": "store.handshakes",
+      "type": "reads"
+    },
+    {
+      "from": "tool.checkctl",
+      "to": "config.orchestration",
+      "type": "reads"
+    },
+    {
+      "from": "tool.checkctl",
       "to": "store.memory_run",
       "type": "writes"
     },
     {
       "from": "tool.checkctl",
       "to": "store.generators",
+      "type": "writes"
+    },
+    {
+      "from": "tool.checkctl",
+      "to": "store.ritual_ticket",
       "type": "writes"
     },
     {
@@ -1024,6 +1415,16 @@
     {
       "from": "tool.consolectl",
       "to": "store.needs_human",
+      "type": "reads"
+    },
+    {
+      "from": "tool.consolectl",
+      "to": "store.proposals",
+      "type": "reads"
+    },
+    {
+      "from": "tool.consolectl",
+      "to": "config.phases",
       "type": "reads"
     },
     {
@@ -1082,14 +1483,44 @@
       "type": "invokes"
     },
     {
+      "from": "tool.consolectl",
+      "to": "tool.progress",
+      "type": "invokes"
+    },
+    {
+      "from": "tool.ctxmap",
+      "to": "store.lessons",
+      "type": "reads"
+    },
+    {
+      "from": "tool.ctxmap",
+      "to": "store.project_log",
+      "type": "reads"
+    },
+    {
       "from": "tool.distctl",
       "to": "store.cards",
       "type": "reads"
     },
     {
       "from": "tool.distctl",
+      "to": "config.memory",
+      "type": "reads"
+    },
+    {
+      "from": "tool.distctl",
+      "to": "config.publish",
+      "type": "reads"
+    },
+    {
+      "from": "tool.distctl",
       "to": "store.dist",
       "type": "writes"
+    },
+    {
+      "from": "tool.distctl",
+      "to": "tool.checkctl",
+      "type": "invokes"
     },
     {
       "from": "tool.mapctl",
@@ -1162,6 +1593,46 @@
       "type": "writes"
     },
     {
+      "from": "tool.progress",
+      "to": "store.journal",
+      "type": "reads"
+    },
+    {
+      "from": "tool.progress",
+      "to": "store.handshakes",
+      "type": "reads"
+    },
+    {
+      "from": "tool.progress",
+      "to": "store.heartbeat",
+      "type": "reads"
+    },
+    {
+      "from": "tool.progress",
+      "to": "store.needs_human",
+      "type": "reads"
+    },
+    {
+      "from": "tool.progress",
+      "to": "store.proposals",
+      "type": "reads"
+    },
+    {
+      "from": "tool.progress",
+      "to": "tool._lib",
+      "type": "invokes"
+    },
+    {
+      "from": "tool.progress",
+      "to": "tool.checkctl",
+      "type": "invokes"
+    },
+    {
+      "from": "tool.progress",
+      "to": "tool.statectl",
+      "type": "invokes"
+    },
+    {
       "from": "tool.statectl",
       "to": "store.journal",
       "type": "reads"
@@ -1174,6 +1645,21 @@
     {
       "from": "tool.statectl",
       "to": "store.heartbeat",
+      "type": "reads"
+    },
+    {
+      "from": "tool.statectl",
+      "to": "store.proposals",
+      "type": "reads"
+    },
+    {
+      "from": "tool.statectl",
+      "to": "config.phases",
+      "type": "reads"
+    },
+    {
+      "from": "tool.statectl",
+      "to": "store.handshakes",
       "type": "reads"
     },
     {
@@ -1200,33 +1686,81 @@
       "from": "tool.statectl",
       "to": "store.machine",
       "type": "writes"
+    },
+    {
+      "from": "tool.statectl",
+      "to": "store.proposals",
+      "type": "writes"
+    },
+    {
+      "from": "tool.statectl",
+      "to": "store.handshakes",
+      "type": "writes"
+    },
+    {
+      "from": "tool.statectl",
+      "to": "tool.checkctl",
+      "type": "invokes"
+    },
+    {
+      "from": "tool.statectl",
+      "to": "tool.progress",
+      "type": "invokes"
     }
   ],
   "stats": {
-    "nodes": 52,
-    "edges": 101,
+    "nodes": 69,
+    "edges": 161,
     "by_kind": {
-      "agent": 3,
-      "code": 17,
-      "data": 31,
+      "agent": 5,
+      "code": 22,
+      "data": 41,
       "human": 1
     },
     "by_layer": {
-      "CONSOLE": 8,
+      "CONSOLE": 11,
       "EVOLVE": 10,
-      "GOVERN": 10,
+      "GOVERN": 23,
       "MEMORY": 11,
       "OBSERVE": 10,
-      "UNPLACED": 3
+      "UNPLACED": 4
     },
-    "unplaced": 3
+    "unplaced": 4
   },
   "lint": {
     "errors": [],
     "warnings": [
+      "config.brainstorm: layer is null (unplaced)",
       "human.maintainer: layer is null (unplaced)",
-      "tool._lib: layer is null (unplaced)",
-      "tool.sysmon: layer is null (unplaced)"
+      "skill.adhd: layer is null (unplaced)",
+      "tool._lib: layer is null (unplaced)"
+    ]
+  },
+  "context": {
+    "v": 1,
+    "root_guide": ".claude/CLAUDE.md",
+    "always_on_lines": 118,
+    "always_on_budget": 400,
+    "size_target": 200,
+    "counts": {
+      "guides": 1,
+      "rules": 0,
+      "imports": 0
+    },
+    "findings": {
+      "fail": 0,
+      "warn": 0
+    },
+    "entries": [
+      {
+        "path": ".claude/CLAUDE.md",
+        "kind": "guide",
+        "scope": "root",
+        "loads": "launch",
+        "lines": 118,
+        "findings": 0,
+        "via": null
+      }
     ]
   }
 }

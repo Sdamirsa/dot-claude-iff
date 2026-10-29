@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-08-26T13:23:18Z",
+  "generated_at": "2026-10-29T17:07:43Z",
   "clock": {
     "wall_min": "2026-08-25",
     "wall_max": "2026-08-26",
@@ -18,12 +18,12 @@
         "cost_usd": null
       },
       "anatomy": {
-        "agents": 3,
-        "skills": 3,
-        "hooks": 6,
-        "tools": 7,
-        "cards": 52,
-        "components": 71
+        "agents": 5,
+        "skills": 4,
+        "hooks": 8,
+        "tools": 9,
+        "cards": 69,
+        "components": 95
       },
       "data": {},
       "analysis": {}
@@ -39,12 +39,12 @@
         "cost_usd": 0.0
       },
       "anatomy": {
-        "agents": 3,
-        "skills": 3,
-        "hooks": 6,
-        "tools": 7,
-        "cards": 52,
-        "components": 71
+        "agents": 5,
+        "skills": 4,
+        "hooks": 8,
+        "tools": 9,
+        "cards": 69,
+        "components": 95
       },
       "data": {},
       "analysis": {}
@@ -127,6 +127,69 @@
       "kind": "tooling",
       "text": "reference/distribution-boundary.md + store.machine declared in mapctl KNOWN_STORES",
       "ref": "the home-vs-adopter split was re-derived twice this session across three undocumented mechanisms; the new store card warned UNDECLARED until mapctl learned it"
+    },
+    {
+      "date": "2026-10-05",
+      "t_tokens_cum": 202669,
+      "kind": "decision",
+      "text": "0.3.0-alpha scope fixed: modes freestyle/guided/fableous; phases plan/build/review/deploy; ritual user-ticket with ROUTE step; fableous = protocol + builder/scout + validated JSON handoff + delegation nudge; secrets check + doctor; visibility knob + export; adhd skill vendored and tunable; folder context map + lint; Jev gate deferred to proposals; zips stay committed with freshness test; dev branch with main as last stable; v0.3.0-alpha.1 then v0.3.1",
+      "ref": ""
+    },
+    {
+      "date": "2026-10-05",
+      "t_tokens_cum": 202669,
+      "kind": "milestone",
+      "text": "v0.3.0-alpha.1: phases, modes, fableous, secrets, export, folder context",
+      "ref": "M-0.3.0-alpha"
+    },
+    {
+      "date": "2026-10-05",
+      "t_tokens_cum": 202669,
+      "kind": "decision",
+      "text": "modes renamed: freestyle, guided-solo, fableous-orchestrated (short aliases accepted); T12 long-run progress added to M-0.3.0-alpha",
+      "ref": ""
+    },
+    {
+      "date": "2026-10-06",
+      "t_tokens_cum": 202669,
+      "kind": "milestone",
+      "text": "v0.3.0-alpha.1 published as a GitHub pre-release",
+      "ref": "M-0.3.0-alpha"
+    },
+    {
+      "date": "2026-10-06",
+      "t_tokens_cum": 202669,
+      "kind": "decision",
+      "text": "v0.3.0-alpha.1 goes to main now via PR #15 (dev -> main), instead of waiting for the stable release; GitHub latest stays v0.2.2",
+      "ref": ""
+    },
+    {
+      "date": "2026-10-06",
+      "t_tokens_cum": 202669,
+      "kind": "decision",
+      "text": "keep /adhd branch_model=sonnet for the alpha; compare against inherit during testing",
+      "ref": ""
+    },
+    {
+      "date": "2026-10-29",
+      "t_tokens_cum": 202669,
+      "kind": "milestone",
+      "text": "v0.3.0-alpha.2 cut from dev: Cview-ready backbone (worktree sessions are workers), tag pushed 2026-10-29",
+      "ref": "v0.3.0-alpha.2"
+    },
+    {
+      "date": "2026-10-29",
+      "t_tokens_cum": 202669,
+      "kind": "decision",
+      "text": "dot-claude-iff stays a .claude/ kit (zips + /adopt), not a Claude Code marketplace plugin",
+      "ref": ""
+    },
+    {
+      "date": "2026-10-29",
+      "t_tokens_cum": 202669,
+      "kind": "decision",
+      "text": "License: Apache-2.0 (LICENSE + NOTICE at the root, shipped inside .claude/ of every kit); CITATION.cff at the root with the maintainer's ORCID; changelog_parity checks the citation version",
+      "ref": ""
     }
   ]
 }
