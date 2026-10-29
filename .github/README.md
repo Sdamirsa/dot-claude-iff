@@ -32,6 +32,7 @@ every conflict to me before deciding.
 ```
 
 ```mermaid
+%%{init: {"themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px"}, "flowchart": {"htmlLabels": false, "padding": 18, "nodeSpacing": 40, "rankSpacing": 55}}}%%
 flowchart TD
 
   subgraph group_session["Session harness"]
@@ -65,8 +66,8 @@ flowchart TD
     node_adoption["Merge-based adoption<br/>[SKILL.md]"]
   end
 
-  node_human(("Human maintainer"))
-  node_agent(("Claude Code agent"))
+  node_human(("Human<br/>maintainer"))
+  node_agent(("Claude Code<br/>agent"))
 
   node_human -->|"starts"| node_ritual
   node_agent -->|"suggests"| node_ritual
@@ -82,7 +83,7 @@ flowchart TD
   node_state -->|"sets mode and phase"| node_route
   node_console -->|"shows status"| node_human
   node_console -->|"presents questions"| node_human
-  node_human -->|"returns contextual answer"| node_agent
+  node_human -->|"returns answer"| node_agent
   node_systemmap -->|"maps components"| node_console
   node_progress -->|"shows progress"| node_human
   node_export -->|"offers export"| node_human
@@ -103,21 +104,11 @@ flowchart TD
   class node_human,node_agent toneIndigo
 ```
 
-| Component | Source |
-|---|---|
-| Session hooks | [.claude/hooks/](.claude/hooks) |
-| Policy gate | [policy_gate.py](.claude/hooks/policy_gate.py) |
-| Secrets and system checks | [checkctl.py](.claude/tools/checkctl.py) |
-| Event record | [.claude/state/](.claude/state) |
-| Heartbeat and usage | [heartbeat.sh](.claude/hooks/heartbeat.sh) |
-| Project memory ritual (reality check, rebuild, seal and publish, evolution, routing) | [project-memory/SKILL.md](.claude/skills/project-memory/SKILL.md) |
-| Modes and phases, worktree dispatch | [statectl.py](.claude/tools/statectl.py) |
-| Command console | [console.py](.claude/console/console.py) |
-| System map | [mapctl.py](.claude/tools/mapctl.py) |
-| Visibility and export | [distctl.py](.claude/tools/distctl.py) |
-| Progress view | [progress.py](.claude/tools/progress.py) |
-| Orchestration | [orchestration.md](.claude/protocols/orchestration.md) |
-| Merge-based adoption | [adopt/SKILL.md](.claude/skills/adopt/SKILL.md) |
+<p align="center">
+  <a href="https://sdamirsa.github.io/dot-claude-iff/">
+    <img src="https://img.shields.io/badge/Open_interactive_system_map-2563eb?style=for-the-badge" alt="Open interactive system map">
+  </a>
+</p>
 
 ---
 
