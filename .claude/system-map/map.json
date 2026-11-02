@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-10-29T17:07:43Z",
+  "generated_at": "2026-11-02T11:03:50Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -50,7 +50,7 @@
       "package": null,
       "title": "Session Start",
       "path": ".claude/hooks/session-start.sh",
-      "description": "session-start.sh - the orientation hook. Its stdout is injected into the fresh session's context, which makes it the one place where \"where were we\" arrives without anyone asking. Three jobs, in order of importance: 1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts), then one MODE/PHASE line; in the guided-solo and fableous-orchestrated modes also the current phase's contract (at most five lines, from config/phases.json). 2. Nudge the agent to ASK THE USER for the ritual when it has not run in a while (only the user can open it). The nudge lives HERE rather than on SessionEnd because SessionStart's stdout->context path is the one we can prove works. Sessions are counted from the capture lane's SessionStart events (spool + sealed segments), plus this one; with that capture off the count is unknown and the nudge says so and goes by age alone. 3. Optionally start the console server, guarded by a pidfile so N sessions start one server. Read-only with respect to project state: it never writes to the journal.",
+      "description": "session-start.sh - the orientation hook. Its stdout is injected into the fresh session's context, which makes it the one place where \"where were we\" arrives without anyone asking. Three jobs, in order of importance: 1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts), then one MODE/PHASE line; in the guided-solo and fableous-orchestrated modes also the current phase's contract (at most five lines, from config/phases.json). 2. Nudge the agent to ASK THE USER for the ritual when it has not run in a while (only the user can open it). The nudge lives HERE rather than on SessionEnd because SessionStart's stdout->context path is the one we can prove works. Sessions are counted from the capture lane's SessionStart events (spool + sealed segments), plus this one; with that capture off the count is unknown and the nudge says so and goes by age alone. 3. Optionally start the console server, guarded by a pidfile so N sessions start one server. Read-only with respect to project state: it never writes to the journal. In a linked worktree (_lib.worktree_info; a Cview worker) it prints a WORKTREE SESSION block instead and exits 0: no resume block, no ritual nudge, no console start. It also prints one CHECKOUT line (resolved root, record root, and a 'no sealed history' flag). It never blocks.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -74,7 +74,7 @@
       "package": null,
       "title": "Statectl",
       "path": ".claude/tools/statectl.py",
-      "description": "statectl.py - the continuity engine: journal in, projections out.",
+      "description": "statectl.py - the continuity engine: journal in, projections out. Every tracked-state writer refuses inside a linked worktree with one line (_lib.main_state_guard).",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -240,7 +240,7 @@
       "package": null,
       "title": "Policy Gate",
       "path": ".claude/hooks/policy-gate.sh",
-      "description": "policy-gate.sh - PreToolUse gate on Write|Edit|NotebookEdit|Bash. LAW 2, gate half: THIS HOOK FAILS CLOSED. If the policy file is unreadable or malformed, writes under the hardcoded fallback tree are DENIED and everything else is allowed - a broken policy can neither expose the protected tree nor brick the whole session. Two rings: 1. The record (RECORD_ROOT and .claude-iff/) is write-denied to EVERY identity, including the main session. It is written only by the capture hook's append and by obsctl. This is what \"append-only\" actually rests on; the committed anchor is what makes it evidence. 2. The protected tree (.claude/hooks, config, agents, protocols, settings) is main-session only. A sub-agent must never be able to edit the gate that polices it or the ritual registry it runs under. Identity comes from the payload's agent_type/agent_name; absent means the main session.",
+      "description": "policy-gate.sh - PreToolUse gate on Write|Edit|NotebookEdit|Bash. LAW 2, gate half: THIS HOOK FAILS CLOSED. If the policy file is unreadable or malformed, writes under the hardcoded fallback tree are DENIED and everything else is allowed - a broken policy can neither expose the protected tree nor brick the whole session. Two rings: 1. The record (RECORD_ROOT and .claude-iff/) is write-denied to EVERY identity, including the main session. It is written only by the capture hook's append and by obsctl. This is what \"append-only\" actually rests on; the committed anchor is what makes it evidence. 2. The protected tree (.claude/hooks, config, agents, protocols, settings) is main-session only. A sub-agent must never be able to edit the gate that polices it or the ritual registry it runs under. Identity comes from the payload's agent_type/agent_name; absent means the main session. A third identity, the worker (main identity whose root is a linked worktree, _lib.worktree_info): its own git and protected-tree copy stay allowed, statectl dispatch/accept are refused. A 'wstate' ring guards .claude/state/ of worktree copies (handshakes/ carved out) for every identity.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -252,7 +252,7 @@
       "package": null,
       "title": "Post Write Validate",
       "path": ".claude/hooks/post-write-validate.sh",
-      "description": "post-write-validate.sh - PostToolUse gate on Write|Edit. The generic GOVERN gate. LAW 2, gate half: FAILS CLOSED. A structured file under .claude/ that no longer parses is blocked on the spot (exit 2, message to the model) so the agent fixes its own bad write while it still has the context - rather than the corruption surfacing three sessions later when the console silently renders nothing. Deliberately narrow: it parse-checks JSON/JSONL and the handshake envelope's required keys. Deep semantic validation belongs to project-registered CHECK steps, not to a per-write hook that runs under a timeout on every edit.",
+      "description": "post-write-validate.sh - PostToolUse gate on Write|Edit. The generic GOVERN gate. LAW 2, gate half: FAILS CLOSED. A structured file under .claude/ that no longer parses is blocked on the spot (exit 2, message to the model) so the agent fixes its own bad write while it still has the context - rather than the corruption surfacing three sessions later when the console silently renders nothing. Deliberately narrow: it parse-checks JSON/JSONL and the handshake envelope's required keys. Deep semantic validation belongs to project-registered CHECK steps, not to a per-write hook that runs under a timeout on every edit. The lead advisories (delegate, progress block) are skipped in a linked worktree (_lib.worktree_info), which is a worker, not the lead.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -475,7 +475,7 @@
       "package": null,
       "title": "Heartbeat",
       "path": ".claude/hooks/heartbeat.sh",
-      "description": "heartbeat.sh - Stop hook. One O(1) overwrite of state/heartbeat.json per turn. This is a LIVENESS signal, not the resume guarantee. A usage-limit cutoff or a crash in the middle of a turn never fires Stop, so the thing that actually survives is the pointer written to the journal BEFORE the risky operation. Say it here because the file's name invites the opposite assumption. Overwrite, not append: the journal stays small and meaningful, and the console gets a freshness number for free.",
+      "description": "heartbeat.sh - Stop hook. One O(1) overwrite of state/heartbeat.json per turn. This is a LIVENESS signal, not the resume guarantee. A usage-limit cutoff or a crash in the middle of a turn never fires Stop, so the thing that actually survives is the pointer written to the journal BEFORE the risky operation. Say it here because the file's name invites the opposite assumption. Overwrite, not append: the journal stays small and meaningful, and the console gets a freshness number for free. In a linked worktree with TASK.md and neither DONE.md nor BLOCKED.md, it also emits one advisory systemMessage line (never a block; fails open).",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -783,7 +783,7 @@
       "package": null,
       "title": "Checkctl",
       "path": ".claude/tools/checkctl.py",
-      "description": "checkctl.py - the ritual runner: CHECK, POLISH, PUBLISH mechanics for /project-memory.",
+      "description": "checkctl.py - the ritual runner: CHECK, POLISH, PUBLISH mechanics for /project-memory. In a linked worktree run/complete are refused; check_changelog_parity also checks CITATION.cff against the version (citation_version); DERIVED_STATE_IGNORED lists projections kept out of the dirty-tree test.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -795,7 +795,7 @@
       "package": null,
       "title": "Distctl",
       "path": ".claude/tools/distctl.py",
-      "description": "distctl.py - build the distribution zips, write the managed .gitignore block, and export a clean public copy.",
+      "description": "distctl.py - build the distribution zips, write the managed .gitignore block, and export a clean public copy. The managed ignore block ignores session.json, HANDOFF.md and needs-human.json; LEGAL_FILES (LICENSE, NOTICE) ship inside .claude/ of both kits.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -871,7 +871,7 @@
       "package": null,
       "title": "Lib",
       "path": ".claude/tools/_lib.py",
-      "description": "_lib.py - shared foundation for the dot-claude-iff tools.",
+      "description": "_lib.py - shared foundation for the dot-claude-iff tools. Worktree awareness: worktree_info (the one linked-worktree detector), main_checkout, main_state_guard (refuses tracked-state writes in a worktree), worker_task; the record root anchors at the main checkout.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -1038,6 +1038,11 @@
       "type": "writes"
     },
     {
+      "from": "hook.heartbeat",
+      "to": "tool._lib",
+      "type": "invokes"
+    },
+    {
       "from": "hook.obs-capture",
       "to": "config.observe",
       "type": "reads"
@@ -1073,6 +1078,11 @@
       "type": "writes"
     },
     {
+      "from": "hook.policy-gate",
+      "to": "tool._lib",
+      "type": "invokes"
+    },
+    {
       "from": "hook.post-write-validate",
       "to": "store.handshakes",
       "type": "reads"
@@ -1095,6 +1105,11 @@
     {
       "from": "hook.post-write-validate",
       "to": "tool.progress",
+      "type": "invokes"
+    },
+    {
+      "from": "hook.post-write-validate",
+      "to": "tool._lib",
       "type": "invokes"
     },
     {
@@ -1155,6 +1170,11 @@
     {
       "from": "hook.session-start",
       "to": "console.server",
+      "type": "invokes"
+    },
+    {
+      "from": "hook.session-start",
+      "to": "tool._lib",
       "type": "invokes"
     },
     {
@@ -1710,7 +1730,7 @@
   ],
   "stats": {
     "nodes": 69,
-    "edges": 161,
+    "edges": 165,
     "by_kind": {
       "agent": 5,
       "code": 22,

@@ -5,7 +5,7 @@
   "package": null,
   "title": "Checkctl",
   "path": ".claude/tools/checkctl.py",
-  "description": "checkctl.py - the ritual runner: CHECK, POLISH, PUBLISH mechanics for /project-memory.",
+  "description": "checkctl.py - the ritual runner: CHECK, POLISH, PUBLISH mechanics for /project-memory. In a linked worktree run/complete are refused; check_changelog_parity also checks CITATION.cff against the version (citation_version); DERIVED_STATE_IGNORED lists projections kept out of the dirty-tree test.",
   "reads": [
     "config.memory",
     "config.registry",

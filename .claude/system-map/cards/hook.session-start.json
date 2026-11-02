@@ -5,7 +5,7 @@
   "package": null,
   "title": "Session Start",
   "path": ".claude/hooks/session-start.sh",
-  "description": "session-start.sh - the orientation hook. Its stdout is injected into the fresh session's context, which makes it the one place where \"where were we\" arrives without anyone asking. Three jobs, in order of importance: 1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts), then one MODE/PHASE line; in the guided-solo and fableous-orchestrated modes also the current phase's contract (at most five lines, from config/phases.json). 2. Nudge the agent to ASK THE USER for the ritual when it has not run in a while (only the user can open it). The nudge lives HERE rather than on SessionEnd because SessionStart's stdout->context path is the one we can prove works. Sessions are counted from the capture lane's SessionStart events (spool + sealed segments), plus this one; with that capture off the count is unknown and the nudge says so and goes by age alone. 3. Optionally start the console server, guarded by a pidfile so N sessions start one server. Read-only with respect to project state: it never writes to the journal.",
+  "description": "session-start.sh - the orientation hook. Its stdout is injected into the fresh session's context, which makes it the one place where \"where were we\" arrives without anyone asking. Three jobs, in order of importance: 1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts), then one MODE/PHASE line; in the guided-solo and fableous-orchestrated modes also the current phase's contract (at most five lines, from config/phases.json). 2. Nudge the agent to ASK THE USER for the ritual when it has not run in a while (only the user can open it). The nudge lives HERE rather than on SessionEnd because SessionStart's stdout->context path is the one we can prove works. Sessions are counted from the capture lane's SessionStart events (spool + sealed segments), plus this one; with that capture off the count is unknown and the nudge says so and goes by age alone. 3. Optionally start the console server, guarded by a pidfile so N sessions start one server. Read-only with respect to project state: it never writes to the journal. In a linked worktree (_lib.worktree_info; a Cview worker) it prints a WORKTREE SESSION block instead and exits 0: no resume block, no ritual nudge, no console start. It also prints one CHECKOUT line (resolved root, record root, and a 'no sealed history' flag). It never blocks.",
   "reads": [
     "store.journal",
     "store.memory_run",
@@ -18,13 +18,14 @@
   "writes": [],
   "invokes": [
     "tool.statectl",
-    "console.server"
+    "console.server",
+    "tool._lib"
   ],
   "flows": [],
   "glyphs": [],
   "auto": {
     "discovered": "2026-08-25",
-    "hash": "22d2ae7fc54d3913ad7ad6e5ee2dbdefacff54bce4670ae4ba786f715166f396",
+    "hash": "c04b482a786f60dfdd38f55355672419e2ec087faa774f6ef1f36b32bdec53ef",
     "suggested_reads": [],
     "suggested_writes": []
   }

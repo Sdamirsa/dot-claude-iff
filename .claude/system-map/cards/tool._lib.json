@@ -5,7 +5,7 @@
   "package": null,
   "title": "Lib",
   "path": ".claude/tools/_lib.py",
-  "description": "_lib.py - shared foundation for the dot-claude-iff tools.",
+  "description": "_lib.py - shared foundation for the dot-claude-iff tools. Worktree awareness: worktree_info (the one linked-worktree detector), main_checkout, main_state_guard (refuses tracked-state writes in a worktree), worker_task; the record root anchors at the main checkout.",
   "reads": [
     "config.policy",
     "config.observe",

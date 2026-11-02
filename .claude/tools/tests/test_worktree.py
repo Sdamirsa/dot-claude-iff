@@ -579,6 +579,39 @@ class TestContainersAndSections(FixtureCase):
                     self.assertIn(needle, text, needle)
 
 
+# --------------------------------------------------------------------------- which checkout
+
+class TestSessionStartNamesTheCheckout(HookCase):
+    """A machine can carry two clones of one repo; a session that starts in the wrong one works
+    with an empty record and files the maintainer's editor never shows (lesson L-11). The
+    resume block names the checkout and its record root, and flags a record with no sealed
+    history. Display only: exit 0 either way."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        cfg = json.loads((self.root / ".claude/config/console.json").read_text())
+        cfg["autostart"] = False
+        (self.root / ".claude/config/console.json").write_text(json.dumps(cfg))
+        self.journal("session_start", session="s1")
+
+    def test_fresh_record_is_flagged(self):
+        res = self.run_hook("session-start.sh", {"hook_event_name": "SessionStart"})
+        self.assertEqual(res.returncode, 0, res.stderr)
+        line = next(l for l in res.stdout.splitlines() if l.startswith("CHECKOUT:"))
+        self.assertIn(_lib.tilde(self.root.resolve()), line)
+        self.assertIn(_lib.tilde(self.record.resolve()), line)
+        self.assertIn("no sealed history", line)
+
+    def test_sealed_record_is_quiet(self):
+        seg = self.record / "segments"
+        seg.mkdir(parents=True)
+        (seg / "2026-10-29.jsonl").write_text("{}\n", encoding="utf-8")
+        res = self.run_hook("session-start.sh", {"hook_event_name": "SessionStart"})
+        self.assertEqual(res.returncode, 0, res.stderr)
+        line = next(l for l in res.stdout.splitlines() if l.startswith("CHECKOUT:"))
+        self.assertNotIn("no sealed history", line)
+
+
 if __name__ == "__main__":
     import unittest
 

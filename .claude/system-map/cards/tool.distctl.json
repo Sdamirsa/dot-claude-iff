@@ -5,7 +5,7 @@
   "package": null,
   "title": "Distctl",
   "path": ".claude/tools/distctl.py",
-  "description": "distctl.py - build the distribution zips, write the managed .gitignore block, and export a clean public copy.",
+  "description": "distctl.py - build the distribution zips, write the managed .gitignore block, and export a clean public copy. The managed ignore block ignores session.json, HANDOFF.md and needs-human.json; LEGAL_FILES (LICENSE, NOTICE) ship inside .claude/ of both kits.",
   "reads": [
     "store.cards",
     "config.memory",

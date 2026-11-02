@@ -102,6 +102,19 @@ elif not journal.exists():
         "and set a pointer before any long or risky operation."
     )
 
+# 1a. which checkout this is: the resolved root and the record root, flagged when that record
+# holds no sealed history. A machine can carry two clones of one repo; a session started in
+# the wrong one worked for hours with an empty record and files its maintainer's editor never
+# showed (lesson L-11). One line, display only, fails open.
+try:
+    paths = _lib.record_paths()
+    sealed = any(d.is_dir() and any(d.iterdir()) for d in (paths["segments"], paths["sealed_raw"]))
+    flag = ("" if sealed else " - no sealed history here: a fresh clone, or a second clone of this "
+            "repo; check that this is the checkout you meant before committing")
+    lines.append(f"CHECKOUT: {_lib.tilde(root)} · record: {_lib.tilde(paths['root'])}{flag}")
+except Exception:
+    pass
+
 # 1b. the dials: mode and phase, through _lib's one reader. Display only, so it fails open: a
 # broken phases.json (or an older _lib without the reader) loses these lines, never the session.
 try:
