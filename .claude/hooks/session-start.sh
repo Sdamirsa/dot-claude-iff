@@ -108,7 +108,10 @@ elif not journal.exists():
 # showed (lesson L-11). One line, display only, fails open.
 try:
     paths = _lib.record_paths()
-    sealed = any(d.is_dir() and any(d.iterdir()) for d in (paths["segments"], paths["sealed_raw"]))
+    # History = anything a past ritual or session left behind: sealed segments or raw, ingested
+    # transcripts, or the ingest cursors. A record with only a spool is a first (or second) clone.
+    sealed = any(d.is_dir() and any(d.iterdir())
+                 for d in (paths["segments"], paths["sealed_raw"], paths["transcripts"]))         or paths["cursors"].is_file()
     flag = ("" if sealed else " - no sealed history here: a fresh clone, or a second clone of this "
             "repo; check that this is the checkout you meant before committing")
     lines.append(f"CHECKOUT: {_lib.tilde(root)} · record: {_lib.tilde(paths['root'])}{flag}")
