@@ -50,3 +50,4 @@ settings.local.json
 __pycache__/
 *.pyc
 # <<< dot-claude-iff managed block
+.vscode/*
