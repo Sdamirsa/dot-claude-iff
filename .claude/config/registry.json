@@ -471,6 +471,35 @@
       "default": 10
     },
     {
+      "key": "console.architecture.scopes",
+      "title": "Architecture scopes",
+      "description": "One diagram per entry in system-map/architecture.json and docs/ARCHITECTURE.md: {id, root, source}. source cards builds from the system-map cards; source code comes from graphctl.py when installed, else the scope is skipped with a WARN.",
+      "layer": "CONSOLE",
+      "target": {
+        "kind": "config",
+        "file": "console",
+        "path": "architecture.scopes"
+      },
+      "type": "list",
+      "default": [
+        {"id": "claude", "root": ".claude", "source": "cards"},
+        {"id": "tools", "root": ".claude/tools", "source": "code"}
+      ]
+    },
+    {
+      "key": "console.architecture.max_nodes",
+      "title": "Architecture box cap",
+      "description": "Most boxes a cards scope may show: past it, the least-connected boxes of a group fold into that group's 'other' box. A missing or invalid value reads as 40.",
+      "layer": "CONSOLE",
+      "target": {
+        "kind": "config",
+        "file": "console",
+        "path": "architecture.max_nodes"
+      },
+      "type": "int",
+      "default": 40
+    },
+    {
       "key": "agent.anatomist.model",
       "title": "Anatomist model",
       "description": "The .claude anatomy expert: reads components, traces relations, maintains cards, implements approved evolution changes.",

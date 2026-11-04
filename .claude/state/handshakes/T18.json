@@ -1,0 +1,75 @@
+{
+  "agent_id": "builder-T18",
+  "task_id": "T18",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "RESULT": "`mapctl architecture` writes .claude/system-map/architecture.json (scope `claude` built from the cards with folder folding, test exclusion, weighted edges with self-edges dropped, and the max_nodes cap folding into per-group 'other' boxes; code scopes come from graphctl.architecture_scope when it exists, otherwise a WARN and exit 0) and renders docs/ARCHITECTURE.md with one Mermaid flowchart per scope and GitHub blob click links. It is registered as architecture_build (GENERATORS, memory.json polish before console_build, policy derived_files), with the console.json knobs, their registry cards, the read_allowlist line and a store.architecture card.",
+  "files_changed": [
+    ".claude/tools/mapctl.py",
+    ".claude/tools/checkctl.py",
+    ".claude/tools/tests/test_architecture.py",
+    ".claude/config/console.json",
+    ".claude/config/memory.json",
+    ".claude/config/policy.json",
+    ".claude/config/registry.json",
+    ".claude/system-map/cards/store.architecture.json",
+    ".claude/system-map/cards/tool.mapctl.json",
+    ".claude/system-map/cards/tool.checkctl.json",
+    ".claude/system-map/cards/tool.distctl.json",
+    ".claude/system-map/cards/tool.obsctl.json",
+    ".claude/system-map/cards/tool.statectl.json",
+    ".claude/system-map/cards/protocol.orchestration.json",
+    ".claude/system-map/cards/config.console.json",
+    ".claude/system-map/cards/config.memory.json",
+    ".claude/system-map/cards/config.observe.json",
+    ".claude/system-map/cards/config.policy.json",
+    ".claude/system-map/cards/config.registry.json",
+    ".claude/system-map/cards/console.server.json",
+    ".claude/system-map/architecture.json",
+    "docs/ARCHITECTURE.md"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_architecture test_mapctl test_contracts -q",
+      "exit_code": 0,
+      "summary": "115 passed · 0 failed · 0 errored · 0 skipped"
+    },
+    {
+      "command": "python3 .claude/tools/checkctl.py probe",
+      "exit_code": 0,
+      "summary": "52 ok · 0 warn · 0 fail · 0 skipped"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "846 passed · 0 failed · 0 errored · 2 skipped"
+    }
+  ],
+  "EVIDENCE": [
+    "python3 .claude/tools/mapctl.py architecture -> 'scope claude: 40 boxes, 102 arrows, 36 folded', WARN scope 'tools' skipped: graphctl.py is not installed, MAP_WARN, exit 0; rerun -> both files '(unchanged, not rewritten)'",
+    "test_architecture (27 tests): folding rules, cap-to-other, self-edge drop, bogus path -> exit 1 naming the path, fake graphctl in sys.modules, a strict Mermaid parser over this repo's rendered output (edges and click lines name declared ids, URLs under the GitHub blob base or ../)",
+    "checkctl.check_config_registry() -> OK '51 knobs registered, none dead'; mapctl lint -> 0 errors",
+    "After the lead merged dev into wt/t18 (CLAUDE.md backtick fix): task Test 115 passed, probe 52 ok, full suite 846 passed 0 failed; an in-memory rebuild of architecture.json and docs/ARCHITECTURE.md equals the files on disk"
+  ],
+  "DEVIATIONS": [
+    "architecture_build inputs add .claude/system-map/layers.json to the contract's cards dir + console.json: the groups and blurbs come from it, the same way map_compile lists it.",
+    "Lazy cards (lint's exemption) whose store is not written yet keep their box with path null and a WARN, so kits without e.g. .claude/dist do not fail POLISH. Non-lazy missing paths fail with exit 1 as specified. The human and the record-root folder box have path null (no file in the repo) and no click line.",
+    "A folder box goes in the group most of its members' layers name (ties: the earlier layer). The contract does not say which group a folder spanning layers belongs to.",
+    "Folder and 'other' boxes carry an extra `members` list (folded card ids) beyond the contract's node keys; the markdown lists them under each diagram.",
+    "Added store.architecture to mapctl.KNOWN_STORES with a card (layer CONSOLE) and store.architecture in tool.mapctl's writes, per the brief's new-store rule. Running `mapctl scan` to create that card also refreshed auto.hash/suggested fields on 11 cards that were already stale on dev (tool.distctl, tool.obsctl, tool.statectl, protocol.orchestration, config.observe, console.server among them). That is what POLISH's map_scan writes anyway.",
+    "No probe entry: the task adds no shipped component file, only a verb on mapctl.py (probed) and two derived outputs."
+  ],
+  "UNCERTAINTIES": [
+    "docs/ARCHITECTURE.md was generated on branch wt/t18, so its links point at blob/wt/t18/.",
+    "Mermaid rendering on GitHub was not checked visually. Only the strict parser checked it."
+  ],
+  "needs_main": [
+    "After the merge, rerun `python3 .claude/tools/mapctl.py architecture` on dev (or let POLISH do it) so the docs links say blob/dev/ instead of blob/wt/t18/. The main checkout's policy.json lacks the two new derived paths until merge, so accept will commit the worktree's generated copies.",
+    "map.json is not rebuilt (derived): map_compile in POLISH picks up store.architecture."
+  ],
+  "SUGGESTIONS": [
+    "When T19 lands, add the code-graph source (or .claude/tools) to architecture_build's inputs so the code scope's freshness is hashed.",
+    "The claude scope has 102 arrows at 40 boxes. If the diagram reads as busy, a follow-up could merge reads+writes between the same pair into one arrow, or lower max_nodes."
+  ]
+}

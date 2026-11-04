@@ -1,0 +1,23 @@
+{
+  "id": "store.architecture",
+  "kind": "data",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Architecture spec",
+  "path": ".claude/system-map/architecture.json",
+  "description": "The architecture diagram's spec, one scope per diagram (groups, boxes, arrows), written by mapctl architecture with docs/ARCHITECTURE.md rendered from it.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "derived"
+  ],
+  "auto": {
+    "discovered": "2026-11-04",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

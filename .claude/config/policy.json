@@ -66,6 +66,8 @@
       ".claude/state/HANDOFF.md",
       ".claude/state/needs-human.json",
       ".claude/system-map/map.json",
+      ".claude/system-map/architecture.json",
+      "docs/ARCHITECTURE.md",
       ".claude/console/console.html"
     ]
   },

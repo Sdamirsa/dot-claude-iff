@@ -1,0 +1,1096 @@
+{
+  "v": 1,
+  "generated_at": "2026-11-04T16:46:07Z",
+  "project": "t18",
+  "scopes": [
+    {
+      "id": "claude",
+      "title": ".claude system",
+      "root": ".claude",
+      "source": "cards",
+      "groups": [
+        {
+          "id": "memory",
+          "title": "MEMORY",
+          "blurb": "Durable project memory: status, decision log, lessons, tasks, research, reference."
+        },
+        {
+          "id": "govern",
+          "title": "GOVERN",
+          "blurb": "Gates and contracts: policy enforcement, write validation, handshake envelopes, human gates."
+        },
+        {
+          "id": "observe",
+          "title": "OBSERVE",
+          "blurb": "The always-on record: capture, heartbeat, seal, rollup, anchor, token ledger, retrospective analysis."
+        },
+        {
+          "id": "console",
+          "title": "CONSOLE",
+          "blurb": "One page of command and control: NOW, MAP, STORY, WORK."
+        },
+        {
+          "id": "evolve",
+          "title": "EVOLVE",
+          "blurb": "The system changing itself on evidence: the ritual, retro proposals, the anatomist, pruning."
+        },
+        {
+          "id": "unplaced",
+          "title": "unplaced",
+          "blurb": "Components the anatomist has not yet placed into a flow layer. Visible by design."
+        }
+      ],
+      "nodes": [
+        {
+          "id": "hook.session-start",
+          "group": "memory",
+          "label": "session-start",
+          "path": ".claude/hooks/session-start.sh",
+          "kind": "code"
+        },
+        {
+          "id": "skill.plan-task",
+          "group": "memory",
+          "label": "/plan-task",
+          "path": ".claude/skills/plan-task/SKILL.md",
+          "kind": "code"
+        },
+        {
+          "id": "tool.statectl",
+          "group": "memory",
+          "label": "statectl",
+          "path": ".claude/tools/statectl.py",
+          "kind": "code"
+        },
+        {
+          "id": "reference.distribution-boundary",
+          "group": "memory",
+          "label": "distribution-boundary",
+          "path": ".claude/reference/distribution-boundary.md",
+          "kind": "data"
+        },
+        {
+          "id": "store.lessons",
+          "group": "memory",
+          "label": "lessons",
+          "path": ".claude/LESSONS.jsonl",
+          "kind": "data"
+        },
+        {
+          "id": "store.project_log",
+          "group": "memory",
+          "label": "project_log",
+          "path": ".claude/Project-log.jsonl",
+          "kind": "data"
+        },
+        {
+          "id": "agent.builder",
+          "group": "govern",
+          "label": "builder",
+          "path": ".claude/agents/builder.md",
+          "kind": "agent"
+        },
+        {
+          "id": "agent.scout",
+          "group": "govern",
+          "label": "scout",
+          "path": ".claude/agents/scout.md",
+          "kind": "agent"
+        },
+        {
+          "id": "agent.verifier",
+          "group": "govern",
+          "label": "verifier",
+          "path": ".claude/agents/verifier.md",
+          "kind": "agent"
+        },
+        {
+          "id": "hook.handoff-guard",
+          "group": "govern",
+          "label": "handoff-guard",
+          "path": ".claude/hooks/handoff-guard.sh",
+          "kind": "code"
+        },
+        {
+          "id": "hook.policy-gate",
+          "group": "govern",
+          "label": "policy-gate",
+          "path": ".claude/hooks/policy-gate.sh",
+          "kind": "code"
+        },
+        {
+          "id": "hook.post-write-validate",
+          "group": "govern",
+          "label": "post-write-validate",
+          "path": ".claude/hooks/post-write-validate.sh",
+          "kind": "code"
+        },
+        {
+          "id": "hook.ritual-ticket",
+          "group": "govern",
+          "label": "ritual-ticket",
+          "path": ".claude/hooks/ritual-ticket.sh",
+          "kind": "code"
+        },
+        {
+          "id": "protocol.evolution",
+          "group": "govern",
+          "label": "evolution",
+          "path": ".claude/protocols/evolution.md",
+          "kind": "data"
+        },
+        {
+          "id": "folder.config",
+          "group": "govern",
+          "label": ".claude/config/",
+          "path": ".claude/config",
+          "kind": "folder",
+          "members": [
+            "config.brainstorm",
+            "config.console",
+            "config.memory",
+            "config.model-prices",
+            "config.observe",
+            "config.orchestration",
+            "config.phases",
+            "config.policy",
+            "config.publish",
+            "config.registry"
+          ]
+        },
+        {
+          "id": "folder.state",
+          "group": "govern",
+          "label": ".claude/state/",
+          "path": ".claude/state",
+          "kind": "folder",
+          "members": [
+            "store.generators",
+            "store.handoff",
+            "store.handshakes",
+            "store.heartbeat",
+            "store.journal",
+            "store.machine",
+            "store.memory_run",
+            "store.needs_human",
+            "store.orchestration",
+            "store.proposals",
+            "store.ritual_ticket",
+            "store.session",
+            "store.story"
+          ]
+        },
+        {
+          "id": "other.govern",
+          "group": "govern",
+          "label": "other (6)",
+          "path": ".claude",
+          "kind": "folder",
+          "members": [
+            "protocol.handshake",
+            "protocol.honesty",
+            "protocol.human-gates",
+            "protocol.orchestration",
+            "reference.public-private",
+            "reference.secrets"
+          ]
+        },
+        {
+          "id": "hook.heartbeat",
+          "group": "observe",
+          "label": "heartbeat",
+          "path": ".claude/hooks/heartbeat.sh",
+          "kind": "code"
+        },
+        {
+          "id": "hook.obs-capture",
+          "group": "observe",
+          "label": "obs-capture",
+          "path": ".claude/hooks/obs-capture.sh",
+          "kind": "code"
+        },
+        {
+          "id": "tool.obsctl",
+          "group": "observe",
+          "label": "obsctl",
+          "path": ".claude/tools/obsctl.py",
+          "kind": "code"
+        },
+        {
+          "id": "folder.claude-iff",
+          "group": "observe",
+          "label": ".claude-iff/",
+          "path": ".claude-iff",
+          "kind": "folder",
+          "members": [
+            "store.anchor",
+            "store.rollups"
+          ]
+        },
+        {
+          "id": "folder.record",
+          "group": "observe",
+          "label": "record root",
+          "path": null,
+          "kind": "folder",
+          "members": [
+            "store.record"
+          ]
+        },
+        {
+          "id": "console.server",
+          "group": "console",
+          "label": "server",
+          "path": ".claude/console/console.py",
+          "kind": "code"
+        },
+        {
+          "id": "tool.consolectl",
+          "group": "console",
+          "label": "consolectl",
+          "path": ".claude/tools/consolectl.py",
+          "kind": "code"
+        },
+        {
+          "id": "tool.ctxmap",
+          "group": "console",
+          "label": "ctxmap",
+          "path": ".claude/tools/ctxmap.py",
+          "kind": "code"
+        },
+        {
+          "id": "tool.mapctl",
+          "group": "console",
+          "label": "mapctl",
+          "path": ".claude/tools/mapctl.py",
+          "kind": "code"
+        },
+        {
+          "id": "tool.progress",
+          "group": "console",
+          "label": "progress",
+          "path": ".claude/tools/progress.py",
+          "kind": "code"
+        },
+        {
+          "id": "tool.sysmon",
+          "group": "console",
+          "label": "sysmon",
+          "path": ".claude/tools/sysmon.py",
+          "kind": "code"
+        },
+        {
+          "id": "console.template",
+          "group": "console",
+          "label": "template",
+          "path": ".claude/console/console.template.html",
+          "kind": "data"
+        },
+        {
+          "id": "folder.system-map",
+          "group": "console",
+          "label": ".claude/system-map/",
+          "path": ".claude/system-map",
+          "kind": "folder",
+          "members": [
+            "map.layers",
+            "store.architecture",
+            "store.cards",
+            "store.map"
+          ]
+        },
+        {
+          "id": "agent.anatomist",
+          "group": "evolve",
+          "label": "anatomist",
+          "path": ".claude/agents/anatomist.md",
+          "kind": "agent"
+        },
+        {
+          "id": "agent.retro-analyst",
+          "group": "evolve",
+          "label": "retro-analyst",
+          "path": ".claude/agents/retro-analyst.md",
+          "kind": "agent"
+        },
+        {
+          "id": "skill.adopt",
+          "group": "evolve",
+          "label": "/adopt",
+          "path": ".claude/skills/adopt/SKILL.md",
+          "kind": "code"
+        },
+        {
+          "id": "skill.project-memory",
+          "group": "evolve",
+          "label": "/project-memory",
+          "path": ".claude/skills/project-memory/SKILL.md",
+          "kind": "code"
+        },
+        {
+          "id": "tool.checkctl",
+          "group": "evolve",
+          "label": "checkctl",
+          "path": ".claude/tools/checkctl.py",
+          "kind": "code"
+        },
+        {
+          "id": "tool.distctl",
+          "group": "evolve",
+          "label": "distctl",
+          "path": ".claude/tools/distctl.py",
+          "kind": "code"
+        },
+        {
+          "id": "store.dist",
+          "group": "evolve",
+          "label": "dist",
+          "path": ".claude/dist",
+          "kind": "data"
+        },
+        {
+          "id": "skill.adhd",
+          "group": "unplaced",
+          "label": "/adhd",
+          "path": ".claude/skills/adhd/SKILL.md",
+          "kind": "code"
+        },
+        {
+          "id": "tool._lib",
+          "group": "unplaced",
+          "label": "_lib",
+          "path": ".claude/tools/_lib.py",
+          "kind": "code"
+        },
+        {
+          "id": "human.maintainer",
+          "group": "unplaced",
+          "label": "maintainer",
+          "path": null,
+          "kind": "human"
+        }
+      ],
+      "edges": [
+        {
+          "from": "agent.anatomist",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "agent.anatomist",
+          "to": "folder.system-map",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 2
+        },
+        {
+          "from": "agent.anatomist",
+          "to": "folder.system-map",
+          "label": "writes",
+          "style": "solid",
+          "weight": 2
+        },
+        {
+          "from": "agent.anatomist",
+          "to": "tool.mapctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "agent.anatomist",
+          "to": "tool.obsctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "agent.anatomist",
+          "to": "tool.statectl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "agent.builder",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "agent.builder",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "agent.builder",
+          "to": "tool.checkctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "agent.retro-analyst",
+          "to": "folder.claude-iff",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "agent.retro-analyst",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "agent.retro-analyst",
+          "to": "protocol.evolution",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "agent.retro-analyst",
+          "to": "store.lessons",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "agent.retro-analyst",
+          "to": "store.project_log",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "agent.scout",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "agent.verifier",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "console.server",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "console.server",
+          "to": "tool.consolectl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "console.server",
+          "to": "tool.sysmon",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.handoff-guard",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 3
+        },
+        {
+          "from": "hook.handoff-guard",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.handoff-guard",
+          "to": "tool._lib",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.heartbeat",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.heartbeat",
+          "to": "tool._lib",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.obs-capture",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 2
+        },
+        {
+          "from": "hook.obs-capture",
+          "to": "folder.record",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.obs-capture",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.policy-gate",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 2
+        },
+        {
+          "from": "hook.policy-gate",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.policy-gate",
+          "to": "tool._lib",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.post-write-validate",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 3
+        },
+        {
+          "from": "hook.post-write-validate",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.post-write-validate",
+          "to": "tool._lib",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.post-write-validate",
+          "to": "tool.progress",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.ritual-ticket",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "hook.ritual-ticket",
+          "to": "folder.record",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.ritual-ticket",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.session-start",
+          "to": "console.server",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.session-start",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 3
+        },
+        {
+          "from": "hook.session-start",
+          "to": "folder.record",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "hook.session-start",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 3
+        },
+        {
+          "from": "hook.session-start",
+          "to": "tool._lib",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "hook.session-start",
+          "to": "tool.statectl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.adhd",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "skill.adopt",
+          "to": "agent.anatomist",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.adopt",
+          "to": "folder.config",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.adopt",
+          "to": "tool._lib",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.adopt",
+          "to": "tool.checkctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.adopt",
+          "to": "tool.consolectl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.adopt",
+          "to": "tool.mapctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.adopt",
+          "to": "tool.statectl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.plan-task",
+          "to": "tool.statectl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.project-memory",
+          "to": "agent.anatomist",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.project-memory",
+          "to": "agent.retro-analyst",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.project-memory",
+          "to": "store.lessons",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.project-memory",
+          "to": "store.project_log",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.project-memory",
+          "to": "tool.checkctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "skill.project-memory",
+          "to": "tool.statectl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool._lib",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 4
+        },
+        {
+          "from": "tool._lib",
+          "to": "folder.record",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool._lib",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 4
+        },
+        {
+          "from": "tool._lib",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 3
+        },
+        {
+          "from": "tool.checkctl",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 8
+        },
+        {
+          "from": "tool.checkctl",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 7
+        },
+        {
+          "from": "tool.checkctl",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 3
+        },
+        {
+          "from": "tool.checkctl",
+          "to": "tool.consolectl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.checkctl",
+          "to": "tool.mapctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.checkctl",
+          "to": "tool.obsctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.checkctl",
+          "to": "tool.statectl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.consolectl",
+          "to": "console.server",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.consolectl",
+          "to": "console.template",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.consolectl",
+          "to": "folder.claude-iff",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.consolectl",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 3
+        },
+        {
+          "from": "tool.consolectl",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 7
+        },
+        {
+          "from": "tool.consolectl",
+          "to": "folder.system-map",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.consolectl",
+          "to": "store.lessons",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.consolectl",
+          "to": "store.project_log",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.consolectl",
+          "to": "tool.progress",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.ctxmap",
+          "to": "store.lessons",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.ctxmap",
+          "to": "store.project_log",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.distctl",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 2
+        },
+        {
+          "from": "tool.distctl",
+          "to": "folder.system-map",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.distctl",
+          "to": "store.dist",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.distctl",
+          "to": "tool.checkctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.mapctl",
+          "to": "folder.system-map",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 2
+        },
+        {
+          "from": "tool.mapctl",
+          "to": "folder.system-map",
+          "label": "writes",
+          "style": "solid",
+          "weight": 3
+        },
+        {
+          "from": "tool.obsctl",
+          "to": "folder.claude-iff",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.obsctl",
+          "to": "folder.claude-iff",
+          "label": "writes",
+          "style": "solid",
+          "weight": 2
+        },
+        {
+          "from": "tool.obsctl",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 3
+        },
+        {
+          "from": "tool.obsctl",
+          "to": "folder.record",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.obsctl",
+          "to": "folder.record",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.obsctl",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.obsctl",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.progress",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 5
+        },
+        {
+          "from": "tool.progress",
+          "to": "tool._lib",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.progress",
+          "to": "tool.checkctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.progress",
+          "to": "tool.statectl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.statectl",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.statectl",
+          "to": "folder.state",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 5
+        },
+        {
+          "from": "tool.statectl",
+          "to": "folder.state",
+          "label": "writes",
+          "style": "solid",
+          "weight": 7
+        },
+        {
+          "from": "tool.statectl",
+          "to": "tool.checkctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.statectl",
+          "to": "tool.progress",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        }
+      ],
+      "stats": {
+        "nodes": 40,
+        "edges": 102,
+        "folded": 36
+      }
+    }
+  ]
+}

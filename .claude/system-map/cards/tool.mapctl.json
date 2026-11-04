@@ -12,14 +12,15 @@
   ],
   "writes": [
     "store.cards",
-    "store.map"
+    "store.map",
+    "store.architecture"
   ],
   "invokes": [],
   "flows": [],
   "glyphs": [],
   "auto": {
     "discovered": "2026-08-25",
-    "hash": "c89057f28ef652b3fc71cd44a868f64b7552a668acd8db7ee78dd5d8047b5307",
+    "hash": "7503889422e1276985f909a3f9bdc87c6214f8af3ceacd88859c767bc5b3eb49",
     "suggested_reads": [
       "store.map"
     ],

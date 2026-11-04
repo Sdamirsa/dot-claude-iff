@@ -22,6 +22,20 @@
   "read_allowlist": [
     ".claude/system-map/map.json",
     ".claude/state/session.json",
-    ".claude/state/needs-human.json"
-  ]
+    ".claude/state/needs-human.json",
+    ".claude/system-map/architecture.json"
+  ],
+  "architecture": {
+    "_comment": [
+      "The architecture diagram (mapctl architecture -> system-map/architecture.json and",
+      "docs/ARCHITECTURE.md). scopes: one diagram each; source cards builds from the system-map",
+      "cards, source code from graphctl.py when installed (skipped with a WARN otherwise).",
+      "max_nodes: past it, a group's least-connected boxes fold into one 'other' box."
+    ],
+    "scopes": [
+      {"id": "claude", "root": ".claude", "source": "cards"},
+      {"id": "tools", "root": ".claude/tools", "source": "code"}
+    ],
+    "max_nodes": 40
+  }
 }
