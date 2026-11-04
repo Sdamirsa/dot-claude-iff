@@ -600,6 +600,35 @@ class TestRouteStep(unittest.TestCase):
 
 # --------------------------------------------------------------------------- generator freshness
 
+class TestGeneratorTags(GateCase):
+    """POLISH judges every generator by its tool's verdict token: a tool with no tag made the
+    whole phase crash with a KeyError once (graphctl.py, wave 3). Parity is pinned here."""
+
+    def test_every_generator_tool_has_a_verdict_tag(self):
+        for name, spec in checkctl.GENERATORS.items():
+            with self.subTest(generator=name):
+                self.assertIn(spec["tool"], checkctl.GENERATOR_TAGS)
+
+    def test_a_tagless_tool_is_a_fail_not_a_crash(self):
+        from unittest import mock
+        spec = {"tool": "mapctl.py", "args": ["show"], "inputs": [], "output": ".claude/x"}
+        patches = (
+            mock.patch.dict(checkctl.GENERATOR_TAGS, {}, clear=True),
+            mock.patch.dict(checkctl.GENERATORS, {"x_build": spec}, clear=True),
+            mock.patch.object(checkctl, "phase_steps", return_value=["x_build"]),
+            mock.patch.object(checkctl, "generator_gated_off", return_value=False),
+            mock.patch.object(checkctl, "tool_path", return_value=Path(checkctl.__file__)),
+            mock.patch.object(checkctl, "run_tool", return_value=(0, "MAP_OK")),
+        )
+        for patch in patches:
+            patch.start()
+            self.addCleanup(patch.stop)
+        if True:
+            results = checkctl.run_polish({"run_id": "rid-tags", "step": None})
+        self.assertEqual([(r.name, r.status) for r in results], [("x_build", checkctl.FAIL)])
+        self.assertIn("GENERATOR_TAGS", results[0].message)
+
+
 class TestGeneratorFreshness(GateCase):
     """The ledger's output_hash is compared, so a derived file edited by hand after its
     generator ran is reported (WARN, never FAIL: CHECK informs, POLISH rebuilds)."""

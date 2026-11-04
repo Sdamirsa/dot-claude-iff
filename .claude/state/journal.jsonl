@@ -189,3 +189,4 @@
 {"ts": "2026-11-04T17:40:53Z", "action": "task", "id": "T18", "status": "done"}
 {"ts": "2026-11-04T17:40:54Z", "action": "task", "id": "T19", "status": "done"}
 {"ts": "2026-11-04T17:40:54Z", "action": "task", "id": "T20", "status": "done"}
+{"ts": "2026-11-04T17:40:55Z", "action": "pointer", "text": "Wave 3 merged and closed; verifier running on wave 3 (envelope verify-wave3-030b). Next: read verdict, fix anything it finds, then suggest /project-memory (ritual rewrites STATUS, seals the record)."}

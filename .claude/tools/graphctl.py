@@ -467,6 +467,8 @@ def _graphify_kind(raw: dict, label: str, path: str):
         return "file"
     if label.endswith("()"):
         return "method" if label.startswith(".") else "function"
+    if raw.get("_callable_class"):  # graphify marks a class callable too: the class flag wins
+        return "class"
     if raw.get("_callable"):
         return "function"
     if _fold(path).endswith(CLASS_LANGUAGES):

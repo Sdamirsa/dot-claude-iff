@@ -64,6 +64,11 @@ class Result:
 # name -> (argv builder, input paths, output path). Inputs may be files or directories.
 # `context_inputs` adds the guides, rules and imports ctxmap discovers: a folder guide can live
 # in any folder, so those inputs cannot be declared here, only found.
+# The verdict token each generator's tool prints (`<TAG>_OK` / `<TAG>_FAIL`). Every tool named
+# in GENERATORS needs a row: POLISH reads the verdict by it, and test_ritual pins the parity.
+GENERATOR_TAGS = {"mapctl.py": "MAP", "obsctl.py": "OBS", "consolectl.py": "CONSOLE",
+                  "distctl.py": "DIST", "graphctl.py": "GRAPH"}
+
 GENERATORS = {
     "map_scan": {
         "tool": "mapctl.py",
@@ -1521,8 +1526,11 @@ def run_polish(run: dict) -> list:
             results.append(Result(name, SKIP, f"{spec['tool']} not installed"))
             continue
         code, out = run_tool(spec["tool"], spec["args"])
-        tag = {"mapctl.py": "MAP", "obsctl.py": "OBS", "consolectl.py": "CONSOLE",
-               "distctl.py": "DIST"}[spec["tool"]]
+        tag = GENERATOR_TAGS.get(spec["tool"])
+        if tag is None:
+            results.append(Result(name, FAIL, f"{spec['tool']} has no verdict tag in "
+                                              f"checkctl.GENERATOR_TAGS (the generator cannot be judged)"))
+            continue
         status = verdict_of(out, tag)
         if status is None:
             results.append(Result(name, FAIL, f"{spec['tool']} printed no verdict token (exit {code})",

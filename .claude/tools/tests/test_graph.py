@@ -204,7 +204,7 @@ def fake_graphify(root: Path, schema_version=1) -> dict:
             {"id": "a_py", "label": "a.py", "file_type": "code", "source_file": "pkg/a.py",
              "source_location": "L1", "community": 0, "_origin": "ast"},
             {"id": "a_base", "label": "Base", "file_type": "code", "source_file": "pkg/a.py",
-             "source_location": "L7", "_callable_class": True},
+             "source_location": "L7", "_callable_class": True, "_callable": True},
             {"id": "a_run", "label": ".run()", "file_type": "code", "source_file": "pkg/a.py",
              "source_location": "L8", "_callable": True},
             {"id": "a_top", "label": "top()", "file_type": "code", "source_file": "pkg/a.py",
@@ -337,6 +337,18 @@ class TestCli(GraphCase):
         self.assertIn("GRAPH_OK", out)
         self.assertIn("source graphify", out)
         self.assertNotIn("uvx", out)
+
+    def test_graphify_classes_stay_classes(self):
+        """graphify 0.9.102 sets _callable on classes as well as _callable_class; the class
+        flag must win, or every class is typed as a function and inherits edges join functions
+        (found by the wave-3 verifier on this repo's real output)."""
+        self.write_graphify(fake_graphify(self.root))
+        self.assertEqual(self.cli("build")[0], 0)
+        graph = json.loads(graphctl.graph_path().read_text(encoding="utf-8"))
+        kinds = {n["label"]: n["kind"] for n in graph["nodes"]}
+        self.assertEqual(kinds["Base"], "class")
+        self.assertEqual(kinds.get("top", kinds.get("top()")), "function")
+        self.assertEqual([n["label"] for n in graph["nodes"] if n["kind"] == "class"], ["Base"])
 
     def test_update_renormalises_then_rewalks(self):
         self.write_graphify(fake_graphify(self.root))
