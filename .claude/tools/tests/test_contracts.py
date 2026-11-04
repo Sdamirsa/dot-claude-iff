@@ -780,5 +780,62 @@ class TestGuidesNameEveryCommand(unittest.TestCase):
                 self.assertIn("not a sandbox", text)
 
 
+class DenyLayerParityTests(unittest.TestCase):
+    """settings.json carries a `permissions.deny` layer under the gate (PR-5), holding ONLY what
+    the gate refuses to every identity (policy_gate.EVERY_IDENTITY_DENY, EVERY_IDENTITY_NO_EXEC,
+    the "every" rows of FORBIDDEN_SUBCOMMANDS) plus the write-denied record surface. Claude Code
+    applies deny rules to the main session and sub-agents alike and a PreToolUse hook cannot
+    override them, so anything a legitimate flow needs must never appear here; and the two
+    layers must never drift apart. Both are what this class pins."""
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("policy_gate_for_deny_parity",
+                                                      CLAUDE_DIR / "hooks" / "policy_gate.py")
+        cls.gate = importlib.util.module_from_spec(spec)
+        saved, sys.dont_write_bytecode = sys.dont_write_bytecode, True
+        try:
+            spec.loader.exec_module(cls.gate)
+        finally:
+            sys.dont_write_bytecode = saved
+        settings = json.loads((CLAUDE_DIR / "settings.json").read_text(encoding="utf-8"))
+        cls.deny = list((settings.get("permissions") or {}).get("deny") or [])
+
+    def test_every_universal_gate_deny_has_a_settings_rule(self):
+        for path in self.gate.EVERY_IDENTITY_DENY:
+            with self.subTest(path=path):
+                self.assertIn(f"Edit({path})", self.deny)
+        for script in self.gate.EVERY_IDENTITY_NO_EXEC:
+            with self.subTest(script=script):
+                self.assertTrue([r for r in self.deny if r.startswith("Bash(") and script in r],
+                                f"no Bash deny rule names {script}")
+        for tool, subs in self.gate.FORBIDDEN_SUBCOMMANDS.items():
+            for sub, who in subs.items():
+                rules = [r for r in self.deny if r.startswith("Bash(") and f"{tool}.py {sub}" in r]
+                with self.subTest(tool=tool, sub=sub):
+                    if who == "every":
+                        self.assertTrue(rules, f"no Bash deny rule for `{tool}.py {sub}`")
+                    else:  # the lead's own commands stay runnable by the lead
+                        self.assertEqual(rules, [])
+        self.assertIn("Edit(.claude-iff/**)", self.deny)
+
+    def test_the_deny_layer_never_locks_the_lead_out_of_its_protected_tree(self):
+        for rule in self.deny:
+            if not rule.startswith("Edit("):
+                continue
+            target = rule[len("Edit("):-1]
+            with self.subTest(rule=rule):
+                self.assertFalse(any(target.startswith(p) for p in self.gate.FALLBACK_PROTECTED
+                                     if p != ".claude-iff/"),
+                                 f"{rule} would deny the main session its own protected tree")
+
+    def test_rules_are_well_formed(self):
+        import re
+        for rule in self.deny:
+            with self.subTest(rule=rule):
+                self.assertRegex(rule, r"^(Edit|Bash)\([^()]+\)$")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
