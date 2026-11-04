@@ -11,12 +11,17 @@ touches the real network.
 
 from __future__ import annotations
 
+import io
 import json
+import os
+import re
 import sys
 import threading
 import unittest
+from contextlib import redirect_stdout
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _fixture import FixtureCase  # noqa: E402
@@ -192,6 +197,179 @@ class TestStatus(AnalyzeCase):
             for env, value in saved.items():
                 if value is not None:
                     os.environ[env] = value
+
+
+REMOTE_URL = "https://analyze.example.invalid/api/v1"
+
+
+class RemoteCase(AnalyzeCase):
+    """A remote endpoint faked by the base_url text alone: _http_post_json is replaced by a
+    recorder, so no test here can reach the network whatever the gate does."""
+
+    def setUp(self):
+        super().setUp()
+        self.posted = []
+
+        def fake_post(url, payload, api_key, timeout):
+            self.posted.append({"url": url, "payload": payload})
+            batch_len = payload["messages"][-1]["content"].count("\n[")
+            labels = [{"i": i, "labels": ["error"], "summary": f"event {i}"}
+                      for i in range(batch_len)]
+            return {"choices": [{"message": {"content": json.dumps(
+                {"labels": labels, "batch_summary": "ok"})}}]}
+
+        for patcher in (mock.patch.object(obsctl, "_http_post_json", fake_post),
+                        mock.patch.dict(os.environ, {"ANALYZE_API_KEY": "test-key-not-a-secret"})):
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def run_analyze(self, *argv):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = obsctl.main(["analyze", *argv])
+        return code, out.getvalue()
+
+
+class TestRemoteConsent(RemoteCase):
+    def test_remote_without_consent_sends_nothing_and_exits_1(self):
+        self.configure(base_url=REMOTE_URL, max_events_per_batch=10)
+        self.seed_events(3)
+        code, out = self.run_analyze()
+        self.assertEqual(code, 1, "a remote endpoint without consent is a gate: it fails closed")
+        self.assertEqual(self.posted, [], "nothing may be posted without consent")
+        self.assertEqual(self.server.requests, [])
+        for needle in ("3 raw event(s)", "analyze.example.invalid", "fake-model",
+                       "analyze.remote_consent", "redacted", "OBS_FAIL"):
+            self.assertIn(needle, out)
+        self.assertNotIn("uid-", out, "the consent line names counts and hosts, never content")
+        self.assertEqual(list((self.record / "analysis").glob("*-labels.json")), [])
+
+    def test_remote_with_consent_prints_the_line_then_sends(self):
+        self.configure(base_url=REMOTE_URL, max_events_per_batch=10, remote_consent=True)
+        self.seed_events(3)
+        code, out = self.run_analyze()
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.posted), 1)
+        self.assertTrue(self.posted[0]["url"].startswith(REMOTE_URL))
+        self.assertIn("analyze.remote_consent=true", out)
+        self.assertIn("3 raw event(s)", out)
+        self.assertIn("analyze.example.invalid", out)
+        self.assertLess(out.index("analyze.remote_consent"), out.index("chunk(s) ok"),
+                        "the consent line comes before the send")
+
+    def test_consent_must_be_a_real_boolean(self):
+        """A truthy string is not consent: only JSON true opens the gate."""
+        self.configure(base_url=REMOTE_URL, remote_consent="yes")
+        self.seed_events(1)
+        code, _ = self.run_analyze()
+        self.assertEqual(code, 1)
+        self.assertEqual(self.posted, [])
+
+    def test_local_endpoint_needs_no_consent(self):
+        self.configure(max_events_per_batch=10)
+        self.seed_events(2)
+        code, out = self.run_analyze()
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.posted), 1, "local endpoints are posted to")
+        self.assertTrue(self.posted[0]["url"].startswith(self.base_url))
+        self.assertNotIn("analyze.remote_consent", out)
+
+    def test_dry_run_reports_missing_consent_and_sends_nothing(self):
+        self.configure(base_url=REMOTE_URL)
+        self.seed_events(2)
+        code, out = self.run_analyze("--dry-run")
+        self.assertEqual(code, 0)
+        self.assertEqual(self.posted, [])
+        self.assertIn("Remote consent: MISSING", out)
+        self.assertIn("analyze.remote_consent=true", out)
+
+    def test_dry_run_reports_given_and_local_consent(self):
+        self.configure(base_url=REMOTE_URL, remote_consent=True)
+        self.seed_events(1)
+        _, out = self.run_analyze("--dry-run")
+        self.assertIn("Remote consent: given", out)
+        self.configure(base_url=self.base_url, remote_consent=False)
+        _, out = self.run_analyze("--dry-run")
+        self.assertIn("Remote consent: not required", out)
+        self.assertEqual(self.posted, [])
+        self.assertEqual(self.server.requests, [])
+
+
+class TestRedaction(RemoteCase):
+    def key(self):
+        # Built at runtime so no key-shaped literal sits in this file.
+        return "sk-" + "proj-" + "Q7" * 15
+
+    def test_local_batch_is_redacted_before_posting(self):
+        self.configure(max_events_per_batch=10)
+        self.spool_event(session="s1", hook_event_name="Stop", tool_output=f"key={self.key()} end")
+        self.assertEqual(obsctl.main(["analyze"]), 0)
+        self.assertTrue(self.posted[0]["url"].startswith(self.base_url))
+        body = json.dumps([p["payload"] for p in self.posted])
+        self.assertIn("[REDACTED:openai_key]", body)
+        self.assertNotIn(self.key(), body)
+
+    def test_remote_batch_is_redacted_before_posting(self):
+        self.configure(base_url=REMOTE_URL, remote_consent=True, max_events_per_batch=10)
+        token = "gh" + "p_" + "a1B2" * 10
+        self.spool_event(session="s1", hook_event_name="Stop", note=f"{self.key()} {token}")
+        code, _ = self.run_analyze()
+        self.assertEqual(code, 0)
+        body = json.dumps([p["payload"] for p in self.posted])
+        self.assertIn("[REDACTED:openai_key]", body)
+        self.assertIn("[REDACTED:github_token]", body)
+        self.assertNotIn(self.key(), body)
+        self.assertNotIn(token, body)
+
+    def test_redaction_runs_before_truncation(self):
+        """A key straddling the MAX_EVENT_CHARS cut must not leak its prefix: redacting the
+        already-truncated text would no longer match the shortened key."""
+        event = {"blob": "x" * (obsctl.MAX_EVENT_CHARS - 25) + " " + self.key() + " tail" * 20}
+        start = json.dumps(event).index(self.key())
+        self.assertTrue(start < obsctl.MAX_EVENT_CHARS < start + len(self.key()),
+                        "the fixture key must straddle the cut")
+        self.assertIsNone(re.search(
+            r"sk-proj-[A-Za-z0-9]{20,}", json.dumps(event)[:obsctl.MAX_EVENT_CHARS]),
+            "the cut prefix alone must be too short to match, or this test proves nothing")
+        line = obsctl._serialize_batch([event])
+        self.assertNotIn(self.key()[:14], line)
+        self.assertIn("[REDACTED:", line)
+
+    def test_redactor_uses_checkctl_patterns(self):
+        import checkctl
+        with mock.patch.object(checkctl, "SECRET_PATTERNS",
+                               (("probe_name", re.compile(r"PROBE\d+")),)):
+            self.assertEqual(obsctl._redact_secrets("a PROBE42 b"), "a [REDACTED:probe_name] b")
+        self.assertEqual(obsctl._redact_secrets("plain text, task-123 risk-456"),
+                         "plain text, task-123 risk-456")
+
+
+class TestConsentStatus(AnalyzeCase):
+    def test_status_carries_consent_booleans(self):
+        self.configure(base_url=REMOTE_URL)
+        status = obsctl.analyze_status()
+        self.assertIs(status["remote_consent"], False, "the knob defaults to false")
+        self.assertIs(status["consent_required"], True)
+        self.configure(base_url=REMOTE_URL, remote_consent=True)
+        self.assertIs(obsctl.analyze_status()["remote_consent"], True)
+        self.configure()
+        self.assertIs(obsctl.analyze_status()["consent_required"], False,
+                      "local endpoints never need consent")
+
+    def test_console_payload_shows_consent_unchanged(self):
+        import consolectl
+        self.configure(base_url=REMOTE_URL, remote_consent=True)
+        analysis = consolectl.payload()["analysis"]
+        self.assertIs(analysis["remote_consent"], True)
+        self.assertIs(analysis["consent_required"], True)
+
+    def test_shipped_knob_defaults_to_false(self):
+        config = Path(__file__).resolve().parents[2] / "config"
+        self.assertIs(_lib.read_json(config / "observe.json")["analyze"]["remote_consent"], False)
+        card = next(e for e in _lib.read_json(config / "registry.json")["entries"]
+                    if e.get("key") == "observe.analyze.remote_consent")
+        self.assertEqual((card["type"], card["default"], card["target"]["path"]),
+                         ("bool", False, "analyze.remote_consent"))
 
 
 class TestStoryMerge(AnalyzeCase):

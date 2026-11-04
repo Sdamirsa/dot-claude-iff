@@ -1,0 +1,64 @@
+{
+  "agent_id": "builder-T16",
+  "task_id": "T16",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "STATUS": "done",
+  "RESULT": "obsctl analyze now gates remote endpoints on a new knob analyze.remote_consent (bool, default false, observe.json + registry card): remote and false prints a consent line (event count, host, model, knob, secrets-redacted note), sends nothing and exits 1 with OBS_FAIL; remote and true prints the same line before sending; local endpoints never need it. Every serialized event passes through _redact_secrets (checkctl.SECRET_PATTERNS imported, matches become [REDACTED:<name>]) before truncation and before the request is built, local and remote. analyze_status() carries remote_consent and consent_required booleans (the console payload passes them through), and --dry-run reports the consent state while still sending nothing.",
+  "files_changed": [
+    ".claude/tools/obsctl.py",
+    ".claude/config/observe.json",
+    ".claude/config/registry.json",
+    ".claude/tools/tests/test_analyze.py",
+    ".claude/state/handshakes/T16.json"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_analyze -q",
+      "exit_code": 0,
+      "summary": "32 passed · 0 failed · 0 errored · 0 skipped / TESTS_OK"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_contracts -q",
+      "exit_code": 0,
+      "summary": "67 passed · 0 failed · 0 errored · 0 skipped / TESTS_OK"
+    },
+    {
+      "command": "python3 .claude/tools/checkctl.py probe",
+      "exit_code": 0,
+      "summary": "52 ok · 0 warn · 0 fail · 0 skipped / CHECK_OK"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "797 passed · 0 failed · 0 errored · 2 skipped / TESTS_OK"
+    }
+  ],
+  "EVIDENCE": [
+    "run_tests.py test_analyze -q -> 32 passed, TESTS_OK (13 new tests: TestRemoteConsent, TestRedaction, TestConsentStatus)",
+    "mutation check: with _redact_secrets made the identity and consent_required forced false, 9 of the new TestRedaction/TestRemoteConsent tests failed",
+    "mutation check: redacting after truncation instead of before makes test_redaction_runs_before_truncation fail",
+    "checkctl.check_config_registry() -> OK, no details (the new card is not dead and the knob is registered)",
+    "obsctl.py analyze --dry-run in the worktree -> '... secrets redacted. Remote consent: not required (local or no endpoint)', OBS_OK",
+    "run_tests.py -q -> 797 passed, 0 failed, 2 skipped, TESTS_OK"
+  ],
+  "DEVIATIONS": [
+    "consent_required is defined as 'the endpoint is remote' (bool(base_url) and not local), mirroring key_required, not as 'the gate would block'; the gate blocks when consent_required and not remote_consent. With no base_url it is false (nothing to consent to).",
+    "Only JSON true counts as consent (acfg.get('remote_consent') is True): a truthy string such as \"yes\" does not open the gate; pinned by test_consent_must_be_a_real_boolean.",
+    "The consent gate sits after the 'not configured' and 'no events' no-ops, so those still exit 0 and the line's event count is the real count to be sent.",
+    "The knob is documented in the observe.json analyze _comment, not in reference/secrets.md (the plan allowed either; secrets.md is not in T16's Owns list)."
+  ],
+  "UNCERTAINTIES": [
+    "Not run on Ubuntu (CI only); tests use no OS-specific paths and fake the remote by base_url text with _http_post_json patched.",
+    "The private_key pattern matches only the BEGIN header, so a PEM body in an event is still sent with only its header redacted: the redactor is exactly as strong as checkctl.SECRET_PATTERNS. GENERIC_QUOTED/GENERIC_BARE are not applied (the task names SECRET_PATTERNS only).",
+    "The existing local rule is a substring test ('localhost' or '127.0.0.1' anywhere in base_url), so a host like localhost.example.com counts as local and skips the consent gate; kept as the task specified."
+  ],
+  "QUESTIONS": [],
+  "needs_main": [],
+  "SUGGESTIONS": [
+    "console.py POST /live/analyze checks only status.configured; with a remote endpoint and remote_consent false it launches a subprocess that now exits 1 silently (no run-status written). It could return 409 when consent_required and not remote_consent, naming the knob (console.py is outside T16's Owns).",
+    "Tighten analyze_status's local rule to compare urlsplit(base_url).hostname against localhost/127.0.0.1/::1 instead of a substring match.",
+    "Consider adding GENERIC_QUOTED/GENERIC_BARE and a full PEM-block pattern to the send-time redactor."
+  ]
+}

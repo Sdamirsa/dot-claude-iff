@@ -350,6 +350,19 @@
       "default": 200
     },
     {
+      "key": "observe.analyze.remote_consent",
+      "title": "Analysis remote consent",
+      "description": "The human's consent for obsctl analyze to send record text to a non-local endpoint. False: a remote base_url makes analyze send nothing, print a consent line and exit 1. Local endpoints never need it. Every batch is redacted with checkctl.SECRET_PATTERNS first, local or remote.",
+      "layer": "OBSERVE",
+      "target": {
+        "kind": "config",
+        "file": "observe",
+        "path": "analyze.remote_consent"
+      },
+      "type": "bool",
+      "default": false
+    },
+    {
       "key": "model-prices.billing",
       "title": "Billing mode",
       "description": "api: per-token dollar cost applies and the price table prices it. subscription: usage is included in a plan, dollar cost reads 'in plan' and the empty-table warning goes quiet. Token counts are tracked either way.",
