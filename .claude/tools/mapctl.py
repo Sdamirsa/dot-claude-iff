@@ -19,6 +19,7 @@ card per guide, and lint never asks for one. `context` asks what loads for a fil
     mapctl.py scan       # discover components, create/refresh stub cards
     mapctl.py lint       # two-tier validation; exit 1 on any ERROR
     mapctl.py compile    # write system-map/map.json (write-gated)
+    mapctl.py architecture   # write system-map/architecture.json + docs/ARCHITECTURE.md
     mapctl.py show [--id ID]
     mapctl.py context [<path>] [--json] | --suggest   # folder context (ctxmap.py)
 """
@@ -26,6 +27,7 @@ card per guide, and lint never asks for one. `context` asks what loads for a fil
 import argparse
 import ast
 import json
+import os
 import re
 from pathlib import Path
 
@@ -77,6 +79,11 @@ KNOWN_STORES = [
      "glyphs": []},
     {"id": "store.map", "path": ".claude/system-map/map.json", "title": "System map",
      "description": "Compiled system map: nodes, edges, and lint results, rendered by the console MAP tab.",
+     "glyphs": ["derived"]},
+    {"id": "store.architecture", "path": ".claude/system-map/architecture.json",
+     "title": "Architecture spec",
+     "description": "The architecture diagram's spec, one scope per diagram (groups, boxes, arrows), "
+                     "written by mapctl architecture with docs/ARCHITECTURE.md rendered from it.",
      "glyphs": ["derived"]},
     {"id": "store.story", "path": ".claude/state/story-feed.json", "title": "Story feed",
      "description": "Dual-clock narrative feed: operations & errors, anatomy evolution, data evolution.",
@@ -805,6 +812,468 @@ def cmd_compile(_args) -> int:
     return 1 if errors else 0
 
 
+# --------------------------------------------------------------------------- architecture
+#
+# `architecture` writes system-map/architecture.json (one spec, several scopes) and renders
+# docs/ARCHITECTURE.md from it: one Mermaid flowchart per scope, groups as subgraphs, every box
+# a click link to its file. The `claude` scope is built from the cards, deterministically:
+# groups are the layers; data cards under a FOLD_FOLDERS folder (and the external record root)
+# collapse into one folder box each; test files never become boxes; relations aggregate
+# between the boxes (weight = count, self-edges dropped); past `architecture.max_nodes` the
+# lowest-degree boxes of a group fold into that group's "other" box. Scopes with
+# `source: code` come from graphctl.architecture_scope(root) when that tool is installed. Every
+# path is checked against the tree: a box pointing nowhere fails the build (gates fail closed),
+# except a lazy card's not-yet-written store, which `lint` exempts too (WARN, no link).
+#
+# Mermaid ids: every character outside [A-Za-z0-9_] becomes "_" (tool.statectl ->
+# tool_statectl, agent.retro-analyst -> agent_retro_analyst, tool._lib -> tool__lib); a
+# collision gets a numeric suffix in id order; groups render as g_<group id>.
+
+ARCH_DEFAULT_SCOPES = [{"id": "claude", "root": ".claude", "source": "cards"},
+                       {"id": "tools", "root": ".claude/tools", "source": "code"}]
+ARCH_DEFAULT_MAX_NODES = 40
+ARCH_SCOPE_TITLES = {"claude": ".claude system"}
+FOLD_FOLDERS = (".claude/state", ".claude/config", ".claude/system-map", ".claude-iff")
+RECORD_FOLDER = "folder.record"
+_REL_STYLE = {"reads": "dashed", "writes": "solid", "invokes": "solid"}
+_ARCH_KIND = {"agent": "agent", "code": "code", "data": "data", "human": "human",
+              "folder": "folder", "file": "file"}
+_MERMAID_SHAPES = {"agent": ('(["', '"])'), "data": ('[("', '")]'), "human": ('(("', '"))'),
+                   "folder": ('[["', '"]]')}
+
+
+def architecture_json_path() -> Path:
+    return _lib.map_dir() / "architecture.json"
+
+
+def architecture_md_path() -> Path:
+    return _lib.project_root() / "docs" / "ARCHITECTURE.md"
+
+
+def is_test_path(path) -> bool:
+    """A test file never becomes a box: anything under a tests/ or test/ folder, or a file
+    named test_*.py / *_test.py."""
+    if not path:
+        return False
+    parts = str(path).replace("\\", "/").split("/")
+    name = parts[-1]
+    return (any(p in ("tests", "test") for p in parts[:-1])
+            or bool(re.match(r"^test_.*\.py$", name)) or bool(re.match(r"^.*_test\.py$", name)))
+
+
+def fold_folder_of(card: dict, folders=FOLD_FOLDERS):
+    """The folder box a card folds into, or None: data cards only, the record root (a store
+    outside the repo) into its own box, everything else under the first matching folder."""
+    if card.get("kind") != "data":
+        return None
+    if (card.get("auto") or {}).get("external_to_repo"):
+        return RECORD_FOLDER
+    path = str(card.get("path") or "").replace("\\", "/")
+    for folder in folders:
+        if path == folder or path.startswith(folder + "/"):
+            return "folder." + folder.rsplit("/", 1)[-1].lstrip(".")
+    return None
+
+
+def arch_group_id(layer) -> str:
+    return str(layer or "UNPLACED").lower()
+
+
+def arch_label(card_id: str) -> str:
+    """Short box label: the id after its kind prefix (tool.statectl -> statectl); a skill
+    shows as the command a user types."""
+    prefix, _, rest = card_id.partition(".")
+    rest = rest or card_id
+    return f"/{rest}" if prefix == "skill" else rest
+
+
+def fold_cards(cards_by_id: dict, layer_order: dict, folders=FOLD_FOLDERS):
+    """Cards -> (boxes by id, card id -> box id). Folder boxes take the layer most of their
+    members sit in (ties: the earlier layer), so a folded store keeps a home group."""
+    boxes, member_of, folded = {}, {}, {}
+    for cid in sorted(cards_by_id):
+        card = cards_by_id[cid]
+        if is_test_path(card.get("path")):
+            continue
+        fid = fold_folder_of(card, folders)
+        if fid:
+            folded.setdefault(fid, []).append(card)
+            member_of[cid] = fid
+            continue
+        boxes[cid] = {"id": cid, "group": arch_group_id(card.get("layer")), "label": arch_label(cid),
+                      "path": card.get("path"), "kind": _ARCH_KIND.get(card.get("kind"), "data"),
+                      "_lazy": bool((card.get("auto") or {}).get("lazy"))}
+        member_of[cid] = cid
+    for fid, members in sorted(folded.items()):
+        counts: dict = {}
+        for m in members:
+            counts[m.get("layer") or "UNPLACED"] = counts.get(m.get("layer") or "UNPLACED", 0) + 1
+        layer = sorted(counts, key=lambda k: (-counts[k], layer_order.get(k, _UNPLACED_ORDER), k))[0]
+        if fid == RECORD_FOLDER:
+            label, path = "record root", None
+        else:
+            path = next(f for f in folders if fid == "folder." + f.rsplit("/", 1)[-1].lstrip("."))
+            label = path + "/"
+        boxes[fid] = {"id": fid, "group": arch_group_id(layer), "label": label, "path": path,
+                      "kind": "folder", "members": sorted(m["id"] for m in members),
+                      "_lazy": all((m.get("auto") or {}).get("lazy") for m in members)}
+    return boxes, member_of
+
+
+def card_relations(cards_by_id: dict) -> list:
+    """Every card relation as (from, to, type), dangling targets dropped (lint names those)."""
+    out = []
+    for cid in sorted(cards_by_id):
+        for rel_type in ("reads", "writes", "invokes"):
+            for target in cards_by_id[cid].get(rel_type) or []:
+                if target in cards_by_id:
+                    out.append((cid, target, rel_type))
+    return out
+
+
+def aggregate_edges(relations, box_of: dict) -> list:
+    """Relations (from, to, label[, weight]) mapped onto boxes and summed per (from, to, label);
+    a relation whose ends land in one box, or outside every box, is dropped."""
+    weights: dict = {}
+    for rel in relations:
+        src, dst, label = rel[0], rel[1], rel[2]
+        weight = rel[3] if len(rel) > 3 else 1
+        a, b = box_of.get(src), box_of.get(dst)
+        if a is None or b is None or a == b:
+            continue
+        weights[(a, b, label)] = weights.get((a, b, label), 0) + weight
+    return [{"from": a, "to": b, "label": label, "style": _REL_STYLE.get(label, "solid"),
+             "weight": w} for (a, b, label), w in sorted(weights.items())]
+
+
+def cap_boxes(boxes: dict, edges: list, max_nodes: int):
+    """Fold the lowest-degree boxes (folder boxes excepted) into one "other" box per group until
+    at most max_nodes remain. Returns (boxes, remap: old box id -> new box id). An "other" box
+    left with one member is undone: it would cost a box and hide one."""
+    degree = {bid: 0 for bid in boxes}
+    for e in edges:
+        degree[e["from"]] = degree.get(e["from"], 0) + 1
+        degree[e["to"]] = degree.get(e["to"], 0) + 1
+    remap = {bid: bid for bid in boxes}
+    others: dict = {}
+    count = len(boxes)
+    candidates = sorted((bid for bid, b in boxes.items() if b["kind"] != "folder"),
+                        key=lambda bid: (degree[bid], bid))
+    for bid in candidates:
+        if count <= max_nodes:
+            break
+        group = boxes[bid]["group"]
+        if group not in others:
+            others[group] = []
+            count += 1
+        others[group].append(bid)
+        count -= 1
+    out = {bid: dict(b) for bid, b in boxes.items()}
+    for group, members in sorted(others.items()):
+        if len(members) < 2:
+            continue
+        oid = f"other.{group}"
+        paths = [boxes[m]["path"] for m in members if boxes[m].get("path")]
+        try:
+            common = os.path.commonpath(paths).replace("\\", "/") if paths else None
+        except ValueError:
+            common = None
+        out[oid] = {"id": oid, "group": group, "label": f"other ({len(members)})",
+                    "path": common or None, "kind": "folder", "members": sorted(members),
+                    "_lazy": False}
+        for m in members:
+            del out[m]
+            remap[m] = oid
+    return out, remap
+
+
+def arch_max_nodes(cfg) -> int:
+    value = (cfg.get("architecture") or {}).get("max_nodes") if isinstance(cfg, dict) else None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        return ARCH_DEFAULT_MAX_NODES
+    return value
+
+
+def arch_scopes(cfg) -> list:
+    value = (cfg.get("architecture") or {}).get("scopes") if isinstance(cfg, dict) else None
+    if value is None:
+        return [dict(s) for s in ARCH_DEFAULT_SCOPES]
+    if not isinstance(value, list) or not all(isinstance(s, dict) and s.get("id") for s in value):
+        raise ValueError("console.json architecture.scopes must be a list of {id, root, source}")
+    return value
+
+
+def build_cards_scope(scope_cfg: dict, cards_by_id: dict, layers_cfg, max_nodes: int) -> dict:
+    """The cards-sourced scope (`claude`), in the architecture.json shape."""
+    order = _layer_order(layers_cfg)
+    boxes, member_of = fold_cards(cards_by_id, order)
+    relations = card_relations(cards_by_id)
+    edges = aggregate_edges(relations, member_of)
+    group_order = {arch_group_id(k): v for k, v in order.items()}
+    boxes, remap = cap_boxes(boxes, edges, max_nodes)
+    box_of = {cid: remap.get(bid, bid) for cid, bid in member_of.items()}
+    edges = aggregate_edges(relations, box_of)
+
+    meta = {}
+    if isinstance(layers_cfg, dict):
+        for s in list(layers_cfg.get("spines") or []) + list(layers_cfg.get("flows") or []):
+            if isinstance(s, dict) and s.get("id"):
+                meta[arch_group_id(s["id"])] = s
+        if isinstance(layers_cfg.get("unplaced"), dict):
+            meta["unplaced"] = layers_cfg["unplaced"]
+
+    def g_order(gid):
+        return _UNPLACED_ORDER if gid == "unplaced" else group_order.get(gid, _UNPLACED_ORDER - 1)
+
+    used = sorted({b["group"] for b in boxes.values()}, key=lambda g: (g_order(g), g))
+    groups = [{"id": g, "title": (meta.get(g) or {}).get("title") or g.upper(),
+               "blurb": (meta.get(g) or {}).get("blurb") or ""} for g in used]
+    rank = {g: i for i, g in enumerate(used)}
+    kind_rank = {"agent": 0, "code": 1, "file": 1, "data": 2, "folder": 3, "human": 4}
+    nodes = sorted(boxes.values(), key=lambda b: (rank[b["group"]], kind_rank.get(b["kind"], 9), b["id"]))
+    folded = sum(len(b.get("members") or []) for b in nodes)
+    return {"id": scope_cfg["id"], "title": scope_cfg.get("title") or ARCH_SCOPE_TITLES.get(
+                scope_cfg["id"], scope_cfg.get("root") or scope_cfg["id"]),
+            "root": scope_cfg.get("root") or ".claude", "source": "cards",
+            "groups": groups, "nodes": nodes, "edges": edges,
+            "stats": {"nodes": len(nodes), "edges": len(edges), "folded": folded}}
+
+
+def build_code_scope(scope_cfg: dict, warnings: list):
+    """A `source: code` scope from graphctl (tier 2), or None with a WARN when the tool is not
+    installed, has no graph yet, or breaks: an optional view never fails the build."""
+    try:
+        import graphctl
+    except ImportError:
+        warnings.append(f"scope '{scope_cfg['id']}' skipped: graphctl.py is not installed")
+        return None
+    try:
+        scope = graphctl.architecture_scope(scope_cfg.get("root") or ".")
+    except Exception as exc:  # telemetry-grade input: report it, keep the cards scope
+        warnings.append(f"scope '{scope_cfg['id']}' skipped: graphctl.architecture_scope raised "
+                        f"{type(exc).__name__}: {exc}")
+        return None
+    if not isinstance(scope, dict) or not isinstance(scope.get("nodes"), list):
+        warnings.append(f"scope '{scope_cfg['id']}' skipped: graphctl returned no scope")
+        return None
+    nodes = [dict(n) for n in scope["nodes"] if isinstance(n, dict) and n.get("id")]
+    ids = {n["id"] for n in nodes}
+    edges = [dict(e) for e in scope.get("edges") or []
+             if isinstance(e, dict) and e.get("from") in ids and e.get("to") in ids
+             and e.get("from") != e.get("to")]
+    for e in edges:
+        e.setdefault("label", "imports")
+        e.setdefault("style", "solid")
+        e.setdefault("weight", 1)
+    groups = [dict(g) for g in scope.get("groups") or [] if isinstance(g, dict) and g.get("id")]
+    known = {g["id"] for g in groups}
+    for n in nodes:
+        n.setdefault("group", "code")
+        n.setdefault("label", n["id"])
+        n.setdefault("kind", "file")
+        if n["group"] not in known:
+            known.add(n["group"])
+            groups.append({"id": n["group"], "title": str(n["group"]).upper(), "blurb": ""})
+    stats = dict(scope.get("stats") or {})
+    stats.update({"nodes": len(nodes), "edges": len(edges)})
+    stats.setdefault("folded", 0)
+    return {"id": scope_cfg["id"], "title": scope.get("title") or scope_cfg.get("title")
+            or ARCH_SCOPE_TITLES.get(scope_cfg["id"], scope_cfg.get("root") or scope_cfg["id"]),
+            "root": scope_cfg.get("root") or ".", "source": "code",
+            "groups": groups, "nodes": nodes, "edges": edges, "stats": stats}
+
+
+def validate_scope_paths(scope: dict, root: Path, warnings: list) -> list:
+    """Every box path against the real tree. A missing path is an error, except for a lazy
+    card's store not written yet (lint's own exemption): that box loses its path, with a WARN."""
+    errors = []
+    for node in scope["nodes"]:
+        lazy = node.pop("_lazy", False)
+        path = node.get("path")
+        if path is None:
+            continue
+        posix = Path(str(path).replace("\\", "/")).as_posix()
+        node["path"] = posix
+        if (Path(posix) if Path(posix).is_absolute() else root / posix).exists():
+            continue
+        if lazy:
+            warnings.append(f"{scope['id']}: {node['id']} has no {posix} yet (lazy store): no link")
+            node["path"] = None
+        else:
+            errors.append(f"{scope['id']}: {node['id']} path does not exist: {posix}")
+    return errors
+
+
+def build_architecture(warnings: list, errors: list) -> dict:
+    """The whole spec, in memory; `errors` non-empty means the caller must not write it."""
+    cards_by_id, malformed, dup = load_all_cards()
+    errors.extend(malformed + dup)
+    layers_cfg = _lib.read_json(_lib.map_dir() / "layers.json", None)
+    cfg = _lib.load_config("console")
+    root = _lib.project_root()
+    try:
+        scopes_cfg = arch_scopes(cfg)
+    except ValueError as exc:
+        errors.append(str(exc))
+        scopes_cfg = []
+    max_nodes = arch_max_nodes(cfg)
+    scopes = []
+    for scope_cfg in scopes_cfg:
+        source = scope_cfg.get("source", "cards")
+        if source == "cards":
+            scope = build_cards_scope(scope_cfg, cards_by_id, layers_cfg, max_nodes)
+        elif source == "code":
+            scope = build_code_scope(scope_cfg, warnings)
+        else:
+            errors.append(f"scope '{scope_cfg.get('id')}': unknown source {source!r} (cards|code)")
+            continue
+        if scope is None:
+            continue
+        errors.extend(validate_scope_paths(scope, root, warnings))
+        scopes.append(scope)
+    return {"v": 1, "generated_at": _lib.utc_now(), "project": _lib.project_name(), "scopes": scopes}
+
+
+def parse_github_remote(url: str):
+    """'<owner>/<repo>' for a GitHub remote (https, ssh or scp form), else None."""
+    url = (url or "").strip()
+    m = re.match(r"^(?:[a-z+]+://)?(?:[^@/]+@)?github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/?$", url,
+                 re.IGNORECASE)
+    return f"{m.group(1)}/{m.group(2)}" if m else None
+
+
+def link_base(root: Path | None = None):
+    """'https://github.com/<owner>/<repo>/blob/<branch>/' when origin is on GitHub, else None
+    (relative links). Never raises: _lib.git_output returns '' when git is missing."""
+    repo = parse_github_remote(_lib.git_output(["remote", "get-url", "origin"], root))
+    if not repo:
+        return None
+    branch = _lib.git_output(["rev-parse", "--abbrev-ref", "HEAD"], root) or "HEAD"
+    return f"https://github.com/{repo}/blob/{branch}/"
+
+
+def mermaid_ids(node_ids) -> dict:
+    out, used = {}, set()
+    for nid in sorted(node_ids):
+        base = re.sub(r"[^A-Za-z0-9_]", "_", str(nid))
+        if not base or not base[0].isalpha():
+            base = "n_" + base
+        safe, i = base, 2
+        while safe in used:
+            safe, i = f"{base}_{i}", i + 1
+        used.add(safe)
+        out[nid] = safe
+    return out
+
+
+def _mermaid_text(text) -> str:
+    return str(text).replace('"', "#quot;").replace("\n", " ")
+
+
+def node_url(path: str, base) -> str:
+    from urllib.parse import quote
+    quoted = quote(path, safe="/-_.~")
+    return base + quoted if base else "../" + quoted
+
+
+def render_mermaid(scope: dict, base) -> str:
+    ids = mermaid_ids(n["id"] for n in scope["nodes"])
+    lines = ["flowchart LR"]
+    for group in scope["groups"]:
+        members = [n for n in scope["nodes"] if n.get("group") == group["id"]]
+        if not members:
+            continue
+        gid = "g_" + re.sub(r"[^A-Za-z0-9_]", "_", str(group["id"]))
+        lines.append(f'  subgraph {gid}["{_mermaid_text(group.get("title") or group["id"])}"]')
+        for n in members:
+            left, right = _MERMAID_SHAPES.get(n.get("kind"), ('["', '"]'))
+            lines.append(f"    {ids[n['id']]}{left}{_mermaid_text(n.get('label') or n['id'])}{right}")
+        lines.append("  end")
+    for e in scope["edges"]:
+        arrow = "-.->" if e.get("style") == "dashed" else "-->"
+        label = e.get("label") or ""
+        if (e.get("weight") or 1) > 1:
+            label = f"{label} x{e['weight']}"
+        lines.append(f"  {ids[e['from']]} {arrow}|{_mermaid_text(label)}| {ids[e['to']]}")
+    for n in scope["nodes"]:
+        if n.get("path"):
+            lines.append(f'  click {ids[n["id"]]} "{node_url(n["path"], base)}"')
+    return "\n".join(lines)
+
+
+def render_architecture_md(spec: dict, base) -> str:
+    out = [
+        "# Architecture",
+        "",
+        "<!-- Derived file: written by `python3 .claude/tools/mapctl.py architecture` from",
+        "     .claude/system-map/architecture.json (the generator architecture_build, run by",
+        "     /project-memory). Hand edits are lost on the next build: change the cards instead. -->",
+        "",
+        "One diagram per scope. Boxes are components, grouped by layer: a rectangle is code, a",
+        "stadium an agent, a cylinder a data store, a circle the human, a double-edged box a folder",
+        "(stores folded together, or a group's least-connected components). Solid arrows write or",
+        "invoke, dashed arrows read; `xN` is how many card relations an arrow stands for. Click a",
+        "box to open its file.",
+    ]
+    for scope in spec["scopes"]:
+        out += ["", f"## {scope['title']} (`{scope['id']}`)", "",
+                f"Root `{scope['root']}`, built from the "
+                + ("system-map cards." if scope["source"] == "cards" else "code graph (graphctl)."),
+                "", "```mermaid", render_mermaid(scope, base), "```"]
+        groups = [g for g in scope["groups"] if g.get("blurb")]
+        if groups:
+            out += [""] + [f"- **{g['title']}**: {g['blurb']}" for g in groups]
+        folded = [n for n in scope["nodes"] if n.get("members")]
+        if folded:
+            out += ["", "Folded boxes:", ""]
+            out += [f"- `{n['label']}`: " + ", ".join(f"`{m}`" for m in n["members"]) for n in folded]
+    return "\n".join(out) + "\n"
+
+
+def cmd_architecture(_args) -> int:
+    warnings, errors = [], []
+    spec = build_architecture(warnings, errors)
+    if errors:
+        print(f"MAP ARCHITECTURE: {len(errors)} error(s); nothing written")
+        for e in errors:
+            print(f"  ERROR  {e}")
+        for w in warnings:
+            print(f"  WARN   {w}")
+        _lib.print_verdict("MAP", False)
+        return 1
+
+    out_path = architecture_json_path()
+    existing = _lib.read_json(out_path, None)
+    wrote_json = True
+    if isinstance(existing, dict):
+        old = {k: v for k, v in existing.items() if k != "generated_at"}
+        new = {k: v for k, v in spec.items() if k != "generated_at"}
+        wrote_json = json.dumps(old, sort_keys=True) != json.dumps(new, sort_keys=True)
+    if wrote_json:
+        _lib.atomic_write_json(out_path, spec, durable=False)
+
+    md = render_architecture_md(spec, link_base())
+    md_path = architecture_md_path()
+    try:
+        old_md = md_path.read_text(encoding="utf-8")
+    except OSError:
+        old_md = None
+    wrote_md = old_md != md
+    if wrote_md:
+        _lib.atomic_write_text(md_path, md, durable=False)
+
+    for scope in spec["scopes"]:
+        st = scope["stats"]
+        print(f"MAP ARCHITECTURE: scope {scope['id']}: {st['nodes']} boxes, {st['edges']} arrows, "
+              f"{st.get('folded', 0)} folded")
+    print(f"  {_lib.rel(out_path)}" + ("" if wrote_json else " (unchanged, not rewritten)"))
+    print(f"  {_lib.rel(md_path)}" + ("" if wrote_md else " (unchanged, not rewritten)"))
+    for w in warnings:
+        print(f"  WARN   {w}")
+    _lib.print_verdict("MAP", True, warn=bool(warnings))
+    return 0
+
+
 # --------------------------------------------------------------------------- show
 
 def cmd_show(args) -> int:
@@ -873,11 +1342,13 @@ def cmd_context(args) -> int:
 # --------------------------------------------------------------------------- cli
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="mapctl.py", description="The system map: scan / lint / compile / show / context.")
+    p = argparse.ArgumentParser(prog="mapctl.py", description="The system map: scan / lint / compile / architecture / show / context.")
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("scan", help="auto-discover components and create/refresh stub cards")
     sub.add_parser("lint", help="two-tier validation of the card set (ERROR fails, WARN informs)")
     sub.add_parser("compile", help="write .claude/system-map/map.json (write-gated)")
+    sub.add_parser("architecture", help="write system-map/architecture.json and docs/ARCHITECTURE.md "
+                                        "(Mermaid, one diagram per scope; write-gated)")
     sp = sub.add_parser("show", help="human-readable summary of the map or one card")
     sp.add_argument("--id", default=None)
     cp = sub.add_parser("context", help="guides and rules that load for a path (none: list all)")
@@ -889,7 +1360,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 COMMANDS = {"scan": cmd_scan, "lint": cmd_lint, "compile": cmd_compile, "show": cmd_show,
-            "context": cmd_context}
+            "context": cmd_context, "architecture": cmd_architecture}
 
 
 def main(argv: list) -> int:

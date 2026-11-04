@@ -80,6 +80,14 @@ GENERATORS = {
         "context_inputs": True,
         "output": ".claude/system-map/map.json",
     },
+    # The diagram spec; it also renders docs/ARCHITECTURE.md (policy.json derived_files).
+    "architecture_build": {
+        "tool": "mapctl.py",
+        "args": ["architecture"],
+        "inputs": [".claude/system-map/cards", ".claude/system-map/layers.json",
+                   ".claude/config/console.json"],
+        "output": ".claude/system-map/architecture.json",
+    },
     "story_build": {
         "tool": "obsctl.py",
         "args": ["story"],
