@@ -80,6 +80,14 @@ GENERATORS = {
         "context_inputs": True,
         "output": ".claude/system-map/map.json",
     },
+    # The code graph: graphify's output under the record root (the human runs the extraction)
+    # or the stdlib walker; gitignored. Runs before architecture_build, which collapses it.
+    "code_graph_build": {
+        "tool": "graphctl.py",
+        "args": ["build"],
+        "inputs": [".claude/tools", ".claude/hooks", ".claude/config/console.json"],
+        "output": ".claude/system-map/code-graph.json",
+    },
     # The diagram spec; it also renders docs/ARCHITECTURE.md (policy.json derived_files).
     "architecture_build": {
         "tool": "mapctl.py",

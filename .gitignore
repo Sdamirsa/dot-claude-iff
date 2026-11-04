@@ -40,6 +40,9 @@ settings.local.json
 .claude/state/HANDOFF.md
 .claude/state/needs-human.json
 
+# The code graph (graphctl build): derived, machine-local, rebuilt by the ritual
+.claude/system-map/code-graph.json
+
 # Agent worktrees (build-time scratch copies of the repo; a Cview task's worktree lives here too)
 .claude/worktrees/
 
@@ -50,6 +53,4 @@ settings.local.json
 __pycache__/
 *.pyc
 # <<< dot-claude-iff managed block
-# The code graph (graphctl.py build): derived, machine-local, never committed
-.claude/system-map/code-graph.json
 .vscode/*

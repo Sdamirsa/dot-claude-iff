@@ -26,7 +26,6 @@ flowchart LR
   end
   subgraph g_govern["GOVERN"]
     agent_builder(["builder"])
-    agent_scout(["scout"])
     agent_verifier(["verifier"])
     hook_handoff_guard["handoff-guard"]
     hook_policy_gate["policy-gate"]
@@ -35,7 +34,7 @@ flowchart LR
     protocol_evolution[("evolution")]
     folder_config[[".claude/config/"]]
     folder_state[[".claude/state/"]]
-    other_govern[["other (6)"]]
+    other_govern[["other (7)"]]
   end
   subgraph g_observe["OBSERVE"]
     hook_heartbeat["heartbeat"]
@@ -48,6 +47,7 @@ flowchart LR
     console_server["server"]
     tool_consolectl["consolectl"]
     tool_ctxmap["ctxmap"]
+    tool_graphctl["graphctl"]
     tool_mapctl["mapctl"]
     tool_progress["progress"]
     tool_sysmon["sysmon"]
@@ -82,7 +82,6 @@ flowchart LR
   agent_retro_analyst -.->|reads| protocol_evolution
   agent_retro_analyst -.->|reads| store_lessons
   agent_retro_analyst -.->|reads| store_project_log
-  agent_scout -->|writes| folder_state
   agent_verifier -->|writes| folder_state
   console_server -.->|reads| folder_config
   console_server -->|invokes| tool_consolectl
@@ -111,6 +110,7 @@ flowchart LR
   hook_session_start -.->|reads x3| folder_state
   hook_session_start -->|invokes| tool__lib
   hook_session_start -->|invokes| tool_statectl
+  other_govern -->|writes| folder_state
   skill_adhd -.->|reads| folder_config
   skill_adopt -->|invokes| agent_anatomist
   skill_adopt -->|writes| folder_config
@@ -152,6 +152,10 @@ flowchart LR
   tool_distctl -.->|reads| folder_system_map
   tool_distctl -->|writes| store_dist
   tool_distctl -->|invokes| tool_checkctl
+  tool_graphctl -.->|reads| folder_record
+  tool_graphctl -->|writes| folder_system_map
+  tool_graphctl -->|invokes| tool__lib
+  tool_graphctl -->|invokes| tool_ctxmap
   tool_mapctl -.->|reads x2| folder_system_map
   tool_mapctl -->|writes x3| folder_system_map
   tool_obsctl -.->|reads| folder_claude_iff
@@ -177,7 +181,6 @@ flowchart LR
   click store_lessons "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/LESSONS.jsonl"
   click store_project_log "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/Project-log.jsonl"
   click agent_builder "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/agents/builder.md"
-  click agent_scout "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/agents/scout.md"
   click agent_verifier "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/agents/verifier.md"
   click hook_handoff_guard "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/hooks/handoff-guard.sh"
   click hook_policy_gate "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/hooks/policy-gate.sh"
@@ -194,6 +197,7 @@ flowchart LR
   click console_server "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/console/console.py"
   click tool_consolectl "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/consolectl.py"
   click tool_ctxmap "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/ctxmap.py"
+  click tool_graphctl "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/graphctl.py"
   click tool_mapctl "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/mapctl.py"
   click tool_progress "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/progress.py"
   click tool_sysmon "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/sysmon.py"
@@ -221,7 +225,59 @@ Folded boxes:
 
 - `.claude/config/`: `config.brainstorm`, `config.console`, `config.memory`, `config.model-prices`, `config.observe`, `config.orchestration`, `config.phases`, `config.policy`, `config.publish`, `config.registry`
 - `.claude/state/`: `store.generators`, `store.handoff`, `store.handshakes`, `store.heartbeat`, `store.journal`, `store.machine`, `store.memory_run`, `store.needs_human`, `store.orchestration`, `store.proposals`, `store.ritual_ticket`, `store.session`, `store.story`
-- `other (6)`: `protocol.handshake`, `protocol.honesty`, `protocol.human-gates`, `protocol.orchestration`, `reference.public-private`, `reference.secrets`
+- `other (7)`: `agent.scout`, `protocol.handshake`, `protocol.honesty`, `protocol.human-gates`, `protocol.orchestration`, `reference.public-private`, `reference.secrets`
 - `.claude-iff/`: `store.anchor`, `store.rollups`
 - `record root`: `store.record`
-- `.claude/system-map/`: `map.layers`, `store.architecture`, `store.cards`, `store.map`
+- `.claude/system-map/`: `map.layers`, `store.architecture`, `store.cards`, `store.code_graph`, `store.map`
+
+## .claude/tools (`tools`)
+
+Root `.claude/tools`, built from the code graph (graphctl).
+
+```mermaid
+flowchart LR
+  subgraph g_dir_root[".claude/tools"]
+    file_lib_py["_lib.py"]
+    file_checkctl_py["checkctl.py"]
+    file_consolectl_py["consolectl.py"]
+    file_ctxmap_py["ctxmap.py"]
+    file_distctl_py["distctl.py"]
+    file_mapctl_py["mapctl.py"]
+    file_obsctl_py["obsctl.py"]
+    file_progress_py["progress.py"]
+    file_statectl_py["statectl.py"]
+    file_sysmon_py["sysmon.py"]
+  end
+  file_checkctl_py -.->|calls x106| file_lib_py
+  file_checkctl_py -->|imports| file_lib_py
+  file_checkctl_py -.->|calls| file_mapctl_py
+  file_checkctl_py -->|imports| file_mapctl_py
+  file_consolectl_py -.->|calls x53| file_lib_py
+  file_consolectl_py -->|imports| file_lib_py
+  file_ctxmap_py -.->|calls x5| file_lib_py
+  file_ctxmap_py -->|imports| file_lib_py
+  file_distctl_py -.->|calls x19| file_lib_py
+  file_distctl_py -->|imports| file_lib_py
+  file_mapctl_py -.->|calls x5| file_ctxmap_py
+  file_mapctl_py -->|imports| file_ctxmap_py
+  file_mapctl_py -.->|calls x32| file_lib_py
+  file_mapctl_py -->|imports| file_lib_py
+  file_obsctl_py -.->|calls x75| file_lib_py
+  file_obsctl_py -->|imports| file_lib_py
+  file_progress_py -.->|calls x14| file_lib_py
+  file_progress_py -->|imports| file_lib_py
+  file_statectl_py -.->|calls x113| file_lib_py
+  file_statectl_py -->|imports| file_lib_py
+  click file_lib_py "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/_lib.py"
+  click file_checkctl_py "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/checkctl.py"
+  click file_consolectl_py "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/consolectl.py"
+  click file_ctxmap_py "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/ctxmap.py"
+  click file_distctl_py "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/distctl.py"
+  click file_mapctl_py "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/mapctl.py"
+  click file_obsctl_py "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/obsctl.py"
+  click file_progress_py "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/progress.py"
+  click file_statectl_py "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/statectl.py"
+  click file_sysmon_py "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/sysmon.py"
+```
+
+- **.claude/tools**: 10 file(s) in .claude/tools

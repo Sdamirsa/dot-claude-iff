@@ -60,7 +60,8 @@ FIXED_DATE = (2026, 1, 1, 0, 0, 0)  # determinism: content decides the bytes, no
 # What a distribution NEVER carries: this project's own history and derived surfaces, and
 # worktrees (build-time scratch checkouts of the whole repo, gitignored, never descended into).
 EXCLUDE_DIRS = {"state", "dist", "worktrees", "__pycache__", ".pytest_cache"}
-EXCLUDE_FILES = {"console/console.html", "system-map/map.json", "settings.local.json"}
+EXCLUDE_FILES = {"console/console.html", "system-map/map.json", "system-map/code-graph.json",
+                 "settings.local.json"}
 # Home-repo-only documents: committed here, meaningless in an adopting project. Dropped on the
 # way into the zips (distribution-boundary mechanism 3); the adopt skill skips them on clones.
 # brand-identity.md is this repo's own look and voice; an adopter brings its own.
@@ -204,6 +205,9 @@ _VISIBILITY_BODY = {
 .claude/state/session.json
 .claude/state/HANDOFF.md
 .claude/state/needs-human.json
+
+# The code graph (graphctl build): derived, machine-local, rebuilt by the ritual
+.claude/system-map/code-graph.json
 
 # Agent worktrees (build-time scratch copies of the repo; a Cview task's worktree lives here too)
 .claude/worktrees/

@@ -9,7 +9,9 @@
   "reads": [
     "store.record"
   ],
-  "writes": [],
+  "writes": [
+    "store.code_graph"
+  ],
   "invokes": [
     "tool._lib",
     "tool.ctxmap"

@@ -85,6 +85,11 @@ KNOWN_STORES = [
      "description": "The architecture diagram's spec, one scope per diagram (groups, boxes, arrows), "
                      "written by mapctl architecture with docs/ARCHITECTURE.md rendered from it.",
      "glyphs": ["derived"]},
+    {"id": "store.code_graph", "path": ".claude/system-map/code-graph.json", "title": "Code graph",
+     "description": "The normalised code graph (files, classes, functions; contains, imports, calls), "
+                     "written by graphctl build from graphify's output under the record root or the "
+                     "stdlib walker. Gitignored: machine-local, rebuilt by the ritual, never shipped.",
+     "glyphs": ["derived"]},
     {"id": "store.story", "path": ".claude/state/story-feed.json", "title": "Story feed",
      "description": "Dual-clock narrative feed: operations & errors, anatomy evolution, data evolution.",
      "glyphs": ["derived"]},
@@ -283,6 +288,7 @@ _LITERAL_TO_STORE = {
     "Project-log.jsonl": "store.project_log",
     "LESSONS.jsonl": "store.lessons",
     "map.json": "store.map",
+    "code-graph.json": "store.code_graph",
     "story-feed.json": "store.story",
     "anchor.json": "store.anchor",
     "rollups": "store.rollups",

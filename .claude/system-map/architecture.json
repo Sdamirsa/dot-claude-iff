@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-04T17:23:35Z",
+  "generated_at": "2026-11-04T17:33:41Z",
   "project": "dot-claude-iff",
   "scopes": [
     {
@@ -91,13 +91,6 @@
           "kind": "agent"
         },
         {
-          "id": "agent.scout",
-          "group": "govern",
-          "label": "scout",
-          "path": ".claude/agents/scout.md",
-          "kind": "agent"
-        },
-        {
           "id": "agent.verifier",
           "group": "govern",
           "label": "verifier",
@@ -183,10 +176,11 @@
         {
           "id": "other.govern",
           "group": "govern",
-          "label": "other (6)",
+          "label": "other (7)",
           "path": ".claude",
           "kind": "folder",
           "members": [
+            "agent.scout",
             "protocol.handshake",
             "protocol.honesty",
             "protocol.human-gates",
@@ -259,6 +253,13 @@
           "kind": "code"
         },
         {
+          "id": "tool.graphctl",
+          "group": "console",
+          "label": "graphctl",
+          "path": ".claude/tools/graphctl.py",
+          "kind": "code"
+        },
+        {
           "id": "tool.mapctl",
           "group": "console",
           "label": "mapctl",
@@ -296,6 +297,7 @@
             "map.layers",
             "store.architecture",
             "store.cards",
+            "store.code_graph",
             "store.map"
           ]
         },
@@ -467,13 +469,6 @@
           "to": "store.project_log",
           "label": "reads",
           "style": "dashed",
-          "weight": 1
-        },
-        {
-          "from": "agent.scout",
-          "to": "folder.state",
-          "label": "writes",
-          "style": "solid",
           "weight": 1
         },
         {
@@ -669,6 +664,13 @@
           "from": "hook.session-start",
           "to": "tool.statectl",
           "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "other.govern",
+          "to": "folder.state",
+          "label": "writes",
           "style": "solid",
           "weight": 1
         },
@@ -960,6 +962,34 @@
           "weight": 1
         },
         {
+          "from": "tool.graphctl",
+          "to": "folder.record",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.graphctl",
+          "to": "folder.system-map",
+          "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.graphctl",
+          "to": "tool._lib",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.graphctl",
+          "to": "tool.ctxmap",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
           "from": "tool.mapctl",
           "to": "folder.system-map",
           "label": "reads",
@@ -1088,8 +1118,240 @@
       ],
       "stats": {
         "nodes": 40,
-        "edges": 102,
-        "folded": 36
+        "edges": 106,
+        "folded": 38
+      }
+    },
+    {
+      "id": "tools",
+      "title": ".claude/tools",
+      "root": ".claude/tools",
+      "source": "code",
+      "groups": [
+        {
+          "id": "dir.root",
+          "title": ".claude/tools",
+          "blurb": "10 file(s) in .claude/tools"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "file.lib_py",
+          "group": "dir.root",
+          "label": "_lib.py",
+          "path": ".claude/tools/_lib.py",
+          "kind": "file"
+        },
+        {
+          "id": "file.checkctl_py",
+          "group": "dir.root",
+          "label": "checkctl.py",
+          "path": ".claude/tools/checkctl.py",
+          "kind": "file"
+        },
+        {
+          "id": "file.consolectl_py",
+          "group": "dir.root",
+          "label": "consolectl.py",
+          "path": ".claude/tools/consolectl.py",
+          "kind": "file"
+        },
+        {
+          "id": "file.ctxmap_py",
+          "group": "dir.root",
+          "label": "ctxmap.py",
+          "path": ".claude/tools/ctxmap.py",
+          "kind": "file"
+        },
+        {
+          "id": "file.distctl_py",
+          "group": "dir.root",
+          "label": "distctl.py",
+          "path": ".claude/tools/distctl.py",
+          "kind": "file"
+        },
+        {
+          "id": "file.mapctl_py",
+          "group": "dir.root",
+          "label": "mapctl.py",
+          "path": ".claude/tools/mapctl.py",
+          "kind": "file"
+        },
+        {
+          "id": "file.obsctl_py",
+          "group": "dir.root",
+          "label": "obsctl.py",
+          "path": ".claude/tools/obsctl.py",
+          "kind": "file"
+        },
+        {
+          "id": "file.progress_py",
+          "group": "dir.root",
+          "label": "progress.py",
+          "path": ".claude/tools/progress.py",
+          "kind": "file"
+        },
+        {
+          "id": "file.statectl_py",
+          "group": "dir.root",
+          "label": "statectl.py",
+          "path": ".claude/tools/statectl.py",
+          "kind": "file"
+        },
+        {
+          "id": "file.sysmon_py",
+          "group": "dir.root",
+          "label": "sysmon.py",
+          "path": ".claude/tools/sysmon.py",
+          "kind": "file"
+        }
+      ],
+      "edges": [
+        {
+          "from": "file.checkctl_py",
+          "to": "file.lib_py",
+          "label": "calls",
+          "style": "dashed",
+          "weight": 106
+        },
+        {
+          "from": "file.checkctl_py",
+          "to": "file.lib_py",
+          "label": "imports",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "file.checkctl_py",
+          "to": "file.mapctl_py",
+          "label": "calls",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "file.checkctl_py",
+          "to": "file.mapctl_py",
+          "label": "imports",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "file.consolectl_py",
+          "to": "file.lib_py",
+          "label": "calls",
+          "style": "dashed",
+          "weight": 53
+        },
+        {
+          "from": "file.consolectl_py",
+          "to": "file.lib_py",
+          "label": "imports",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "file.ctxmap_py",
+          "to": "file.lib_py",
+          "label": "calls",
+          "style": "dashed",
+          "weight": 5
+        },
+        {
+          "from": "file.ctxmap_py",
+          "to": "file.lib_py",
+          "label": "imports",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "file.distctl_py",
+          "to": "file.lib_py",
+          "label": "calls",
+          "style": "dashed",
+          "weight": 19
+        },
+        {
+          "from": "file.distctl_py",
+          "to": "file.lib_py",
+          "label": "imports",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "file.mapctl_py",
+          "to": "file.ctxmap_py",
+          "label": "calls",
+          "style": "dashed",
+          "weight": 5
+        },
+        {
+          "from": "file.mapctl_py",
+          "to": "file.ctxmap_py",
+          "label": "imports",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "file.mapctl_py",
+          "to": "file.lib_py",
+          "label": "calls",
+          "style": "dashed",
+          "weight": 32
+        },
+        {
+          "from": "file.mapctl_py",
+          "to": "file.lib_py",
+          "label": "imports",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "file.obsctl_py",
+          "to": "file.lib_py",
+          "label": "calls",
+          "style": "dashed",
+          "weight": 75
+        },
+        {
+          "from": "file.obsctl_py",
+          "to": "file.lib_py",
+          "label": "imports",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "file.progress_py",
+          "to": "file.lib_py",
+          "label": "calls",
+          "style": "dashed",
+          "weight": 14
+        },
+        {
+          "from": "file.progress_py",
+          "to": "file.lib_py",
+          "label": "imports",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "file.statectl_py",
+          "to": "file.lib_py",
+          "label": "calls",
+          "style": "dashed",
+          "weight": 113
+        },
+        {
+          "from": "file.statectl_py",
+          "to": "file.lib_py",
+          "label": "imports",
+          "style": "solid",
+          "weight": 1
+        }
+      ],
+      "stats": {
+        "nodes": 10,
+        "edges": 20,
+        "folded": 0
       }
     }
   ]

@@ -1,0 +1,23 @@
+{
+  "id": "store.code_graph",
+  "kind": "data",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Code graph",
+  "path": ".claude/system-map/code-graph.json",
+  "description": "The normalised code graph (files, classes, functions; contains, imports, calls), written by graphctl build from graphify's output under the record root or the stdlib walker. Gitignored: machine-local, rebuilt by the ritual, never shipped; mapctl architecture collapses it into the code scopes of the architecture spec.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [
+    "derived"
+  ],
+  "auto": {
+    "discovered": "2026-11-04",
+    "hash": "",
+    "suggested_reads": [],
+    "suggested_writes": [],
+    "lazy": true
+  }
+}

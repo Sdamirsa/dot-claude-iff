@@ -67,6 +67,7 @@
       ".claude/state/needs-human.json",
       ".claude/system-map/map.json",
       ".claude/system-map/architecture.json",
+    ".claude/system-map/code-graph.json",
       "docs/ARCHITECTURE.md",
       ".claude/console/console.html"
     ]
