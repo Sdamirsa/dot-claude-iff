@@ -76,6 +76,36 @@ def zip_verdict(root: Path) -> tuple[str, list]:
     return "stale", stale
 
 
+# CREDITS.md: one `## ` section per entry, each with these three bulleted fields. A licence is
+# one of the words the task fixed: an acronym family (word-bounded, so "CC" never matches inside
+# another word) or one of the two plain phrases.
+CREDIT_FIELDS = ("URL", "Licence", "What we took")
+_CREDIT_FIELD = re.compile(r"^- \*\*(URL|Licence|What we took):\*\*[ \t]*(.*?)(?=^- \*\*|\Z)",
+                           re.M | re.S)
+_LICENCE_ACRONYM = re.compile(r"\b(?:MIT|Apache|BSD|GPL|CC)\b")
+_LICENCE_PHRASE = re.compile(r"\bproprietary\b|\bno licence stated\b", re.I)
+
+
+def credits_problems(text: str) -> tuple[list, list]:
+    """(entry titles, problems) for a CREDITS.md text. An entry lacking a field, an http(s)
+    URL, a licence word or a non-empty "what we took" line is one problem each."""
+    titles, problems = [], []
+    for section in re.split(r"^## ", text, flags=re.M)[1:]:
+        title, _, body = section.partition("\n")
+        title = title.strip()
+        titles.append(title)
+        fields = {m.group(1): " ".join(m.group(2).split()) for m in _CREDIT_FIELD.finditer(body)}
+        for name in CREDIT_FIELDS:
+            if not fields.get(name):
+                problems.append(f"{title}: no {name} line")
+        if fields.get("URL") and not re.search(r"https?://\S+", fields["URL"]):
+            problems.append(f"{title}: URL line holds no http(s) link")
+        lic = fields.get("Licence", "")
+        if lic and not (_LICENCE_ACRONYM.search(lic) or _LICENCE_PHRASE.search(lic)):
+            problems.append(f"{title}: no licence word in {lic!r}")
+    return titles, problems
+
+
 class DistCase(FixtureCase):
     def setUp(self):
         super().setUp()
@@ -287,6 +317,22 @@ class TestPayload(DistCase):
         self.assertIn("Copyright 2026", (where / "NOTICE").read_text(encoding="utf-8"))
         if (home / "CITATION.cff").is_file():
             self.assertIn("license: Apache-2.0", (home / "CITATION.cff").read_text(encoding="utf-8"))
+
+    def test_credits_travel_inside_claude_of_every_kit_beside_the_legal_files(self):
+        """CREDITS.md ships the way LICENSE and NOTICE do: from the home repo's root into
+        .claude/ of both kits, never to the adopter's root; absent, it ships nothing."""
+        distctl.build(self.root)
+        for zip_name in distctl.ZIP_NAMES:
+            with self.subTest(zip=zip_name, credits="absent"):
+                self.assertFalse(any(n.endswith("CREDITS.md") for n in self.names(zip_name)))
+        (self.root / "CREDITS.md").write_text("# Credits\n\n## fixture\n", encoding="utf-8")
+        distctl.build(self.root)
+        for zip_name, prefix in (("dot-claude-iff-fresh.zip", ""),
+                                 ("dot-claude-iff-adopt-kit.zip", "dot-claude-iff-kit/")):
+            with self.subTest(zip=zip_name):
+                self.assertEqual(self.read(zip_name, f"{prefix}.claude/CREDITS.md"),
+                                 "# Credits\n\n## fixture\n")
+                self.assertNotIn(f"{prefix}CREDITS.md", self.names(zip_name))
 
     def test_shipped_gitignore_is_the_managed_block_whatever_the_home_visibility(self):
         """One renderer for every install path: the kits carry the block for the visibility
@@ -768,6 +814,17 @@ class TestCommittedZips(unittest.TestCase):
                   f"without a rebuild - run `python3 .claude/tools/distctl.py build` and commit "
                   f"the zips (`distctl.py verify` says fresh when done).")
 
+    def test_both_kit_manifests_carry_credits(self):
+        """The real CREDITS.md rides in .claude/ of both kits, complete, beside NOTICE."""
+        for name, prefix in (("dot-claude-iff-fresh.zip", ""),
+                             ("dot-claude-iff-adopt-kit.zip", "dot-claude-iff-kit/")):
+            with self.subTest(zip=name):
+                names = self.names(name)
+                self.assertIn(f"{prefix}.claude/CREDITS.md", names)
+                self.assertIn(f"{prefix}.claude/NOTICE", names)
+                text = self.read(name, f"{prefix}.claude/CREDITS.md").decode("utf-8")
+                self.assertEqual(credits_problems(text)[1], [])
+
     def test_release_flow_is_absent_from_both_zips(self):
         self.assertTrue((REPO_ROOT / ".claude" / "reference" / "release-flow.md").exists(),
                         "the home-only doc exists here; the point is that it never ships")
@@ -833,6 +890,51 @@ class TestCommittedZips(unittest.TestCase):
             with self.subTest(path=path):
                 res = _git(REPO_ROOT, "check-ignore", "--no-index", "-q", path)
                 self.assertEqual(res.returncode, 0, f"{path} is not gitignored")
+
+
+class TestCredits(unittest.TestCase):
+    """CREDITS.md names every tool, project and source this system was built with or borrowed
+    from: each entry carries a link, a licence word and what was taken. The home repo keeps it
+    at the root; a kit carries it inside .claude/."""
+
+    def credits_path(self) -> Path:
+        home = REPO_ROOT if (REPO_ROOT / "LICENSE").is_file() else REPO_ROOT / ".claude"
+        return home / "CREDITS.md"
+
+    def test_every_entry_has_a_url_a_licence_word_and_what_was_taken(self):
+        path = self.credits_path()
+        self.assertTrue(path.is_file(), f"{path} is missing")
+        titles, problems = credits_problems(path.read_text(encoding="utf-8"))
+        self.assertTrue(titles, "CREDITS.md holds no `## ` entry")
+        self.assertEqual(problems, [])
+        joined = " ".join(titles)
+        for must in ("Claude Code", "ADHD", "Cview", "GitDiagram", "Graphify", "tree-sitter",
+                     "actions/checkout", "Zenodo"):
+            with self.subTest(entry=must):
+                self.assertIn(must, joined)
+
+    def test_credits_never_names_a_private_source_by_path(self):
+        text = self.credits_path().read_text(encoding="utf-8")
+        self.assertNotIn("temp-to-analyse", text)
+
+    def test_the_parser_catches_each_gap(self):
+        bad = ("# Credits\n\n## no url\n- **Licence:** MIT.\n- **What we took:** x\n\n"
+               "## bare url\n- **URL:** example.org\n- **Licence:** MIT.\n- **What we took:** x\n\n"
+               "## guessed licence\n- **URL:** https://example.org\n- **Licence:** probably fine\n"
+               "- **What we took:** x\n\n"
+               "## CC inside a word\n- **URL:** https://example.org\n- **Licence:** ACCEPTED\n"
+               "- **What we took:** x\n\n"
+               "## nothing taken\n- **URL:** https://example.org\n- **Licence:** no licence stated\n"
+               "- **What we took:**\n\n"
+               "## wrapped and fine\n- **URL:** https://example.org\n- **Licence:** Apache-2.0,\n"
+               "  the repository's LICENSE.\n- **What we took:** a\n  wrapped line.\n")
+        titles, problems = credits_problems(bad)
+        self.assertEqual(len(titles), 6)
+        self.assertEqual(problems, ["no url: no URL line",
+                                    "bare url: URL line holds no http(s) link",
+                                    "guessed licence: no licence word in 'probably fine'",
+                                    "CC inside a word: no licence word in 'ACCEPTED'",
+                                    "nothing taken: no What we took line"])
 
 
 @unittest.skipUnless(_home_repo(), "home-repo-only: the workflows live in dot-claude-iff")
