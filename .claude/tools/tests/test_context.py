@@ -475,6 +475,31 @@ class HealthTests(ContextCase):
                  if f.path == index.root_guides[0].path]
         self.assertEqual(noisy, [], "context_health must be quiet on this repo's own guide")
 
+    def test_the_root_guide_is_not_noisy_inside_a_fresh_kit(self):
+        """L-12, made mechanical: the kit self-test (test_dist, slow) found twice that the
+        guide backticks a path the fresh kit lacks (.claude/state/ exists here, not there).
+        This runs the same health lint against the kit's own manifest in seconds: every
+        payload path becomes an empty file in a temp tree, the shipped guide is the real
+        one, and the lint must be quiet. Skips where the kits cannot be built."""
+        import distctl
+        if not distctl.distribution_enabled(REPO_ROOT):
+            self.skipTest("distribution is off here (a kit); the home repo runs this")
+        entries, _skipped = distctl._payload_entries(REPO_ROOT)
+        kit = self.root / "kit"
+        for rel, data in entries:
+            target = kit / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data if rel == ".claude/CLAUDE.md" else b"")
+        for rel in distctl.LEGAL_FILES + distctl.CREDIT_FILES:
+            (kit / ".claude" / rel).write_bytes(b"")
+        os.environ["CLAUDE_PROJECT_DIR"] = str(kit)
+        _lib.clear_config_cache()
+        index = ctxmap.discover()
+        self.assertTrue(index.root_guides, "the kit must ship a root guide")
+        noisy = [f.line() for f in ctxmap.health(index) if f.path == index.root_guides[0].path]
+        self.assertEqual(noisy, [], "the shipped guide names a path the fresh kit lacks: "
+                                    "write it in prose, not backticks (L-12)")
+
 
 # =========================================================================== suggest
 
