@@ -879,6 +879,22 @@ def _analyze_one_batch(base_url: str, model: str, api_key, batch: list,
     return None
 
 
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "0.0.0.0"}
+
+
+def is_local_endpoint(base_url) -> bool:
+    """True only when the URL's host IS a loopback name, never when it merely contains one:
+    `https://localhost.example.com/v1` is remote, and the consent gate must say so."""
+    if not base_url:
+        return False
+    import urllib.parse
+    try:
+        host = (urllib.parse.urlsplit(str(base_url)).hostname or "").lower()
+    except ValueError:
+        return False
+    return host in LOCAL_HOSTS or host.startswith("127.")
+
+
 def analyze_status() -> dict:
     """The console's view of the engine: configured or not, where the key should come from,
     whether one is present (a BOOLEAN - the key itself never leaves the environment), and what
@@ -889,7 +905,7 @@ def analyze_status() -> dict:
     base_url = acfg.get("base_url") or PROVIDER_BASE_URLS.get(provider)
     model = acfg.get("model")
     key_env = next((e for e in ANALYZE_KEY_ENVS if os.environ.get(e)), None)
-    local = bool(base_url) and ("localhost" in base_url or "127.0.0.1" in base_url)
+    local = is_local_endpoint(base_url)
     remote_consent = acfg.get("remote_consent") is True
     configured = bool(base_url) and bool(model) and (local or key_env is not None)
     products = []

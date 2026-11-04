@@ -161,3 +161,17 @@
 {"ts": "2026-11-04T15:28:34Z", "action": "task", "id": "T16", "title": "T16 - explicit consent and redaction before record text goes to a remote endpoint", "status": "todo", "milestone": "M-0.3.0-beta.1"}
 {"ts": "2026-11-04T15:28:34Z", "action": "task", "id": "T17", "title": "T17 - CREDITS.md: lineage and thanks, shipped with the kits", "status": "todo", "milestone": "M-0.3.0-beta.1"}
 {"ts": "2026-11-04T15:28:46Z", "action": "task", "id": "030b-00-milestone", "title": "Milestone M-0.3.0-beta.1 - index, waves and shared contracts", "status": "doing", "milestone": "M-0.3.0-beta.1"}
+{"ts": "2026-11-04T15:28:47Z", "action": "note", "text": "dispatched builder for T14 in .claude/worktrees/t14", "tags": ["dispatch"]}
+{"ts": "2026-11-04T15:28:48Z", "action": "note", "text": "dispatched builder for T15 in .claude/worktrees/t15", "tags": ["dispatch"]}
+{"ts": "2026-11-04T15:28:48Z", "action": "note", "text": "dispatched builder for T16 in .claude/worktrees/t16", "tags": ["dispatch"]}
+{"ts": "2026-11-04T15:28:49Z", "action": "note", "text": "dispatched builder for T17 in .claude/worktrees/t17", "tags": ["dispatch"]}
+{"ts": "2026-11-04T15:30:33Z", "action": "pointer", "text": "Wave 1 builders T14-T17 in flight (worktrees t14..t17). Lead: PR-14 CLAUDE.md trim, PR-5 decision. Then accept each, suite, close, T18 card."}
+{"ts": "2026-11-04T15:55:13Z", "action": "decision", "text": "PR-5: the hard layer under the gate holds only the universal denies (ticket file, ticket hook, checkctl ticket, .claude-iff); the protected tree stays with the gate", "why": "Claude Code deny rules bind the main session and sub-agents alike and a PreToolUse hook cannot override them, so a deny on the protected tree would lock the lead out"}
+{"ts": "2026-11-04T16:04:58Z", "action": "note", "text": "accepted T15: merged wt/t15 into dev (2b7268610b9c)", "tags": ["accept"]}
+{"ts": "2026-11-04T16:15:20Z", "action": "note", "text": "accepted T16: merged wt/t16 into dev (e0ffcb1edc0a)", "tags": ["accept"]}
+{"ts": "2026-11-04T16:24:42Z", "action": "note", "text": "accepted T14: merged wt/t14 into dev (257c83519ac4)", "tags": ["accept"]}
+{"ts": "2026-11-04T16:31:50Z", "action": "task", "id": "T18", "title": "T18 - architecture spec from the cards, and the Mermaid renderer", "status": "todo", "milestone": "M-0.3.0-beta.1"}
+{"ts": "2026-11-04T16:31:50Z", "action": "task", "id": "T19", "title": "T19 - graphctl: the code graph, from graphify output or a stdlib walker", "status": "todo", "milestone": "M-0.3.0-beta.1"}
+{"ts": "2026-11-04T16:31:50Z", "action": "task", "id": "T20", "title": "T20 - the console MAP tab renders the architecture spec, with a scope switcher", "status": "todo", "milestone": "M-0.3.0-beta.1"}
+{"ts": "2026-11-04T16:31:51Z", "action": "pointer", "text": "Wave 1 merged except T17 (accept running). Next: suite on dev, close T14-T17, resolve PR-8/9/10/11/16, commit analyze fixes + wave-3 cards, dispatch T18-T20"}
+{"ts": "2026-11-04T16:34:49Z", "action": "note", "text": "accepted T17: merged wt/t17 into dev (8c527d138e6d)", "tags": ["accept"]}

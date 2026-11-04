@@ -196,6 +196,16 @@ class ConsoleHandler(http.server.BaseHTTPRequestHandler):
                             "STORY tab's setup guide."),
                 })
                 return
+            if status.get("consent_required") and not status.get("remote_consent"):
+                # The gate obsctl applies, surfaced here instead of a run that exits 1 unseen.
+                self._send_json(409, {
+                    "ok": False,
+                    "reason": "remote endpoint without consent: record text would leave this machine",
+                    "how": ("Set analyze.remote_consent to true in .claude/config/observe.json "
+                            "(secrets are redacted first), or point analyze.base_url at a "
+                            "local server."),
+                })
+                return
             if (status.get("run") or {}).get("state") == "running":
                 self._send_json(409, {"ok": False, "reason": "an analysis run is already in progress"})
                 return

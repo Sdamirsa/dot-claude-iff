@@ -265,6 +265,17 @@ class TestRemoteConsent(RemoteCase):
         self.assertEqual(code, 1)
         self.assertEqual(self.posted, [])
 
+    def test_a_host_that_merely_contains_localhost_is_remote(self):
+        """The local rule reads the URL's host, never the text: `localhost.example.invalid`
+        is a remote machine and the gate must close on it."""
+        self.configure(base_url="https://localhost.example.invalid/v1")
+        self.seed_events(2)
+        self.assertTrue(obsctl.analyze_status()["consent_required"])
+        code, out = self.run_analyze()
+        self.assertEqual(code, 1)
+        self.assertEqual(self.posted, [])
+        self.assertIn("analyze.remote_consent", out)
+
     def test_local_endpoint_needs_no_consent(self):
         self.configure(max_events_per_batch=10)
         self.seed_events(2)
@@ -425,6 +436,28 @@ class TestAnalyzeEndpoint(FixtureCase):
             self.assertEqual(ctx.exception.code, 409)
             body = json.loads(ctx.exception.read().decode())
             self.assertIn("observe.json", body["how"])
+        finally:
+            server.shutdown()
+            server.server_close()
+
+    def test_post_analyze_remote_without_consent_returns_409(self):
+        import urllib.request
+        import urllib.error
+        cfg = json.loads((self.root / ".claude/config/observe.json").read_text())
+        cfg["analyze"].update({"base_url": "https://analyze.example.invalid/v1",
+                               "model": "fake-model", "remote_consent": False})
+        self.write_config("observe", cfg)
+        server, port = self._server()
+        try:
+            with mock.patch.dict(os.environ, {"ANALYZE_API_KEY": "test-key-not-a-secret"}):
+                req = urllib.request.Request(f"http://127.0.0.1:{port}/live/analyze", data=b"",
+                                             method="POST")
+                with self.assertRaises(urllib.error.HTTPError) as ctx:
+                    urllib.request.urlopen(req, timeout=10)
+            self.assertEqual(ctx.exception.code, 409)
+            body = json.loads(ctx.exception.read().decode())
+            self.assertIn("consent", body["reason"])
+            self.assertIn("remote_consent", body["how"])
         finally:
             server.shutdown()
             server.server_close()
