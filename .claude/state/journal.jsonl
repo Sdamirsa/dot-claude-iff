@@ -154,3 +154,10 @@
 {"ts": "2026-11-04T14:38:49Z", "action": "note", "text": "ritual complete (20261104T112152Z-ff5d20) Research session: code graph pivot to GitDiagram-style (PR-15), CREDITS (PR-16), proposals triaged, track to beta set; retro NO-CHANGES"}
 {"ts": "2026-11-04T14:44:00Z", "action": "phase", "value": "build", "override": "build round from the 2026-11-04 triage", "from": "review"}
 {"ts": "2026-11-04T14:44:01Z", "action": "mode", "value": "fableous-orchestrated"}
+{"ts": "2026-11-04T14:52:16Z", "action": "pointer", "text": "Build round: run full test suite first, then bug fixes PR-9/PR-10/PR-8/PR-5 via builders, then PR-14/PR-16, then PR-15 task card"}
+{"ts": "2026-11-04T15:28:33Z", "action": "milestone", "id": "M-0.3.0-beta.1", "title": "v0.3.0-beta.1: triage fixes, CREDITS, code graph in the console"}
+{"ts": "2026-11-04T15:28:33Z", "action": "task", "id": "T14", "title": "T14 - accept removes the task stub after a successful merge", "status": "todo", "milestone": "M-0.3.0-beta.1"}
+{"ts": "2026-11-04T15:28:33Z", "action": "task", "id": "T15", "title": "T15 - generator freshness sees hand-edited outputs; build exit runs each suite once", "status": "todo", "milestone": "M-0.3.0-beta.1"}
+{"ts": "2026-11-04T15:28:34Z", "action": "task", "id": "T16", "title": "T16 - explicit consent and redaction before record text goes to a remote endpoint", "status": "todo", "milestone": "M-0.3.0-beta.1"}
+{"ts": "2026-11-04T15:28:34Z", "action": "task", "id": "T17", "title": "T17 - CREDITS.md: lineage and thanks, shipped with the kits", "status": "todo", "milestone": "M-0.3.0-beta.1"}
+{"ts": "2026-11-04T15:28:46Z", "action": "task", "id": "030b-00-milestone", "title": "Milestone M-0.3.0-beta.1 - index, waves and shared contracts", "status": "doing", "milestone": "M-0.3.0-beta.1"}
