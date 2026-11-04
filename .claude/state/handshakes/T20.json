@@ -1,0 +1,54 @@
+{
+  "agent_id": "builder-T20",
+  "task_id": "T20",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "RESULT": "consolectl.payload() now carries `architecture` (system-map/architecture.json verbatim, or null when absent, unreadable or lacking a `scopes` list). console.py serves /live/architecture.json only when read_allowlist names .claude/system-map/architecture.json (the line is added to console.json). The MAP tab gets a scope switcher (cards, then one button per spec scope), shown only when the spec has scopes and falling back to cards otherwise. A spec scope draws with the existing band-and-SVG-lines renderer: groups as bands, labelled and styled edges. The spec node dialog shows group plus blurb, the id, the path (pathLink), the edge lists and a vscode://file/<root>/<path> link that appears only over http(s). The Test and the whole suite are green after the coordinator merged dev (the CLAUDE.md kit fix) into wt/t20.",
+  "files_changed": [
+    ".claude/tools/consolectl.py",
+    ".claude/console/console.py",
+    ".claude/console/console.template.html",
+    ".claude/config/console.json",
+    ".claude/tools/tests/test_console.py",
+    ".claude/state/handshakes/T20.json"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_console test_contracts -q",
+      "exit_code": 0,
+      "summary": "118 passed · 0 failed · 0 errored · 0 skipped / TESTS_OK"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "832 passed · 0 failed · 0 errored · 2 skipped / TESTS_OK"
+    }
+  ],
+  "EVIDENCE": [
+    "Task Test before any change -> 105 passed; after -> 118 passed (13 new tests in test_console.py)",
+    "Mutation check: payload architecture forced to None, live root forced to None, endpoint bypassing the allowlist -> 3 FAIL + 2 ERROR in the new tests; sources restored afterwards",
+    "node --check on the template's main script -> syntax OK",
+    "Headless Edge over file: on a page rendered with the fixture spec -> switcher 'cards*|.claude system|tools'; cards 69 nodes; claude scope bands GOVERN|RECORD, nodes tool.statectl|agent.builder|folder.state; edge labels 'writes ×3|invokes'; double click opens the dialog with group, blurb, path and arrows; tools scope 2 nodes; back to cards 69 nodes; no editor link under file:",
+    "Same page over http (python http.server, root injected) -> editor link vscode://file/C:/Users/me/my%20repo/.claude/tools/statectl.py",
+    "Same page with architecture null -> no switcher buttons, cards 69 nodes",
+    "consolectl build on the worktree -> wrote console.html, 0 occurrences of '<script src', embeds \"architecture\":null",
+    "After the dev merge into wt/t20: task Test 118 passed, whole suite 832 passed 0 failed (exit 0); the kit self-test passes"
+  ],
+  "DEVIATIONS": [
+    "payload(live=True) now sets project.root to the absolute posix root; static and demo builds keep it null. The task assumed the root was already in the payload, but it was always null, so a vscode:// link built from it could never work. The research note anticipates exactly this ('the live payload can carry, since it never enters git'). No existing test pins the live root, and the static-null test still passes.",
+    "'Switcher markup present/absent' as string checks on the built console.html: every MAP element is built by the page's JS from DATA, so the static HTML is the same template plus a different DATA. The tests check that the built page embeds the fixture scopes and contains the gated switcher builder, or embeds \"architecture\":null when there is no spec. The runtime DOM was checked by hand in headless Edge (EVIDENCE). The alternative was a second server-rendered copy of the switcher, which would go stale on live polls, so I didn't build it.",
+    "Template refactor: renderMap's band/node/focus code is shared by both views (cardsMapView and specMapView return bands, edges and legend). The cards view's behaviour is unchanged (69 nodes, same legend and toolbar). drawEdges gains optional per-edge `cls` and `edgeText` fields, which only spec edges set."
+  ],
+  "UNCERTAINTIES": [
+    "Only tested against the fixture spec. T18's real architecture.json may differ in details (e.g. kinds outside code|agent|data|human|folder|file render grey with the kind name; nodes with an unknown group go in a trailing 'ungrouped' band).",
+    "The vscode:// link was checked only for its href, not by opening VS Code; posix roots give vscode://file/home/... (leading slash stripped, VS Code's documented form)."
+  ],
+  "needs_main": [
+    "Discard the rebuilt .claude/console/console.html in the worktree (derived; I ran consolectl build to inspect it).",
+    "console.json read_allowlist: T18 may add the same line; keep one '.claude/system-map/architecture.json' entry at merge."
+  ],
+  "SUGGESTIONS": [
+    "The MAP freshness chip for a spec scope still shows map.json's generated_at; the spec's own generated_at is shown in the scope meta line instead. A 'architecture' freshness key would make the chip precise, but it would change the pinned freshness test, so I left it out of scope."
+  ]
+}

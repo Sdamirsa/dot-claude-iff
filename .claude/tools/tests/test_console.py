@@ -685,6 +685,185 @@ class PortCollisionTests(FixtureCase):
             blocker.server_close()
 
 
+# The architecture spec as T18's `mapctl architecture` writes it (milestone 030b, "Shared
+# contracts for wave 3"): two scopes, two groups each, a handful of nodes and edges. The real
+# file does not exist when these tests run, so every architecture test builds from this copy.
+FIXTURE_SPEC = {
+    "v": 1, "generated_at": "2030-01-01T00:00:00Z", "project": "fixture",
+    "scopes": [
+        {"id": "claude", "title": ".claude system", "root": ".claude", "source": "cards",
+         "groups": [{"id": "govern", "title": "GOVERN", "blurb": "the gates and the journal"},
+                    {"id": "record", "title": "RECORD", "blurb": "what gets written down"}],
+         "nodes": [{"id": "tool.statectl", "group": "govern", "label": "statectl",
+                    "path": ".claude/tools/statectl.py", "kind": "code"},
+                   {"id": "agent.builder", "group": "govern", "label": "builder",
+                    "path": ".claude/agents/builder.md", "kind": "agent"},
+                   {"id": "folder.state", "group": "record", "label": "state/",
+                    "path": ".claude/state", "kind": "folder"}],
+         "edges": [{"from": "tool.statectl", "to": "folder.state", "label": "writes",
+                    "style": "solid", "weight": 3},
+                   {"from": "agent.builder", "to": "tool.statectl", "label": "invokes",
+                    "style": "dashed", "weight": 1}],
+         "stats": {"nodes": 3, "edges": 2, "folded": 4}},
+        {"id": "tools", "title": "tools", "root": ".claude/tools", "source": "code",
+         "groups": [{"id": "core", "title": "core", "blurb": "shared library"},
+                    {"id": "cli", "title": "cli", "blurb": "the commands"}],
+         "nodes": [{"id": "file._lib", "group": "core", "label": "_lib.py",
+                    "path": ".claude/tools/_lib.py", "kind": "file"},
+                   {"id": "file.consolectl", "group": "cli", "label": "consolectl.py",
+                    "path": ".claude/tools/consolectl.py", "kind": "file"}],
+         "edges": [{"from": "file.consolectl", "to": "file._lib", "label": "imports",
+                    "style": "solid", "weight": 12}],
+         "stats": {"nodes": 2, "edges": 1, "folded": 0}},
+    ],
+}
+
+
+def _write_spec(case: FixtureCase, content) -> Path:
+    path = case.root / ".claude" / "system-map" / "architecture.json"
+    path.write_text(content if isinstance(content, str) else json.dumps(content), encoding="utf-8")
+    return path
+
+
+def _template_text() -> str:
+    return (CLAUDE_DIR / "console" / "console.template.html").read_text(encoding="utf-8")
+
+
+class ArchitecturePayloadTests(FixtureCase):
+    """The MAP tab's scope switcher reads `architecture`: the spec verbatim, or null."""
+
+    def test_absent_spec_is_null(self):
+        self.assertIsNone(consolectl.payload()["architecture"])
+
+    def test_spec_is_carried_whole(self):
+        _write_spec(self, FIXTURE_SPEC)
+        self.assertEqual(consolectl.payload()["architecture"], FIXTURE_SPEC)
+
+    def test_malformed_spec_degrades_to_null_never_raises(self):
+        for bad in ("{not json", "[1, 2]", '"scopes"', json.dumps({"v": 1}),
+                    json.dumps({"v": 1, "scopes": {"claude": {}}})):
+            with self.subTest(bad=bad):
+                _write_spec(self, bad)
+                self.assertIsNone(consolectl.payload()["architecture"])
+
+    def test_only_the_live_payload_carries_the_root(self):
+        # The editor link needs the absolute root; the committed snapshot must never hold it.
+        self.assertIsNone(consolectl.payload(live=False)["project"]["root"])
+        live_root = consolectl.payload(live=True)["project"]["root"]
+        self.assertEqual(live_root, _lib.project_root().resolve().as_posix())
+        self.assertNotIn("\\", live_root, "the root travels as a posix path, drive letter and all")
+
+
+class ArchitectureSwitcherHtmlTests(FixtureCase):
+    """String checks on the built console.html. The switcher, like every MAP element, is built
+    by the page's own JS from DATA, so "present" means: the page embeds the scopes and carries
+    the builder gated on them; "absent" means the page embeds architecture null."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        _install_template(self)
+
+    def _built(self) -> tuple:
+        html = consolectl.build()["path"].read_text(encoding="utf-8")
+        data = consolectl._extract_embedded_data(html)
+        self.assertIsNotNone(data, "the built page must embed its payload")
+        return html, data
+
+    def test_switcher_present_when_the_spec_has_scopes(self):
+        _write_spec(self, FIXTURE_SPEC)
+        html, data = self._built()
+        self.assertEqual([s["id"] for s in data["architecture"]["scopes"]], ["claude", "tools"])
+        self.assertIn('"title":".claude system"', html, "the scope titles are the switcher's labels")
+        self.assertIn('class: "map-toolbar map-scope-switch"', html)
+        self.assertIn("if (scopes.length) panel.appendChild(renderScopeSwitcher(scopes));", html,
+                      "the switcher must be gated on the spec having scopes")
+        self.assertIn('[{ id: "cards", title: "cards", root: null }].concat(scopes)', html,
+                      "cards stays the first entry of the switcher")
+        self.assertNotIn("<script src", html)
+
+    def test_switcher_absent_and_cards_only_without_a_spec(self):
+        html, data = self._built()
+        self.assertIsNone(data["architecture"])
+        self.assertIn('"architecture":null', html)
+        self.assertIn('let mapScope = "cards";', html, "cards is the default scope")
+        self.assertIn('if (!scope) mapScope = "cards";', html, "an unknown scope falls back to cards")
+
+    def test_switcher_absent_with_an_empty_scope_list(self):
+        _write_spec(self, {"v": 1, "scopes": []})
+        _html, data = self._built()
+        self.assertEqual(data["architecture"]["scopes"], [])
+        self.assertIn("if (!arch || !Array.isArray(arch.scopes)) return [];", _template_text())
+
+    def test_spec_scope_uses_the_band_renderer_no_library(self):
+        template = _template_text()
+        self.assertIn("function specMapView(scope)", template)
+        self.assertIn("if (scope) {\n    view = specMapView(scope);", template)
+        self.assertIn("drawEdges(canvas, svg, edges, nodeEls);", template,
+                      "spec scopes draw through the same SVG-lines renderer as the cards")
+        self.assertNotRegex(template, r"<script[^>]*\bsrc\s*=", "inline JS only")
+        self.assertNotIn("mermaid", template.lower(), "no diagram library")
+
+    def test_editor_link_is_built_only_over_http_from_the_root(self):
+        template = _template_text()
+        m = re.search(r"function editorHref\(relPath\) \{(.*?)\n\}", template, re.S)
+        self.assertIsNotNone(m, "the editor-link builder must exist")
+        body = m.group(1)
+        self.assertIn('if (location.protocol !== "http:" && location.protocol !== "https:") return null;', body)
+        self.assertIn("DATA.project && DATA.project.root", body)
+        self.assertIn('"vscode://file/"', body)
+        dialog = re.search(r"function openSpecNodeDialog\(node, scope, edges\) \{(.*?)\n\}", template, re.S)
+        self.assertIsNotNone(dialog, "the spec node dialog must exist")
+        for needle in ("pathLink(node.path, node.path", "editorLink(node.path)", "group.blurb",
+                       "outgoing", "incoming"):
+            self.assertIn(needle, dialog.group(1))
+
+
+class ArchitectureEndpointTests(FixtureCase):
+    """/live/architecture.json: served only when read_allowlist names the spec, 404 otherwise."""
+
+    def _serve(self) -> int:
+        server = console.make_server("127.0.0.1", 0)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        return server.server_address[1]
+
+    def _get(self, port: int, path: str):
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+        try:
+            conn.request("GET", path)
+            res = conn.getresponse()
+            return res.status, res.read()
+        finally:
+            conn.close()
+
+    def _allow(self, entries: list) -> None:
+        self.write_config("console", dict(_lib.load_config("console"), read_allowlist=entries))
+
+    def test_allowlisted_spec_is_served(self):
+        _write_spec(self, FIXTURE_SPEC)
+        self._allow([".claude/system-map/map.json", console.ARCHITECTURE_SPEC])
+        status, body = self._get(self._serve(), "/live/architecture.json")
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body.decode("utf-8")), FIXTURE_SPEC)
+
+    def test_not_allowlisted_is_a_404(self):
+        _write_spec(self, FIXTURE_SPEC)
+        self._allow([".claude/system-map/map.json"])
+        status, body = self._get(self._serve(), "/live/architecture.json")
+        self.assertEqual(status, 404)
+        self.assertNotIn(b"tool.statectl", body)
+
+    def test_allowlisted_but_missing_is_a_404(self):
+        self._allow([console.ARCHITECTURE_SPEC])
+        status, _body = self._get(self._serve(), "/live/architecture.json")
+        self.assertEqual(status, 404)
+
+    def test_the_shipped_allowlist_names_the_spec(self):
+        shipped = json.loads((CLAUDE_DIR / "config" / "console.json").read_text(encoding="utf-8"))
+        self.assertIn(console.ARCHITECTURE_SPEC, shipped["read_allowlist"])
+
 
 if __name__ == "__main__":
     unittest.main()

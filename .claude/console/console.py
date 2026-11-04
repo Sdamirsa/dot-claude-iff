@@ -55,6 +55,10 @@ MIME_TYPES = {
 
 LOOPBACK_HOSTNAMES = ("localhost",)
 
+# The architecture spec's repo-relative path: /live/architecture.json serves it, and only
+# when config/console.json's read_allowlist names exactly this string.
+ARCHITECTURE_SPEC = ".claude/system-map/architecture.json"
+
 
 def _is_loopback_host(host: str) -> bool:
     if host in LOOPBACK_HOSTNAMES:
@@ -154,6 +158,16 @@ class ConsoleHandler(http.server.BaseHTTPRequestHandler):
 
             if path == "/live/system.json":
                 self._serve_system()
+                return
+
+            if path == "/live/architecture.json":
+                # The MAP tab's spec, live: served only when read_allowlist names the file,
+                # through the same containment check as every other allowlisted path.
+                target = resolve_request_path("/" + ARCHITECTURE_SPEC)
+                if target is None:
+                    self.send_error(404, "Not Found")
+                    return
+                self._serve_file(target)
                 return
 
             target = resolve_request_path(path)
