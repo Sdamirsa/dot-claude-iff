@@ -67,6 +67,9 @@ EXCLUDE_FILES = {"console/console.html", "system-map/map.json", "settings.local.
 HOME_ONLY_FILES = {"reference/release-flow.md", "reference/brand-identity.md"}
 # Root files the kits carry into .claude/ of every copy (the Apache-2.0 notice requirement).
 LEGAL_FILES = ("LICENSE", "NOTICE")
+# Root files that travel beside them the same way: lineage and thanks, not legal text (NOTICE
+# stays the legal file). Same rule: authored at the home repo's root, shipped inside .claude/.
+CREDIT_FILES = ("CREDITS.md",)
 # Nested trees that are private by convention (gitignored in the home repo). Excluded even
 # on the no-git fallback path, where the tracked-files manifest cannot protect them.
 EXCLUDE_SUBDIRS = ("reference/private",)
@@ -494,9 +497,10 @@ def build(root: Path | None = None, out_dir: Path | None = None, quiet: bool = F
     # Apache-2.0 asks that LICENSE and NOTICE travel with every copy of the work. They ship
     # INSIDE .claude/ so they license the system and not the adopting project (whose own root
     # LICENSE stays its own), and so /adopt, which copies .claude/ paths, carries them without
-    # knowing. Authored from the home repo's root files; absent files ship nothing.
+    # knowing. Authored from the home repo's root files; absent files ship nothing. CREDITS.md
+    # rides along on the same path.
     legal = [(f".claude/{name}", (root / name).read_bytes())
-             for name in LEGAL_FILES if (root / name).is_file()]
+             for name in LEGAL_FILES + CREDIT_FILES if (root / name).is_file()]
     fresh = payload + legal + [("START-HERE.md", START_HERE.encode()), (".gitignore", gitignore)]
     kit = [(f"dot-claude-iff-kit/{p}", d) for p, d in payload + legal]
     kit += [("ADOPT.md", ADOPT_MD.encode()),

@@ -257,6 +257,9 @@ examples live in [the Partner Guide](../.claude/README.md#for-humans-how-to-coll
 
 </details>
 
+**Licence and credits.** Apache-2.0 ([LICENSE](../LICENSE), [NOTICE](../NOTICE)); the projects
+this system was built with or borrowed from are thanked in [CREDITS.md](../CREDITS.md).
+
 
 ---
 

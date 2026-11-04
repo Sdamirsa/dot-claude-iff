@@ -1,0 +1,46 @@
+{
+  "agent_id": "builder-T17",
+  "task_id": "T17",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "RESULT": "CREDITS.md at the repo root holds ten `##` entries (Claude Code and the Anthropic docs, ADHD, Cview, GitDiagram, Graphify, tree-sitter, actions/checkout, Zenodo, and the two private source systems named by role), each with URL, Licence and What we took lines. distctl.py ships it into .claude/ of both kits via a new CREDIT_FILES tuple beside LEGAL_FILES. test_dist.py gains a parser (credits_problems), a fixture shipping test, a real-tree manifest test, and a TestCredits class; .github/README.md gains a one-line licence-and-credits mention.",
+  "files_changed": [
+    "CREDITS.md",
+    ".claude/tools/distctl.py",
+    ".claude/tools/tests/test_dist.py",
+    ".github/README.md"
+  ],
+  "tests": [
+    {"command": "python3 .claude/tools/tests/run_tests.py test_dist -q", "exit_code": 0, "summary": "55 passed · 0 failed · 0 errored · 1 skipped"},
+    {"command": "python3 .claude/tools/tests/run_tests.py -q", "exit_code": 0, "summary": "789 passed · 0 failed · 0 errored · 2 skipped"}
+  ],
+  "EVIDENCE": [
+    "gh api repos/<owner>/<repo>/license -> UditAkhourii/adhd MIT; Sdamirsa/cview MIT (repo private; LICENSE content via API: 'MIT License, Copyright (c) 2026 Seyed Amir Ahmad Safavi-Naini'); Graphify-Labs/graphify Apache-2.0; tree-sitter/tree-sitter MIT; ahmedkhaleel2004/gitdiagram MIT; actions/checkout MIT; zenodo/zenodo GPL-2.0; zenodo/zenodo-rdm GPL-3.0; anthropics/claude-code 404 (no detected licence)",
+    "curl raw anthropics/claude-code/HEAD/LICENSE.md -> '© Anthropic PBC. All rights reserved. Use is subject to Anthropic's Commercial Terms of Service' (recorded as proprietary)",
+    "credits_problems(CREDITS.md) -> 10 titles, [] problems",
+    "test_the_parser_catches_each_gap: a sample with missing URL, bare URL, non-licence text, 'ACCEPTED' (CC inside a word) and empty what-we-took yields exactly five problems; a wrapped valid entry yields none",
+    "test_both_kit_manifests_carry_credits (real-tree rebuild into a temp dir) -> .claude/CREDITS.md and dot-claude-iff-kit/.claude/CREDITS.md present and parse clean"
+  ],
+  "DEVIATIONS": [
+    "The task's Plan says 'one line in the root README's licence paragraph'. There is no root README.md and .github/README.md had no licence paragraph; I added a two-line 'Licence and credits.' paragraph (Apache-2.0, LICENSE, NOTICE, CREDITS.md) just before the closing footer of .github/README.md.",
+    "Shipping uses a new CREDIT_FILES = (\"CREDITS.md\",) beside LEGAL_FILES (the DoD allows 'listed there or beside it') so LEGAL_FILES keeps meaning the Apache notice files.",
+    "Beyond the DoD: a fixture test that CREDITS.md ships into .claude/ of both kits and never to the adopter's root (absent, nothing ships), and a check that CREDITS.md never contains 'temp-to-analyse'."
+  ],
+  "UNCERTAINTIES": [
+    "Jev (issue #12): no source was found; no entry added, and the web was not searched, per the task.",
+    "Anthropic docs: the docs site's terms were not read; the entry's 'proprietary' comes from Claude Code's LICENSE.md only, and the entry says so.",
+    "Cview is a private repository when read: its URL resolves only for people with access.",
+    "Zenodo: the hosted service's terms of use were not read; the GPL word reflects the zenodo/zenodo (GPL-2.0) and zenodo/zenodo-rdm (GPL-3.0) LICENSE files.",
+    "Graphify: the repository LICENSE reads Apache-2.0; the research note's 'Apache-2.0 plus MIT' (from its README) was not re-read.",
+    "The two private source systems are entered as 'no licence stated' with the public design contract on GitHub (main branch, file confirmed via gh api) as their URL; their 'what we took' lines rest on that contract's text."
+  ],
+  "needs_main": [
+    "Rebuild and commit the dist zips at the ritual's POLISH/PUBLISH: both kits now carry .claude/CREDITS.md, so the committed zips differ from a rebuild until then.",
+    "Stage the new root file CREDITS.md (untracked in the worktree)."
+  ],
+  "SUGGESTIONS": [
+    "The card .claude/system-map/cards/tool.distctl.json describes LEGAL_FILES (LICENSE, NOTICE) shipping inside .claude/; it could mention CREDITS.md too (not edited: outside this task's Owns).",
+    "NOTICE could point readers at CREDITS.md for lineage; it was left untouched as the task requires."
+  ]
+}
