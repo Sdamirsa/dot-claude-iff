@@ -795,10 +795,22 @@ def _validate_labels(obj, batch_len: int, taxonomy: list):
     return {"labels": rows, "batch_summary": str(obj.get("batch_summary", ""))[:1000]}
 
 
+def _redact_secrets(text: str) -> str:
+    """Replace every key-shaped string with [REDACTED:<pattern name>] before it can reach an
+    endpoint, local or remote. The patterns are checkctl's, imported rather than copied, so the
+    commit-time scan and this send-time redaction can never drift apart. An import failure
+    raises before anything is posted: the redactor fails closed."""
+    from checkctl import SECRET_PATTERNS
+    for name, rx in SECRET_PATTERNS:
+        text = rx.sub(f"[REDACTED:{name}]", text)
+    return text
+
+
 def _serialize_batch(batch: list) -> str:
     lines = []
     for i, ev in enumerate(batch):
-        text = json.dumps(ev, ensure_ascii=False, default=str)
+        # Redact BEFORE truncating, so a key cut at the boundary cannot leak its prefix.
+        text = _redact_secrets(json.dumps(ev, ensure_ascii=False, default=str))
         if len(text) > MAX_EVENT_CHARS:
             text = text[:MAX_EVENT_CHARS] + f'... [truncated {len(text) - MAX_EVENT_CHARS} chars]"}}'
         lines.append(f"[{i}] {text}")
@@ -878,6 +890,7 @@ def analyze_status() -> dict:
     model = acfg.get("model")
     key_env = next((e for e in ANALYZE_KEY_ENVS if os.environ.get(e)), None)
     local = bool(base_url) and ("localhost" in base_url or "127.0.0.1" in base_url)
+    remote_consent = acfg.get("remote_consent") is True
     configured = bool(base_url) and bool(model) and (local or key_env is not None)
     products = []
     analysis_dir = _lib.record_paths()["analysis"]
@@ -891,6 +904,8 @@ def analyze_status() -> dict:
         "key_env": key_env,               # which env var satisfied the check, or null
         "key_envs_accepted": list(ANALYZE_KEY_ENVS),
         "key_required": not local,
+        "remote_consent": remote_consent,              # analyze.remote_consent, the human's knob
+        "consent_required": bool(base_url) and not local,  # record text would leave the machine
         "taxonomy": acfg.get("taxonomy") or [],
         "products": len(products),
         "last_product": products[-1] if products else None,
@@ -898,6 +913,18 @@ def analyze_status() -> dict:
                 "finished": status.get("finished"), "detail": status.get("detail")},
         "command": "python3 .claude/tools/obsctl.py analyze",
     }
+
+
+def _consent_line(status: dict, n_events: int) -> str:
+    """What a remote run sends, said in counts and hosts only: never event content (law 3)."""
+    import urllib.parse
+
+    host = urllib.parse.urlsplit(status["base_url"] or "").hostname or status["base_url"]
+    given = "true" if status["remote_consent"] else "false"
+    return (f"analyze: remote endpoint - {n_events} raw event(s) to host {host!r}, "
+            f"model={status['model']!r}; key-shaped secrets are redacted first "
+            f"([REDACTED:<name>]). Consent knob: analyze.remote_consent={given} in "
+            f".claude/config/observe.json")
 
 
 def _write_run_status(paths: dict, **fields) -> None:
@@ -920,7 +947,10 @@ def cmd_analyze(args) -> int:
 
     Unconfigured (no base_url/model, or a remote endpoint with no key in the environment)
     degrades to a clear guided no-op at exit 0: a missing analysis feature must never break
-    the work. --dry-run reports what WOULD be sent - counts and taxonomy only, never content.
+    the work. A remote endpoint is a gate: without analyze.remote_consent=true it sends
+    nothing, prints the consent line and exits 1; with it, the same line precedes the send.
+    Every batch is secret-redacted, local or remote. --dry-run reports what WOULD be sent -
+    counts, taxonomy and consent state only, never content.
     """
     from concurrent.futures import ThreadPoolExecutor
 
@@ -936,9 +966,17 @@ def cmd_analyze(args) -> int:
     n_batches = (len(events) + batch_size - 1) // batch_size if events else 0
 
     if args.dry_run:
+        if not status["consent_required"]:
+            consent = "not required (local or no endpoint)"
+        elif status["remote_consent"]:
+            consent = "given (analyze.remote_consent=true)"
+        else:
+            consent = ("MISSING - a real run would send nothing and exit 1; set "
+                       "analyze.remote_consent=true in .claude/config/observe.json")
         print(f"DRY-RUN: would send {len(events)} raw event(s) in {n_batches} chunk(s) of up to "
               f"{batch_size}, {parallel} in parallel, to {status['base_url']!r} "
-              f"model={status['model']!r} taxonomy={taxonomy} -- raw content withheld")
+              f"model={status['model']!r} taxonomy={taxonomy} -- raw content withheld, "
+              f"secrets redacted. Remote consent: {consent}")
         _lib.print_verdict("OBS", True)
         return 0
 
@@ -963,6 +1001,15 @@ def cmd_analyze(args) -> int:
         print("analyze: no raw events available in sealed-raw/spool -- no-op.")
         _lib.print_verdict("OBS", True)
         return 0
+
+    # The consent gate: record text goes off-machine only on the human's explicit knob.
+    if status["consent_required"]:
+        print(_consent_line(status, len(events)))
+        if not status["remote_consent"]:
+            print("analyze: REFUSED - nothing sent. Set analyze.remote_consent to true to allow "
+                  "sending to this remote endpoint, or point base_url at a local server.")
+            _lib.print_verdict("OBS", False)
+            return 1
 
     api_key = os.environ.get(status["key_env"]) if status["key_env"] else None
     batches = [events[i:i + batch_size] for i in range(0, len(events), batch_size)]

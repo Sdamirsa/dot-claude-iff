@@ -83,7 +83,12 @@
       "",
       "Products land in RECORD_ROOT/analysis/; `obsctl story` folds their labels into the",
       "story feed's analysis lane by plain-code aggregation. Unconfigured degrades to a",
-      "guided no-op: nothing else in the system depends on this feature existing."
+      "guided no-op: nothing else in the system depends on this feature existing.",
+      "",
+      "remote_consent: record text leaves the machine only when this is true. A non-local",
+      "base_url with remote_consent false makes analyze send nothing and exit 1 (the gate",
+      "fails closed); local endpoints never need it. Either way, every batch is redacted",
+      "first: matches of checkctl.SECRET_PATTERNS become [REDACTED:<name>]."
     ],
     "provider": "none",
     "providers": ["none", "openai", "ollama", "openrouter"],
@@ -92,7 +97,8 @@
     "taxonomy": ["error", "decision", "system-evolution", "data-evolution"],
     "max_events_per_batch": 200,
     "parallel": 4,
-    "timeout_s": 90
+    "timeout_s": 90,
+    "remote_consent": false
   },
   "size_warn_mb": 2048
 }
