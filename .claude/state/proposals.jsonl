@@ -24,3 +24,4 @@
 {"ts": "2026-11-04T16:36:27Z", "op": "resolve", "id": "PR-10", "resolution": "planned", "note": "T14 merged: accept removes the stub after the merge"}
 {"ts": "2026-11-04T16:36:27Z", "op": "resolve", "id": "PR-11", "resolution": "planned", "note": "T15 merged: exit_build runs full-suite commands once and marks module subsets as covered"}
 {"ts": "2026-11-04T16:36:28Z", "op": "resolve", "id": "PR-16", "resolution": "planned", "note": "T17 merged: CREDITS.md at the root, shipped inside .claude/ of both kits, parsed by a test"}
+{"ts": "2026-11-04T17:40:54Z", "op": "resolve", "id": "PR-15", "resolution": "planned", "note": "T18 (architecture spec from the cards + docs/ARCHITECTURE.md Mermaid with GitHub click links), T19 (graphctl build|update|status, graphify normaliser + ast walker, code scope), T20 (console MAP scope switcher) merged 2026-11-04; generators code_graph_build and architecture_build registered"}

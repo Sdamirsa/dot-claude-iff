@@ -101,8 +101,8 @@ only by `mapctl architecture`):
 
 - [x] Wave 1 dispatched and accepted, done when: four `accept` merges and the suite green (2026-11-04, 818 tests and the kit self-test green)
 - [x] Wave 2 (lead), done when: `mapctl context` and `context_health` accept CLAUDE.md; PR-5 decided (both committed 2026-11-04)
-- [ ] T18 accepted, done when: `test_graph` green and the console MAP tab shows the `.claude` scope
-- [ ] Proposals resolved, done when: `statectl proposal list` shows none of PR-8/9/10/11/14/15/16 open
+- [x] T18, T19, T20 accepted (2026-11-04), done when: `test_graph` green and the console MAP tab shows the `.claude` scope (suite 889 green; verifier envelope verify-wave3-030b)
+- [x] Proposals resolved (2026-11-04), done when: `statectl proposal list` shows none of PR-8/9/10/11/14/15/16 open
 
 ## Checkpoint
 

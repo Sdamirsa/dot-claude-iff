@@ -1,6 +1,6 @@
 # Task: T19 - graphctl: the code graph, from graphify's output or a stdlib walker
 
-_Created 2026-11-04 · Status: todo_
+_Created 2026-11-04 · Status: done_
 
 Milestone: M-0.3.0-beta.1 · Closes: PR-15 (tier 2) · Shared contracts: `030b-00-milestone.md`
 
