@@ -1,0 +1,36 @@
+{
+  "agent_id": "builder-T15",
+  "task_id": "T15",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "RESULT": "generator_freshness_report now compares the ledger's output_hash once the inputs still match, and WARNs 'output changed since the last run (hand-edited or rebuilt outside the ritual)'; a ledger entry without output_hash is not flagged for it. exit_build runs each distinct Test once, full-suite commands first, and gives a suite-runner command naming modules the status of the same interpreter+runner run with no modules, prefixed 'covered by the full suite: '. The subset rule is a pure function, checkctl.suite_coverage(commands), with its own tests.",
+  "files_changed": [
+    ".claude/tools/checkctl.py",
+    ".claude/tools/tests/test_ritual.py",
+    ".claude/tools/tests/test_phases.py"
+  ],
+  "tests": [
+    {"command": "python3 .claude/tools/tests/run_tests.py test_ritual test_phases -q", "exit_code": 0, "summary": "108 passed · 0 failed · 0 errored · 0 skipped / TESTS_OK"},
+    {"command": "python3 .claude/tools/tests/run_tests.py -q", "exit_code": 0, "summary": "794 passed · 0 failed · 0 errored · 2 skipped / TESTS_OK"}
+  ],
+  "EVIDENCE": [
+    "mutation: guard disabled (no output comparison) -> test_a_hand_edit_after_the_run_is_flagged and test_the_generators_listing_shows_the_reason FAIL",
+    "mutation: legacy guard removed (entry['output_hash'] unconditional) -> test_a_legacy_entry_without_output_hash_is_not_flagged_for_it ERROR",
+    "mutation: covered = {} in exit_build -> test_a_module_subset_is_covered_by_the_full_suite and test_a_covered_task_gets_the_full_suites_failure FAIL",
+    "mutation: full-suite-first sort removed -> test_a_module_subset_is_covered_by_the_full_suite FAIL (runs.txt order)",
+    "existing test_a_shared_test_command_runs_once still green, unchanged",
+    "checkctl.py, test_ritual.py, test_phases.py keep CRLF line endings throughout (checked by byte count)"
+  ],
+  "DEVIATIONS": [
+    "The suite runner is recognised only at the exact repo-relative path .claude/tools/tests/run_tests.py (normcase of as_posix, so ./ and backslashes match) and the interpreter (argv[0], normcase) must match too: python vs python3, an absolute runner path, or interpreter options before the runner (python3 -X utf8 ...) are never treated as subsets. This is stricter than 'same runner path', and on purpose: only this runner's semantics (every '-' argument a flag, everything else a module selector) are known."
+  ],
+  "UNCERTAINTIES": [
+    "A covered subset whose selectors match no module (run_tests.py exits 2 alone) now reports the full suite's status instead; the rule is pure by design, so it does not check selectors against the test_*.py files.",
+    "Not run on Ubuntu; the tests use only sys.executable and fixture paths."
+  ],
+  "needs_main": [],
+  "SUGGESTIONS": [
+    "_lib.sha256_paths hashes absolute path strings, so the ledger's inputs_hash and output_hash change when the checkout moves: in this worktree `checkctl generators` reports every generator 'inputs changed'. Hashing root-relative paths would make the ledger portable (this changes stamp_generator's format, out of scope here)."
+  ]
+}

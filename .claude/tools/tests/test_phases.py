@@ -373,6 +373,39 @@ class TestBuildExit(PhaseCase):
         self.assertEqual(result.status, checkctl.FAIL)
         self.assertIn("timed out after 1s", result.message)
 
+    def suite_runner(self, exit_code: int = 0) -> None:
+        """A stand-in suite runner at the real runner's path: it logs its arguments."""
+        runner = self.root / ".claude" / "tools" / "tests" / "run_tests.py"
+        runner.parent.mkdir(parents=True, exist_ok=True)
+        runner.write_text("import sys\nopen('runs.txt', 'a').write(' '.join(sys.argv[1:]) + '|')\n"
+                          f"print('suite-tail')\nsys.exit({exit_code})\n", encoding="utf-8")
+
+    def test_a_module_subset_is_covered_by_the_full_suite(self):
+        self.suite_runner()
+        self.task("T1", cmd("open('runs.txt', 'a').write('other|')"))  # first by id, runs second
+        self.task("T2", f'`"{PY}" .claude/tools/tests/run_tests.py test_ritual -q`')
+        self.task("T3", f'`"{PY}" .claude/tools/tests/run_tests.py -q`')
+        results = {r.name: r for r in checkctl.phase_exit("build")}
+        self.assertEqual({name: r.status for name, r in results.items()},
+                         {"milestone": checkctl.OK, "T1": checkctl.OK, "T2": checkctl.OK,
+                          "T3": checkctl.OK})
+        self.assertEqual((self.root / "runs.txt").read_text(encoding="utf-8"), "-q|other|",
+                         "exactly two runs, the full suite first; the subset never ran")
+        self.assertIn("covered by the full suite", results["T2"].message)
+        self.assertNotIn("covered", results["T1"].message)
+        self.assertNotIn("covered", results["T3"].message)
+
+    def test_a_covered_task_gets_the_full_suites_failure(self):
+        self.suite_runner(exit_code=1)
+        self.task("T1", f'`"{PY}" .claude/tools/tests/run_tests.py test_ritual`')
+        self.task("T2", f'`"{PY}" .claude/tools/tests/run_tests.py`')
+        results = {r.name: r for r in checkctl.phase_exit("build")}
+        self.assertEqual(results["T1"].status, checkctl.FAIL)
+        self.assertIn("covered by the full suite", results["T1"].message)
+        self.assertIn("exit 1", results["T1"].message)
+        self.assertIn("suite-tail", "\n".join(results["T1"].details))
+        self.assertEqual((self.root / "runs.txt").read_text(encoding="utf-8"), "|")
+
     def test_no_task_under_the_milestone_fails(self):
         results = checkctl.phase_exit("build")
         self.assertEqual(self.statuses(results), {"milestone": checkctl.FAIL})
@@ -384,6 +417,39 @@ class TestBuildExit(PhaseCase):
         self.assertEqual(checkctl.phase_exit("build")[0].status, checkctl.FAIL)
         self.assertEqual(self.statuses(checkctl.phase_exit("build", milestone="M0")),
                          {"milestone": checkctl.OK, "T1": checkctl.OK})
+
+
+class TestSuiteCoverage(unittest.TestCase):
+    """checkctl.suite_coverage: a pure function of the Test commands, no files, no runs."""
+
+    FULL = "python3 .claude/tools/tests/run_tests.py -q"
+    SUBSET = "python3 .claude/tools/tests/run_tests.py test_ritual test_phases -q"
+
+    def test_a_module_subset_is_covered_by_the_same_runner_without_modules(self):
+        self.assertEqual(checkctl.suite_coverage([self.SUBSET, self.FULL]), {self.SUBSET: self.FULL})
+        for full in ("python3 .claude/tools/tests/run_tests.py",
+                     "python3 ./.claude/tools/tests/run_tests.py -v"):
+            with self.subTest(full=full):  # flags ignored, the path compared normalised
+                self.assertEqual(checkctl.suite_coverage([full, self.SUBSET]), {self.SUBSET: full})
+
+    def test_not_covered_by_a_different_runner_or_interpreter(self):
+        for full, subset in (
+                ("python3 other/tests/run_tests.py", "python3 other/tests/run_tests.py test_x"),
+                (self.FULL, "python3 other/tests/run_tests.py test_x"),
+                ("python3 other/tests/run_tests.py", self.SUBSET),
+                ("python .claude/tools/tests/run_tests.py -q", self.SUBSET),
+                ("python3 -m pytest", "python3 -m pytest tests/test_x.py")):
+            with self.subTest(full=full, subset=subset):
+                self.assertEqual(checkctl.suite_coverage([full, subset]), {})
+
+    def test_not_covered_when_both_name_modules(self):
+        other = "python3 .claude/tools/tests/run_tests.py test_ritual"
+        self.assertEqual(checkctl.suite_coverage([self.SUBSET, other]), {})
+
+    def test_full_suites_and_unparseable_commands_are_never_covered(self):
+        commands = [self.FULL, "python3 .claude/tools/tests/run_tests.py", 'python3 "unclosed',
+                    "python3 -c pass", ""]
+        self.assertEqual(checkctl.suite_coverage(commands), {})
 
 
 # --------------------------------------------------------------------------- review / deploy
