@@ -26,7 +26,7 @@ to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gat
 Applies when the SessionStart hook printed a WORKTREE SESSION block or TASK.md sits at the
 checkout root. The task is TASK.md: edit only the files its Owns section lists; commit often
 on this branch, never push; never edit TASK.md. Done: write DONE.md (`# DONE`, `summary:`,
-`tests:`); stuck: BLOCKED.md with the question; then stop. `.claude/state/` and the ritual are
+`tests:`); stuck: BLOCKED.md with the question; then stop. The state folder and the ritual are
 the main checkout's (`statectl`, the gate and `checkctl` refuse them here); it reviews the diff.
 
 ## Reviewing under Cview (the main session)
