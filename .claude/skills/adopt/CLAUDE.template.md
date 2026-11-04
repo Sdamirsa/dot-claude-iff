@@ -6,47 +6,34 @@
 to evolve** (`/project-memory`) - on an always-on record, behind fail-closed gates.
 
 > Start here: `.claude/STATUS.md` (where we are) · `.claude/tasks/` (active work) · the console
-> (half your screen beside this terminal; its port derives from the folder name and every
-> session start prints the URL that actually bound). This file is a map, not a dump.
+> (its port derives from the folder name; every session start prints the URL that bound).
+> This file is a map, not a dump: the protocols hold the rules, `.claude/README.md` the manual.
 
 ## Session ritual
 
 - **Start:** the SessionStart hook prints the resume block. Read `.claude/STATUS.md` and the
-  active task file. Set a pointer before anything long or risky:
-  `python3 .claude/tools/statectl.py pointer "<next concrete action>"` - a mid-turn cutoff never
-  fires the Stop hook, so the pointer on disk is the only thing that actually survives.
-- **During:** follow `.claude/protocols/`: handshake, human-gates, honesty, evolution, orchestration.
+  active task file. Before anything long or risky, set a pointer:
+  `python3 .claude/tools/statectl.py pointer "<next concrete action>"` - a mid-turn cutoff
+  never fires the Stop hook; the pointer on disk is what survives.
+- **During:** follow `.claude/protocols/`: handshake, human-gates, honesty, evolution,
+  orchestration. Honesty is the working agreement (faithful reporting, mistakes logged on both
+  sides, pushback then align, no volatile numbers in docs) and the communication rules.
 - **End:** the user types `/project-memory`; you suggest it at a natural boundary. The ritual
   is the user's command: `checkctl` refuses a run without the ticket their prompt mints.
 
 ## In a worktree (a worker)
 
-Applies when the SessionStart hook printed a WORKTREE SESSION block (this checkout is a linked
-worktree under `.claude/worktrees/`) or TASK.md sits at the checkout root. The task is
-TASK.md: edit only the files its Owns section lists; commit often on this branch, never push;
-never edit TASK.md. When done, write DONE.md (`# DONE`, `summary:`, `tests:`); when stuck,
-BLOCKED.md with the question; then stop. .claude/state/ here is the main checkout's copy:
-`statectl` and the gate refuse to write it, never stage it, and the ritual (`/project-memory`)
-is the main checkout's: `checkctl` refuses it here. The main session reviews the diff and
-records the outcome.
+Applies when the SessionStart hook printed a WORKTREE SESSION block or TASK.md sits at the
+checkout root. The task is TASK.md: edit only the files its Owns section lists; commit often
+on this branch, never push; never edit TASK.md. Done: write DONE.md (`# DONE`, `summary:`,
+`tests:`); stuck: BLOCKED.md with the question; then stop. `.claude/state/` and the ritual are
+the main checkout's (`statectl`, the gate and `checkctl` refuse them here); it reviews the diff.
 
 ## Reviewing under Cview (the main session)
 
-Applies when .cview/ exists at the repo root. `REVIEW <task> round <n>` messages arrive in
-this terminal: run `/code-review main...worktree-<task>`, decide with
-`cview verdict <task> pass|reject --reasons "..."`, and never edit files in a worktree or
-merge: the human merges from Cview's Intake and is the only one who pushes.
-
-## Working agreement
-
-1. **Faithful reporting.** Failures come with their output; skipped steps are named; "done"
-   means verified-done.
-2. **Mistakes get logged, both sides:** a `mistake` entry in `Project-log.jsonl` plus a
-   `LESSONS.jsonl` row whose prevention rule is mechanical and checkable.
-3. **Recurring mistakes get one respectful reminder,** citing the lesson row.
-4. **Pushback, then align.** The concern once, with evidence and an alternative; if the user
-   confirms their path, align fully and log it tagged `user-confirmed-over-pushback`.
-5. **No volatile numbers in docs.** Point at the source data file instead.
+Applies when .cview/ exists at the repo root. On `REVIEW <task> round <n>`: run
+`/code-review main...worktree-<task>`, decide with `cview verdict <task> pass|reject
+--reasons "..."`; never edit a worktree or merge: the human merges from Intake and pushes.
 
 ## Communication
 
@@ -88,13 +75,13 @@ python3 .claude/tools/obsctl.py     ingest|seal|rollup|anchor|report|story|size|
 python3 .claude/tools/consolectl.py build|payload|serve · sysmon.py · tests/run_tests.py
 ```
 
-- **Modes** (`statectl mode`): freestyle (default) · guided-solo · fableous-orchestrated.
-- **Phases** (`statectl phase`): plan → build → review → deploy, each exit run by `phase-exit`.
-- **The ritual**: user-typed only; it ends with ROUTE (next phase, next mode, maturation pass).
+- **Three dials**: mode (`statectl mode`: freestyle, guided-solo, fableous-orchestrated),
+  phase (`statectl phase`: plan → build → review → deploy, each exit run by `phase-exit`), and
+  the ritual, user-typed only, which ends with ROUTE (next phase, next mode, maturation pass).
 - **Proposals** (`statectl proposal add`): parked ideas; in deploy, new features go here.
 - **Orchestration** (`protocols/orchestration.md`): lead-only dispatch/accept, handoff, progress.
-- **Health** `checkctl doctor` · **export** `distctl export` · **secrets** `reference/secrets.md`.
-- **Folder context** (`mapctl context`): which guides and rules load where.
+- **Health** `checkctl doctor` · **export** `distctl export` · **secrets** `reference/secrets.md`
+  · **folder context** `mapctl context` (which guides and rules load where).
 
 Skills: `/project-memory` (the user's) · `/plan-task` · `/adopt` · `/adhd` (a user-invoked
 brainstorm of about ten agent calls: suggest it in one line for an open question, never run it).
@@ -125,7 +112,3 @@ evolution) · `verifier` (adversarial claim checking) · `builder` (one task car
 - Flow layers are earned through evolution, never guessed at adoption. Unplaced is honest.
 
 {{INVARIANTS}}
-
-## Domain notes
-
-{{DOMAIN_NOTES}}
