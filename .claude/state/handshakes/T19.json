@@ -1,0 +1,63 @@
+{
+  "agent_id": "builder-T19",
+  "task_id": "T19",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "RESULT": "New stdlib tool .claude/tools/graphctl.py (build|update|status) normalises graphify's <RECORD_ROOT>/graph/graphify-out/graph.json, or else runs an ast and source-line walker, into the slim code-graph.json schema. It also exposes architecture_scope(root, max_nodes=40, graph=None) in the architecture node/edge shape. Probe entry, map card, the pin knob with its registry card, and the gitignore line are in place; the suite is green after the lead merged dev's kit fix.",
+  "files_changed": [
+    ".claude/tools/graphctl.py",
+    ".claude/tools/tests/test_graph.py",
+    ".claude/tools/checkctl.py",
+    ".claude/config/console.json",
+    ".claude/config/registry.json",
+    ".claude/system-map/cards/tool.graphctl.json",
+    ".gitignore"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_graph -q",
+      "exit_code": 0,
+      "summary": "30 passed · 0 failed · 0 errored · 0 skipped"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "849 passed · 0 failed · 0 errored · 2 skipped"
+    }
+  ],
+  "needs_main": [
+    "Declare store.code_graph (.claude/system-map/code-graph.json) in mapctl.KNOWN_STORES, add its store card, and set tool.graphctl writes -> store.code_graph. mapctl.py belongs to T18, so I did not touch it.",
+    "Adopters: add .claude/system-map/code-graph.json to distctl's managed gitignore block (render_gitignore_block). The home .gitignore carries it just after the block, so kits do not get it.",
+    "Register a code_graph_build generator (checkctl GENERATORS + memory.json phases.polish + policy.json derived_files) if the ritual should refresh the graph; this task did not ask for it.",
+    "Run `python3 .claude/tools/graphctl.py build` once in the main checkout to normalise the real graphify output (see UNCERTAINTIES)."
+  ],
+  "EVIDENCE": [
+    "CLAUDE_IFF_RECORD_ROOT=./.no-record python3 .claude/tools/graphctl.py build -> exit 0, 'GRAPH BUILD: source walker, 2047 nodes, 5024 edges, 40 files', WARN with 'uvx --from graphifyy==0.9.102 graphify extract . --code-only --out <record>/graph --exclude .claude/worktrees --exclude .claude-iff', GRAPH_WARN",
+    "graphctl.py status -> exit 0, counts, 'built 0s ago', 'graphify output not found at ...', pin line",
+    "architecture_scope('.claude/tools') on this repo -> 11 file nodes, 47 edges, folded 0, tests excluded",
+    "python3 .claude/tools/checkctl.py probe -> 53 ok, [ ok ] tool.graphctl; check_config_registry -> OK 50 knobs registered, none dead",
+    "python3 .claude/tools/mapctl.py lint -> 0 error(s), 13 warning(s) (stale auto.hash on cards of shared files, e.g. tool.checkctl, config.console, config.registry; no graphctl warning)",
+    "test_the_tool_never_starts_uvx_or_graphify: a Popen subclass records every process start across build/update/status; only the file listing is seen",
+    "after the dev merge: checkctl probe -> 53 ok · 0 warn · 0 fail; full suite TESTS_OK"
+  ],
+  "DEVIATIONS": [
+    "update is build without the extraction advice. It re-normalises existing graphify output or reruns the walker. It never runs `graphify update`, because the DoD forbids running graphify.",
+    "Missing or unknown graph.json schema_version: build fails with exit 1, GRAPH_FAIL and nothing written. It does not fall back to the walker silently, per the note's 'fail loudly'.",
+    "The gitignore line sits just after the managed block (DoD: 'or next to it'). Inside the block, distctl gitignore --apply would rewrite it away. The gitignore test skips outside the home repo, because a kit's .gitignore is the managed block only.",
+    "No store card for code-graph.json: test_mapctl requires every store card to be in KNOWN_STORES, which lives in mapctl.py (T18). See needs_main.",
+    "Ids are graphify's own on the graphify path and path / path::Qual.name on the walker path. Labels follow graphify's convention on both paths.",
+    "Graphify nodes dropped: rationale (docstring text), concept/external, and bare labels outside class-bearing languages (shell env vars, settings keys). Relations references/uses/rationale_for are dropped too.",
+    "Inherits edges: 1.0 confidence for a same-file base, 0.6 for an imported one. The task only specified 0.6 for calls."
+  ],
+  "UNCERTAINTIES": [
+    "Never ran against the real graphify output (the user's <RECORD_ROOT>/graph/graphify-out/graph.json). I kept my reads inside the worktree, so the normaliser was only tested on a fixture shaped after the note's 'Measured' section. In particular I did not check whether source_file is relative or absolute, the 'links' vs 'edges' key, or the file-node label convention.",
+    "Not verified that graphify accepts --exclude twice.",
+    "When code-graph.json is missing, architecture_scope builds the graph in memory. A committed architecture.json then depends on whether graphify output exists locally (T18 determinism).",
+    "CI (ubuntu-latest) not run; only Windows locally."
+  ],
+  "SUGGESTIONS": [
+    "glossary.md / README.md / CLAUDE.md command list do not mention graphctl yet (lead's docs).",
+    "CREDITS.md credit for graphify, per the research note, once the lead decides."
+  ]
+}

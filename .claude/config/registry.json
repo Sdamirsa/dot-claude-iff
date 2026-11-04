@@ -500,6 +500,19 @@
       "default": 40
     },
     {
+      "key": "console.code_graph.graphify_version",
+      "title": "graphify pin",
+      "description": "The graphifyy package version in the extraction command graphctl.py build prints (uvx --from graphifyy==<pin> graphify extract ...) for the human to run in their own terminal. graphctl never runs it; it normalises the output that exists under <RECORD_ROOT>/graph/ and fails on a graph.json schema_version it was not written for. Bumping it is a visible config change.",
+      "layer": "CONSOLE",
+      "target": {
+        "kind": "config",
+        "file": "console",
+        "path": "code_graph.graphify_version"
+      },
+      "type": "string",
+      "default": "0.9.102"
+    },
+    {
       "key": "agent.anatomist.model",
       "title": "Anatomist model",
       "description": "The .claude anatomy expert: reads components, traces relations, maintains cards, implements approved evolution changes.",

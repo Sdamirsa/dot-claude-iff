@@ -50,4 +50,6 @@ settings.local.json
 __pycache__/
 *.pyc
 # <<< dot-claude-iff managed block
+# The code graph (graphctl.py build): derived, machine-local, never committed
+.claude/system-map/code-graph.json
 .vscode/*

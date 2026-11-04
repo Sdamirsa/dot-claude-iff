@@ -1623,6 +1623,7 @@ def probe() -> list:
         ("tool.distctl", ".claude/tools/distctl.py"),
         ("tool.ctxmap", ".claude/tools/ctxmap.py"),
         ("tool.progress", ".claude/tools/progress.py"),
+        ("tool.graphctl", ".claude/tools/graphctl.py"),
         ("hook.session-start", ".claude/hooks/session-start.sh"),
         ("hook.heartbeat", ".claude/hooks/heartbeat.sh"),
         ("hook.obs-capture", ".claude/hooks/obs-capture.sh"),
