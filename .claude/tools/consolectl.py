@@ -412,6 +412,17 @@ def _read_story():
     return _lib.read_json(_lib.state_dir() / "story-feed.json", None)
 
 
+def _read_architecture():
+    """The architecture spec (system-map/architecture.json, written by `mapctl architecture`),
+    which the MAP tab's scope switcher renders. Embedded whole: the spec caps each scope's
+    nodes, so the snapshot stays small. Absent, unreadable or not the spec's shape (an object
+    with a `scopes` list) degrades to None, and the tab falls back to the cards view."""
+    data = _lib.read_json(_lib.map_dir() / "architecture.json", None)
+    if not isinstance(data, dict) or not isinstance(data.get("scopes"), list):
+        return None
+    return data
+
+
 def _read_context(map_data) -> dict:
     """The MAP tab's Context list: map.json's `context` section (derived by ctxmap at compile,
     so the live poll never re-walks the tree), read through ctxmap's own contract reader and
@@ -487,11 +498,13 @@ def payload(live: bool = False) -> dict:
         "mode": "live" if live else "static",
         "project": {
             "name": _lib.project_name(),
-            # Never the absolute path: this payload is baked into a COMMITTED file, and a
-            # machine's home directory does not belong in a repo. The file:// links that used
-            # this derive the root client-side from the page's own location instead, which is
-            # the only situation where those links work anyway.
-            "root": None,
+            # Never the absolute path in a static build: that payload is baked into a COMMITTED
+            # file, and a machine's home directory does not belong in a repo. The file:// links
+            # derive the root client-side from the page's own location instead, which is the
+            # only situation where those links work anyway. The live payload is served on
+            # loopback and never committed, so it carries the root: the MAP dialog's editor
+            # link (vscode://file/<root>/<path>) is built from it.
+            "root": _lib.project_root().resolve().as_posix() if live else None,
             "system_version": _lib.system_version(),
             **_repo_links(),
         },
@@ -500,6 +513,7 @@ def payload(live: bool = False) -> dict:
         "tokens": tokens,
         "work": work,
         "map": map_data,
+        "architecture": _read_architecture(),
         "context": _read_context(map_data),
         "story": story_data,
         "analysis": analysis,

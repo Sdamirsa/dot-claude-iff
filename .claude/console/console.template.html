@@ -400,16 +400,24 @@ body {
 .legend-swatch.kind-data { background: var(--color-data); }
 .legend-swatch.kind-human { background: var(--color-human); }
 .legend-swatch.kind-external { background: var(--color-external); }
+.legend-swatch.kind-folder { background: var(--color-external); }
+.legend-swatch.kind-file { background: var(--color-code); }
 .legend-line { width: 24px; height: 0; display: inline-block; border-top: 2.5px solid; }
 .legend-line.edge-key-invoke { border-color: var(--edge-invoke); }
 .legend-line.edge-key-write { border-color: var(--edge-write); }
 .legend-line.edge-key-read { border-color: var(--edge-read); border-top-style: dashed; }
+.legend-line.edge-key-other { border-color: var(--color-external); }
+.legend-line.is-dashed { border-top-style: dashed; }
+.legend-line.is-solid { border-top-style: solid; }
 .map-toolbar { display: flex; gap: 6px; margin-bottom: 10px; }
 .view-btn {
   background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 999px;
   padding: 4px 12px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-dim);
 }
 .view-btn.active { color: var(--accent); border-color: var(--accent); background: var(--bg-elevated); }
+/* -- scope switcher: cards (map.json) plus one button per architecture.json scope -- */
+.map-scope-switch { flex-wrap: wrap; }
+.map-scope-meta { font-size: 11px; color: var(--text-dim); margin-bottom: 10px; }
 
 .map-canvas { position: relative; }
 .map-edges { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: visible; }
@@ -441,6 +449,12 @@ body {
 .edge-invoke { stroke: var(--edge-invoke); stroke-width: 1.4; fill: none; }
 .edge-human { stroke: var(--color-human); stroke-width: 1.5; stroke-dasharray: 6 4; fill: none; }
 .edge-validates { stroke: var(--color-code); stroke-width: 1.6; stroke-dasharray: 1 4; stroke-linecap: round; fill: none; }
+/* a spec edge's own style wins over its label's default dash; its label sits at the midpoint */
+.edge-dashed { stroke-dasharray: 6 4; }
+.edge-solid { stroke-dasharray: none; }
+.edge-label { font-size: 10px; font-family: var(--mono); fill: var(--text-dim);
+  paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round; }
+.editor-link { margin-left: 10px; font-size: 12px; }
 
 dialog#node-dialog {
   border: 1px solid var(--border); border-radius: var(--radius);
@@ -673,6 +687,23 @@ function pathLink(label, relPath, className) {
   return el("span", { class: className, title: relPath + " - open locally; not reachable over http" }, [label]);
 }
 
+// The editor jump: a vscode:// link hands the file to the editor the user already has, from
+// any origin, so no server ever reads the repo. It needs the absolute root, which only the
+// LIVE payload carries (a static build keeps project.root null on purpose), so it is offered
+// only over http(s); under file: pathLink above already links the file itself.
+function editorHref(relPath) {
+  if (location.protocol !== "http:" && location.protocol !== "https:") return null;
+  const root = DATA.project && DATA.project.root;
+  if (!root || !relPath) return null;
+  const abs = String(root).replace(/^\/+|\/+$/g, "") + "/" + String(relPath).replace(/^\/+/, "");
+  return "vscode://file/" + encodeURI(abs);
+}
+
+function editorLink(relPath) {
+  const href = editorHref(relPath);
+  return href ? el("a", { href: href, class: "editor-link", title: "open in VS Code" }, ["open in editor"]) : null;
+}
+
 function copyText(text, btn) {
   function flash() {
     if (!btn) return;
@@ -726,7 +757,8 @@ function kindChip(kind) {
 function kindColor(kind) {
   return {
     agent: "var(--color-agent)", code: "var(--color-code)", data: "var(--color-data)",
-    human: "var(--color-human)", external: "var(--color-external)"
+    human: "var(--color-human)", external: "var(--color-external)",
+    folder: "var(--color-external)", file: "var(--color-code)"
   }[kind] || "var(--color-external)";
 }
 
@@ -986,6 +1018,10 @@ function renderNow() {
 
 let mapView = "flows"; // "backbone" | "flows"
 let focusedNodeId = null; // FEATURE: focus mode - id of the node currently traced, or null
+// The scope switcher: "cards" (map.json, the component cards: the default) or one scope id
+// from the architecture spec (DATA.architecture, system-map/architecture.json). Not persisted:
+// a reload starts on cards, and a scope missing from a later poll falls back to cards.
+let mapScope = "cards";
 
 // Neighbors = nodes sharing any edge with `nodeId`, either direction.
 function mapNeighborIds(edges, nodeId) {
@@ -997,29 +1033,178 @@ function mapNeighborIds(edges, nodeId) {
   return ids;
 }
 
+// The spec's usable scopes: entries with a string id only, so a partial or older spec
+// degrades to fewer buttons, never a broken tab. "cards" is the built-in view's own id, so a
+// spec scope by that name is skipped rather than shadowing it. Empty means no switcher.
+function mapScopes() {
+  const arch = DATA.architecture;
+  if (!arch || !Array.isArray(arch.scopes)) return [];
+  return arch.scopes.filter(function (s) {
+    return s && typeof s === "object" && typeof s.id === "string" && s.id !== "" && s.id !== "cards";
+  });
+}
+
+function renderScopeSwitcher(scopes) {
+  const bar = el("div", { class: "map-toolbar map-scope-switch", role: "group", "aria-label": "map scope" });
+  [{ id: "cards", title: "cards", root: null }].concat(scopes).forEach(function (s) {
+    const btn = el("button", {
+      type: "button", class: "view-btn" + (mapScope === s.id ? " active" : ""),
+      dataset: { scope: s.id },
+      title: s.root ? ("scope root: " + s.root) : "the component cards (map.json)"
+    }, [s.title || s.id]);
+    // Like a view change, a scope change rebuilds the canvas, so a stale focus is dropped.
+    btn.addEventListener("click", function () { mapScope = s.id; focusedNodeId = null; renderMap(); });
+    bar.appendChild(btn);
+  });
+  return bar;
+}
+
+// The cards view: map.json's layers as bands (spines, then flows, UNPLACED last), its edges
+// as typed lines, and openNodeDialog for the detail popup.
+function cardsMapView(map) {
+  const layers = (map.layers) || { spines: [], flows: [], unplaced: null };
+  const orderedLayers = []
+    .concat((layers.spines || []).slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); }))
+    .concat((layers.flows || []).slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); }));
+  if (layers.unplaced) orderedLayers.push(layers.unplaced);
+
+  const nodesByLayer = {};
+  (map.nodes || []).forEach(function (n) {
+    const key = orderedLayers.some(function (l) { return l.id === n.layer; }) ? n.layer : (layers.unplaced ? layers.unplaced.id : "UNPLACED");
+    (nodesByLayer[key] = nodesByLayer[key] || []).push(n);
+  });
+
+  return {
+    // The color language, stated where the nodes are: what each hue MEANS. Kind is the
+    // component's role, and the legend is what lets a first-time reader decode the map
+    // without leaving the tab.
+    kinds: [["agent", "agent - a sub-agent definition"],
+            ["code", "code - a tool, hook or skill that runs"],
+            ["data", "data - a store, config or contract"],
+            ["human", "human - a person in the loop"],
+            ["external", "external - outside this repo"]],
+    edgeKeys: [["edge-key-invoke", "invokes - calls or dispatches"],
+               ["edge-key-write", "writes - produces or mutates"],
+               ["edge-key-read", "reads - consumes"]],
+    bands: orderedLayers.map(function (layer) {
+      return {
+        title: layer.title || layer.id, blurb: layer.blurb || "",
+        unplaced: !!(layers.unplaced && layer.id === layers.unplaced.id),
+        nodes: nodesByLayer[layer.id] || []
+      };
+    }),
+    edges: map.edges || [],
+    open: openNodeDialog,
+    meta: null
+  };
+}
+
+const SPEC_KIND_LEGEND = [
+  ["code", "code - a tool, hook or script"],
+  ["agent", "agent - a sub-agent definition"],
+  ["data", "data - a store, config or contract"],
+  ["human", "human - a person in the loop"],
+  ["folder", "folder - several files folded into one box"],
+  ["file", "file - one source file"]
+];
+const SPEC_EDGE_KEY = { invokes: "edge-key-invoke", writes: "edge-key-write", reads: "edge-key-read" };
+
+function ownKey(obj, key) { return Object.prototype.hasOwnProperty.call(obj, key); }
+
+// A spec scope as bands: the spec's groups in order, each node in its group's band, and any
+// node naming an unknown group in a trailing "ungrouped" band (shown, never dropped). Edges
+// keep their label (drawn at the midpoint) and their solid/dashed style; weight shows as xN.
+// Ids are card ids (tool.statectl): they only ever travel as data-* values and object keys.
+function specMapView(scope) {
+  const groups = (Array.isArray(scope.groups) ? scope.groups : []).filter(function (g) {
+    return g && typeof g.id === "string";
+  });
+  const byGroup = Object.create(null);
+  groups.forEach(function (g) { byGroup[g.id] = []; });
+  const ungrouped = [];
+  const kindsSeen = Object.create(null);
+  (Array.isArray(scope.nodes) ? scope.nodes : []).forEach(function (n) {
+    if (!n || typeof n.id !== "string") return;
+    const node = {
+      id: n.id, title: n.label || n.id, kind: n.kind, path: n.path, group: n.group,
+      glyphs: n.kind === "folder" ? ["folder"] : []
+    };
+    kindsSeen[n.kind] = true;
+    (typeof n.group === "string" && byGroup[n.group] ? byGroup[n.group] : ungrouped).push(node);
+  });
+
+  const edges = [];
+  const edgeKeys = [];
+  const keysSeen = Object.create(null);
+  (Array.isArray(scope.edges) ? scope.edges : []).forEach(function (e) {
+    if (!e || typeof e.from !== "string" || typeof e.to !== "string") return;
+    const label = typeof e.label === "string" ? e.label : "";
+    const weight = typeof e.weight === "number" && e.weight > 1 ? e.weight : 0;
+    const styleCls = e.style === "dashed" ? " edge-dashed" : (e.style === "solid" ? " edge-solid" : "");
+    edges.push({
+      from: e.from, to: e.to, type: label, style: e.style, weight: weight,
+      cls: (ownKey(EDGE_STYLE_BY_TYPE, label) ? EDGE_STYLE_BY_TYPE[label] : "edge-control") + styleCls,
+      edgeText: label + (weight ? " ×" + weight : "")
+    });
+    const legendKey = label + "|" + (e.style || "");
+    if (!keysSeen[legendKey]) {
+      keysSeen[legendKey] = true;
+      edgeKeys.push([(ownKey(SPEC_EDGE_KEY, label) ? SPEC_EDGE_KEY[label] : "edge-key-other")
+        + (e.style === "dashed" ? " is-dashed" : (e.style === "solid" ? " is-solid" : "")), label || "unlabelled"]);
+    }
+  });
+
+  const bands = groups.map(function (g) {
+    return { title: g.title || g.id, blurb: g.blurb || "", unplaced: false, nodes: byGroup[g.id] };
+  });
+  if (ungrouped.length) bands.push({ title: "ungrouped", blurb: "a node whose group the spec does not define", unplaced: true, nodes: ungrouped });
+
+  const stats = (scope.stats && typeof scope.stats === "object") ? scope.stats : {};
+  const nodeCount = bands.reduce(function (sum, b) { return sum + b.nodes.length; }, 0);
+  const meta = (scope.root ? "root " + scope.root + " · " : "")
+    + nodeCount + " box" + (nodeCount === 1 ? "" : "es") + " · " + edges.length + " arrow" + (edges.length === 1 ? "" : "s")
+    + (typeof stats.folded === "number" && stats.folded > 0 ? " · " + stats.folded + " folded" : "")
+    + (DATA.architecture && DATA.architecture.generated_at ? " · spec " + DATA.architecture.generated_at : "");
+
+  return {
+    kinds: SPEC_KIND_LEGEND.filter(function (pair) { return kindsSeen[pair[0]]; }),
+    edgeKeys: edgeKeys,
+    bands: bands,
+    edges: edges,
+    open: function (node) { openSpecNodeDialog(node, scope, edges); },
+    meta: meta
+  };
+}
+
 function renderMap() {
   const panel = document.getElementById("panel-map");
   clear(panel);
   const head = el("div", { class: "card" }, [sectionHead("System map", "map")]);
   panel.appendChild(head);
 
-  const map = DATA.map;
-  if (!map) {
-    panel.appendChild(el("div", { class: "card" }, [
-      el("div", { class: "empty-state" }, ["Map not built yet - run /project-memory to compile the system map."])
-    ]));
-    return;
+  // The switcher appears only when the spec has scopes; otherwise the tab is the cards view,
+  // exactly as before the spec existed.
+  const scopes = mapScopes();
+  const scope = scopes.filter(function (s) { return s.id === mapScope; })[0] || null;
+  if (!scope) mapScope = "cards";
+  if (scopes.length) panel.appendChild(renderScopeSwitcher(scopes));
+
+  let view;
+  if (scope) {
+    view = specMapView(scope);
+  } else {
+    const map = DATA.map;
+    if (!map) {
+      panel.appendChild(el("div", { class: "card" }, [
+        el("div", { class: "empty-state" }, ["Map not built yet - run /project-memory to compile the system map."])
+      ]));
+      return;
+    }
+    view = cardsMapView(map);
   }
 
-  // The color language, stated where the nodes are: what each hue MEANS. Kind is the
-  // component's role, and the legend is what lets a first-time reader decode the map
-  // without leaving the tab.
   const legend = el("div", { class: "map-legend" });
-  [["agent", "agent - a sub-agent definition"],
-   ["code", "code - a tool, hook or skill that runs"],
-   ["data", "data - a store, config or contract"],
-   ["human", "human - a person in the loop"],
-   ["external", "external - outside this repo"]].forEach(function (pair) {
+  view.kinds.forEach(function (pair) {
     legend.appendChild(el("span", { class: "legend-item" }, [
       el("span", { class: "legend-swatch kind-" + pair[0] }),
       pair[1],
@@ -1028,11 +1213,9 @@ function renderMap() {
   panel.appendChild(legend);
 
   const edgeLegend = el("div", { class: "map-legend" });
-  [["invoke", "invokes - calls or dispatches"],
-   ["write", "writes - produces or mutates"],
-   ["read", "reads - consumes"]].forEach(function (pair) {
+  view.edgeKeys.forEach(function (pair) {
     edgeLegend.appendChild(el("span", { class: "legend-item" }, [
-      el("span", { class: "legend-line edge-key-" + pair[0] }),
+      el("span", { class: "legend-line " + pair[0] }),
       pair[1],
     ]));
   });
@@ -1048,25 +1231,14 @@ function renderMap() {
     toolbar.appendChild(btn);
   });
   panel.appendChild(toolbar);
+  if (view.meta) panel.appendChild(el("div", { class: "map-scope-meta" }, [view.meta]));
 
   const canvas = el("div", { class: "map-canvas", dataset: { view: mapView } });
   const svg = svgEl("svg", { class: "map-edges" });
   canvas.appendChild(svg);
 
-  const layers = (map.layers) || { spines: [], flows: [], unplaced: null };
-  const orderedLayers = []
-    .concat((layers.spines || []).slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); }))
-    .concat((layers.flows || []).slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); }));
-  if (layers.unplaced) orderedLayers.push(layers.unplaced);
-
-  const nodesByLayer = {};
-  (map.nodes || []).forEach(function (n) {
-    const key = orderedLayers.some(function (l) { return l.id === n.layer; }) ? n.layer : (layers.unplaced ? layers.unplaced.id : "UNPLACED");
-    (nodesByLayer[key] = nodesByLayer[key] || []).push(n);
-  });
-
-  const edges = map.edges || [];
-  const nodeEls = {};
+  const edges = view.edges;
+  const nodeEls = Object.create(null);
 
   // FEATURE: focus mode. First click on a node fades every non-neighbor node/edge and raises
   // the focused node + its neighbors + their connecting edges above that faded layer; a second
@@ -1096,12 +1268,12 @@ function renderMap() {
     redraw();
   }
 
-  orderedLayers.forEach(function (layer) {
-    const nodes = nodesByLayer[layer.id] || [];
-    const band = el("div", { class: "map-layer" + (layers.unplaced && layer.id === layers.unplaced.id ? " is-unplaced" : "") });
+  view.bands.forEach(function (bandSpec) {
+    const nodes = bandSpec.nodes;
+    const band = el("div", { class: "map-layer" + (bandSpec.unplaced ? " is-unplaced" : "") });
     band.appendChild(el("div", { class: "map-layer-head" }, [
-      el("h3", {}, [layer.title || layer.id]),
-      el("span", { class: "blurb" }, [(layer.blurb || "") + " · " + nodes.length + " node" + (nodes.length === 1 ? "" : "s")])
+      el("h3", {}, [bandSpec.title]),
+      el("span", { class: "blurb" }, [bandSpec.blurb + " · " + nodes.length + " node" + (nodes.length === 1 ? "" : "s")])
     ]));
     const nodesWrap = el("div", { class: "map-nodes" });
     nodes.forEach(function (n) {
@@ -1114,7 +1286,7 @@ function renderMap() {
       // First click focuses; a second click on the node that is ALREADY focused opens the
       // detail popup; clicking a different node while focused just moves focus to it.
       const activate = function () {
-        if (focusedNodeId === n.id) { openNodeDialog(n); return; }
+        if (focusedNodeId === n.id) { view.open(n); return; }
         setMapFocus(n.id);
       };
       nodeEl.addEventListener("click", function (ev) { ev.stopPropagation(); activate(); });
@@ -1221,6 +1393,7 @@ function drawEdges(container, svg, edges, nodeEls) {
   // so this keeps a highlighted edge from ever being buried under a faded one it crosses.
   const behind = [];
   const onTop = [];
+  const labels = [];
   edges.forEach(function (e) {
     const a = nodeEls[e.from];
     const b = nodeEls[e.to];
@@ -1232,13 +1405,24 @@ function drawEdges(container, svg, edges, nodeEls) {
     const x2 = br.left + br.width / 2 - cRect.left;
     const y2 = br.top + br.height / 2 - cRect.top;
     const touchesFocus = focusActive && (e.from === focusedNodeId || e.to === focusedNodeId);
-    let cls = EDGE_STYLE_BY_TYPE[e.type] || "edge-control";
+    // A spec edge (specMapView) brings its own class, label style included; a card edge's
+    // class comes from its type.
+    let cls = e.cls || EDGE_STYLE_BY_TYPE[e.type] || "edge-control";
     if (focusActive) cls += touchesFocus ? " is-focus-edge" : " is-faded-edge";
     const line = svgEl("line", { x1: x1, y1: y1, x2: x2, y2: y2, class: cls });
     (focusActive && !touchesFocus ? behind : onTop).push(line);
+    // A spec edge's label sits at its midpoint; while a node is focused only the edges that
+    // touch it keep their label, so a traced path reads without the rest in the way.
+    if (e.edgeText && (!focusActive || touchesFocus)) {
+      const text = svgEl("text", { x: (x1 + x2) / 2, y: (y1 + y2) / 2, class: "edge-label",
+                                   "text-anchor": "middle", "dominant-baseline": "middle" });
+      text.textContent = e.edgeText;
+      labels.push(text);
+    }
   });
   behind.forEach(function (line) { svg.appendChild(line); });
   onTop.forEach(function (line) { svg.appendChild(line); });
+  labels.forEach(function (text) { svg.appendChild(text); });
 }
 
 function assertNoOverlap(container) {
@@ -1293,6 +1477,49 @@ function openNodeDialog(node) {
     body.appendChild(el("div", { class: "dialog-section" }, [
       el("div", { class: "label" }, ["flows"]),
       el("div", {}, node.flows.map(function (v) { return el("span", { class: "rel-tag" }, [v]); }))
+    ]));
+  }
+  dialog.showModal();
+}
+
+// A spec node's detail: its group and the group's blurb, the card id, the path (pathLink: a
+// real link only under file:) with the editor link beside it when live, and every edge in and
+// out with its label. The edges are the drawn scope's, never map.json's.
+function openSpecNodeDialog(node, scope, edges) {
+  const dialog = document.getElementById("node-dialog");
+  document.getElementById("node-dialog-title").textContent = node.title || node.id;
+  const body = document.getElementById("node-dialog-body");
+  clear(body);
+  body.appendChild(kindChip(node.kind));
+  const group = (Array.isArray(scope.groups) ? scope.groups : []).filter(function (g) { return g && g.id === node.group; })[0];
+  body.appendChild(el("div", { class: "dialog-section" }, [
+    el("div", { class: "label" }, ["group"]),
+    el("div", {}, [group ? (group.title || group.id) : "ungrouped"]),
+    group && group.blurb ? el("div", { style: "color:var(--text-dim);font-size:12px;" }, [group.blurb]) : null
+  ]));
+  body.appendChild(el("div", { class: "dialog-section" }, [
+    el("div", { class: "label" }, ["id"]),
+    el("span", { class: "mono" }, [node.id])
+  ]));
+  if (node.path) {
+    body.appendChild(el("div", { class: "dialog-section" }, [
+      el("div", { class: "label" }, ["source"]),
+      pathLink(node.path, node.path, "mono"),
+      editorLink(node.path)
+    ]));
+  }
+  const outgoing = edges.filter(function (e) { return e.from === node.id; });
+  const incoming = edges.filter(function (e) { return e.to === node.id; });
+  if (outgoing.length) {
+    body.appendChild(el("div", { class: "dialog-section" }, [
+      el("div", { class: "label" }, ["arrows (out)"]),
+      el("div", {}, outgoing.map(function (e) { return el("span", { class: "rel-tag" }, [(e.edgeText || "→") + " → " + e.to]); }))
+    ]));
+  }
+  if (incoming.length) {
+    body.appendChild(el("div", { class: "dialog-section" }, [
+      el("div", { class: "label" }, ["arrows (in)"]),
+      el("div", {}, incoming.map(function (e) { return el("span", { class: "rel-tag" }, [e.from + " → " + (e.edgeText || "→")]); }))
     ]));
   }
   dialog.showModal();

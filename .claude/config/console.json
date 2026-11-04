@@ -21,6 +21,7 @@
   "active_window_minutes": 10,
   "read_allowlist": [
     ".claude/system-map/map.json",
+    ".claude/system-map/architecture.json",
     ".claude/state/session.json",
     ".claude/state/needs-human.json"
   ]
