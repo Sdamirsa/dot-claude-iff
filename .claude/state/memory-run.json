@@ -1,18 +1,18 @@
 {
-  "run_id": "20261029T165654Z-826a9e",
-  "started": "2026-10-29T16:56:54Z",
-  "status": "done",
+  "run_id": "20261104T112152Z-ff5d20",
+  "started": "2026-11-04T11:21:52Z",
+  "status": "running",
   "phase": "publish",
-  "step": null,
+  "step": "obs_anchor",
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-10-29T17:05:17Z",
+      "ts": "2026-11-04T11:30:11Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "137 events parse",
+          "message": "152 events parse",
           "details": []
         },
         {
@@ -39,20 +39,12 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 13 warning(s)",
+            "MAP LINT: 0 error(s), 5 warning(s)",
             "  WARN   config.brainstorm: layer is null (unplaced)",
-            "  WARN   config.registry: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   hook.heartbeat: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   hook.post-write-validate: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   hook.session-start: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
             "  WARN   skill.adhd: layer is null (unplaced)",
-            "  WARN   skill.project-memory: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool._lib: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool._lib: layer is null (unplaced)",
-            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool.distctl: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool.statectl: auto.hash is stale (source changed since last scan; description may be stale)"
+            "  WARN   tool._lib: layer is null (unplaced)"
           ]
         },
         {
@@ -76,9 +68,12 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 77.3 KB at ~/Documents/GIT/_sources/dot-claude-iff_claude_iff",
+          "message": "record is 14.6 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
-            "spool: 77.3 KB",
+            "graph: 11.1 MB",
+            "raw: 3.0 MB",
+            "spool: 496.0 KB",
+            "cursors.json: 222 B",
             "console.pid: 5 B",
             "console.log: 0 B"
           ]
@@ -92,7 +87,7 @@
         {
           "name": "task_reality",
           "status": "OK",
-          "message": "1 active task(s), checkpoints match disk",
+          "message": "0 active task(s), checkpoints match disk",
           "details": []
         },
         {
@@ -104,7 +99,7 @@
         {
           "name": "gitignore_shadowing",
           "status": "OK",
-          "message": "204 shippable path(s), none shadowed",
+          "message": "207 shippable path(s), none shadowed",
           "details": []
         },
         {
@@ -122,7 +117,7 @@
         {
           "name": "secrets_placement",
           "status": "OK",
-          "message": "211 file(s) scanned (tracked + unignored files), no key-shaped strings",
+          "message": "215 file(s) scanned (tracked + unignored files), no key-shaped strings",
           "details": []
         },
         {
@@ -141,7 +136,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-10-29T17:07:44Z",
+      "ts": "2026-11-04T11:31:41Z",
       "results": [
         {
           "name": "map_scan",
@@ -183,7 +178,7 @@
     },
     "publish": {
       "status": "OK",
-      "ts": "2026-10-29T17:07:52Z",
+      "ts": "2026-11-04T11:31:50Z",
       "results": [
         {
           "name": "polish_complete",
@@ -219,10 +214,9 @@
     }
   },
   "last_completed": "2026-11-02T14:19:40Z",
-  "updated": "2026-11-02T14:19:40Z",
+  "updated": "2026-11-04T11:31:50Z",
   "invoked_by": "user-ticket",
-  "ticket_ts": "2026-11-02T14:19:27Z",
+  "ticket_ts": "2026-11-04T11:21:47Z",
   "ticket_skill": "project-memory",
-  "ticket_session": "ce872d29-ea89-4bc9-94b7-2fe54deec675",
-  "ticket_consumed": "2026-11-02T14:19:27Z"
+  "ticket_session": "b6f519dc-85ed-4782-bf19-ce7dcaae72f1"
 }
