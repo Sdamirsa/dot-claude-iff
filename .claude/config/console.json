@@ -23,8 +23,7 @@
     ".claude/system-map/map.json",
     ".claude/system-map/architecture.json",
     ".claude/state/session.json",
-    ".claude/state/needs-human.json",
-    ".claude/system-map/architecture.json"
+    ".claude/state/needs-human.json"
   ],
   "architecture": {
     "_comment": [
