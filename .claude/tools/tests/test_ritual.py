@@ -598,6 +598,63 @@ class TestRouteStep(unittest.TestCase):
         self.assertIn("Never write, copy or forge a ticket", text)
 
 
+# --------------------------------------------------------------------------- generator freshness
+
+class TestGeneratorFreshness(GateCase):
+    """The ledger's output_hash is compared, so a derived file edited by hand after its
+    generator ran is reported (WARN, never FAIL: CHECK informs, POLISH rebuilds)."""
+
+    NAME = "story_build"
+    REASON = "output changed since the last run (hand-edited or rebuilt outside the ritual)"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.spec = checkctl.GENERATORS[self.NAME]
+        stub = self.root / ".claude" / "tools" / self.spec["tool"]
+        stub.parent.mkdir(parents=True, exist_ok=True)
+        stub.write_text("# stand-in so tool_path().exists() is true\n", encoding="utf-8")
+        self.output = self.root / self.spec["output"]
+        self.output.parent.mkdir(parents=True, exist_ok=True)
+        self.output.write_text('{"built": "by the generator"}\n', encoding="utf-8")
+        checkctl.stamp_generator(self.NAME, self.spec, "run-1")
+
+    def finding(self) -> tuple:
+        return next((status, msg) for name, status, msg in checkctl.generator_freshness_report()
+                    if name == self.NAME)
+
+    def test_a_hand_edit_after_the_run_is_flagged(self):
+        status, msg = self.finding()
+        self.assertEqual(status, checkctl.OK, msg)  # control: untouched since the stamp
+        self.output.write_text('{"built": "by hand"}\n', encoding="utf-8")
+        self.assertEqual(self.finding(), (checkctl.WARN, self.REASON))
+        result = checkctl.check_generator_freshness()
+        self.assertEqual(result.status, checkctl.WARN, "stale at CHECK time is a WARN, never a FAIL")
+        self.assertIn(f"{self.NAME}: {self.REASON}", result.details)
+
+    def test_changed_inputs_still_name_the_inputs(self):
+        self.output.write_text('{"built": "by hand"}\n', encoding="utf-8")
+        self.journal("pointer", text="the journal is an input of story_build")
+        status, msg = self.finding()
+        self.assertEqual(status, checkctl.WARN)
+        self.assertIn("inputs changed", msg)
+
+    def test_a_legacy_entry_without_output_hash_is_not_flagged_for_it(self):
+        path = checkctl.generators_path()
+        ledger = _lib.read_json(path)
+        del ledger["generators"][self.NAME]["output_hash"]
+        _lib.atomic_write_json(path, ledger)
+        self.output.write_text('{"built": "by hand"}\n', encoding="utf-8")
+        status, msg = self.finding()
+        self.assertEqual(status, checkctl.OK, msg)
+        self.assertIn("fresh as of", msg)
+
+    def test_the_generators_listing_shows_the_reason(self):
+        self.output.write_text('{"built": "by hand"}\n', encoding="utf-8")
+        code, out = self.cc("generators")
+        self.assertEqual(code, 0, out)
+        self.assertRegex(out, rf"\[\s*WARN\] {self.NAME}: " + re.escape(self.REASON))
+
+
 # --------------------------------------------------------------------------- declared everywhere
 
 class TestDeclared(FixtureCase):

@@ -375,6 +375,8 @@ def generator_freshness_report() -> list:
 
     Stale at CHECK time is normal: POLISH is about to rebuild. The finding that matters is a
     generator that has NEVER run, or one whose output vanished, because that is rot starting.
+    An output that no longer hashes as stamped was edited by hand (or rebuilt outside the
+    ritual): a derived file must never be hand-edited, so that is reported too.
     """
     ledger = read_ledger().get("generators", {})
     root = _lib.project_root()
@@ -396,6 +398,11 @@ def generator_freshness_report() -> list:
             continue
         if entry.get("inputs_hash") != generator_inputs_hash(spec):
             findings.append((name, WARN, "inputs changed since the last run (POLISH will rebuild)"))
+            continue
+        # A ledger entry written before output hashes were compared may lack one: not stale.
+        if entry.get("output_hash") and entry["output_hash"] != generator_output_hash(spec):
+            findings.append((name, WARN, "output changed since the last run (hand-edited or "
+                                         "rebuilt outside the ritual)"))
             continue
         findings.append((name, OK, f"fresh as of {entry.get('ran_at')}"))
     return findings
@@ -2214,6 +2221,50 @@ def run_task_test(command: str, timeout: int) -> tuple:
     return (OK if code == 0 else FAIL), message, tail
 
 
+SUITE_RUNNER = ".claude/tools/tests/run_tests.py"
+
+
+def _suite_call(command: str):
+    """(interpreter, runner, module selectors) when `command` runs this repo's suite runner,
+    else None. Flags (`-q`, `-v`) are ignored, as run_tests.py ignores them; every other
+    argument after the runner is a module selector."""
+    import shlex
+    try:
+        argv = shlex.split(command)
+    except ValueError:
+        return None
+    if len(argv) < 2:
+        return None
+    runner = os.path.normcase(Path(argv[1]).as_posix())
+    if runner != os.path.normcase(SUITE_RUNNER):
+        return None
+    return (os.path.normcase(argv[0]), runner,
+            tuple(a for a in argv[2:] if not a.startswith("-")))
+
+
+def _is_full_suite(command: str) -> bool:
+    call = _suite_call(command)
+    return call is not None and not call[2]
+
+
+def suite_coverage(commands: list) -> dict:
+    """{command: the full-suite command that covers it}. A suite-runner command naming modules
+    is covered by the same interpreter and runner with no module arguments: the full run
+    executes those modules too. A full-suite command is never in the result; a command that is
+    not the suite runner, or runs it through another interpreter, never is either."""
+    full = {}
+    for command in commands:
+        call = _suite_call(command)
+        if call and not call[2]:
+            full.setdefault(call[:2], command)
+    covered = {}
+    for command in commands:
+        call = _suite_call(command)
+        if call and call[2] and call[:2] in full:
+            covered[command] = full[call[:2]]
+    return covered
+
+
 def exit_build(milestone: str | None = None, **_kw) -> list:
     """build -> next: every task of the current milestone is done and its Test exits 0 now."""
     mid = milestone or current_milestone()
@@ -2229,7 +2280,7 @@ def exit_build(milestone: str | None = None, **_kw) -> list:
         timeout = DEFAULT_BUILD_TEST_TIMEOUT
     files = task_files(include_archive=True)
     results = [Result("milestone", OK, f"{mid}: {len(tasks)} task(s)")]
-    ran: dict = {}  # tasks often share a Test (the whole suite): run each command once
+    pending = []  # (results index, task id, Test command): checks passed, the Test still to run
     for jt in sorted(tasks, key=lambda t: t["id"]):
         tf = next((f for f in files if jt["id"].casefold() in [i.casefold() for i in f["ids"]]), None)
         if jt.get("status") != "done":
@@ -2243,11 +2294,23 @@ def exit_build(milestone: str | None = None, **_kw) -> list:
         if problem:
             results.append(Result(jt["id"], FAIL, f"{tf['file']}: {problem}"))
             continue
-        command = tf["test_commands"][0]
-        if command not in ran:
+        results.append(None)  # filled in below, once the commands have run
+        pending.append((len(results) - 1, jt["id"], tf["test_commands"][0]))
+    # Tasks often share a Test (the whole suite): run each command once, full-suite runs
+    # first, and never a module subset that a full-suite run already covers.
+    commands = list(dict.fromkeys(command for _i, _id, command in pending))
+    covered = suite_coverage(commands)
+    ran: dict = {}
+    for command in sorted(commands, key=lambda c: not _is_full_suite(c)):
+        if command not in covered:
             ran[command] = run_task_test(command, timeout)
-        status, message, tail = ran[command]
-        results.append(Result(jt["id"], status, message, tail))
+    for index, task_id, command in pending:
+        if command in covered:
+            status, message, tail = ran[covered[command]]
+            message = f"covered by the full suite: {message}"
+        else:
+            status, message, tail = ran[command]
+        results[index] = Result(task_id, status, message, tail)
     return results
 
 
