@@ -1,6 +1,6 @@
 # Task: T16 - explicit consent and redaction before record text goes to a remote endpoint
 
-_Created 2026-11-04 · Status: todo_
+_Created 2026-11-04 · Status: done_
 
 Milestone: M-0.3.0-beta.1 · Closes: PR-8 · Shared contracts: `030b-00-milestone.md`
 

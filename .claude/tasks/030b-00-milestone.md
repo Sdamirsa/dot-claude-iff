@@ -99,8 +99,8 @@ only by `mapctl architecture`):
 
 ## Plan
 
-- [ ] Wave 1 dispatched and accepted, done when: four `accept` merges and the suite green
-- [ ] Wave 2 (lead), done when: `mapctl context` and `context_health` accept CLAUDE.md; PR-5 decided
+- [x] Wave 1 dispatched and accepted, done when: four `accept` merges and the suite green (2026-11-04, 818 tests and the kit self-test green)
+- [x] Wave 2 (lead), done when: `mapctl context` and `context_health` accept CLAUDE.md; PR-5 decided (both committed 2026-11-04)
 - [ ] T18 accepted, done when: `test_graph` green and the console MAP tab shows the `.claude` scope
 - [ ] Proposals resolved, done when: `statectl proposal list` shows none of PR-8/9/10/11/14/15/16 open
 

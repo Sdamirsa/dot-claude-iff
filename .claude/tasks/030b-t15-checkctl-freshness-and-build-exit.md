@@ -1,6 +1,6 @@
 # Task: T15 - generator freshness sees hand-edited outputs; build exit runs each suite once
 
-_Created 2026-11-04 · Status: todo_
+_Created 2026-11-04 · Status: done_
 
 Milestone: M-0.3.0-beta.1 · Closes: PR-9, PR-11 · Shared contracts: `030b-00-milestone.md`
 

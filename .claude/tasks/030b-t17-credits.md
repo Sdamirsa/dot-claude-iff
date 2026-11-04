@@ -1,6 +1,6 @@
 # Task: T17 - CREDITS.md: lineage and thanks, shipped with the kits
 
-_Created 2026-11-04 · Status: todo_
+_Created 2026-11-04 · Status: done_
 
 Milestone: M-0.3.0-beta.1 · Closes: PR-16 · Shared contracts: `030b-00-milestone.md`
 

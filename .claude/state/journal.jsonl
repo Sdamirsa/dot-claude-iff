@@ -175,3 +175,11 @@
 {"ts": "2026-11-04T16:31:50Z", "action": "task", "id": "T20", "title": "T20 - the console MAP tab renders the architecture spec, with a scope switcher", "status": "todo", "milestone": "M-0.3.0-beta.1"}
 {"ts": "2026-11-04T16:31:51Z", "action": "pointer", "text": "Wave 1 merged except T17 (accept running). Next: suite on dev, close T14-T17, resolve PR-8/9/10/11/16, commit analyze fixes + wave-3 cards, dispatch T18-T20"}
 {"ts": "2026-11-04T16:34:49Z", "action": "note", "text": "accepted T17: merged wt/t17 into dev (8c527d138e6d)", "tags": ["accept"]}
+{"ts": "2026-11-04T16:36:47Z", "action": "note", "text": "dispatched builder for T18 in .claude/worktrees/t18", "tags": ["dispatch"]}
+{"ts": "2026-11-04T16:36:48Z", "action": "note", "text": "dispatched builder for T19 in .claude/worktrees/t19", "tags": ["dispatch"]}
+{"ts": "2026-11-04T16:36:48Z", "action": "note", "text": "dispatched builder for T20 in .claude/worktrees/t20", "tags": ["dispatch"]}
+{"ts": "2026-11-04T16:38:14Z", "action": "pointer", "text": "Wave 3 builders T18-T20 in flight (worktrees t18..t20); dev suite running in background. When suite green: close T14-T17 (task --status done). Then review+accept T18-T20, verifier pass, suite, close, ritual."}
+{"ts": "2026-11-04T16:49:06Z", "action": "task", "id": "T14", "status": "done"}
+{"ts": "2026-11-04T16:49:07Z", "action": "task", "id": "T15", "status": "done"}
+{"ts": "2026-11-04T16:49:07Z", "action": "task", "id": "T16", "status": "done"}
+{"ts": "2026-11-04T16:49:08Z", "action": "task", "id": "T17", "status": "done"}

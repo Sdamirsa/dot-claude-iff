@@ -1,6 +1,6 @@
 # Task: T14 - accept removes the task's stub after a successful merge
 
-_Created 2026-11-04 · Status: todo_
+_Created 2026-11-04 · Status: done_
 
 Milestone: M-0.3.0-beta.1 · Closes: PR-10 · Shared contracts: `030b-00-milestone.md`
 
