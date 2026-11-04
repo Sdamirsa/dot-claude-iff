@@ -70,9 +70,10 @@ By hand, the fallback: `git worktree add .claude/worktrees/<name> -b wt/<name> <
    refuses on any FAIL with nothing committed. It then restores `.claude/dist/` and the
    derived files (`policy.json` `derived_files`) to HEAD in the worktree, stages the rest, sets
    the exec bit on `.claude/hooks/*.sh` in the index, commits there (`--message`, default from
-   the task title), merges into the working branch with `--no-ff`, and removes the worktree and
-   its branch. On a conflict it stops: the merge stays in progress, the conflicted paths and
-   the commands to finish or abort are printed, the worktree is kept. It never pushes and
+   the task title), merges into the working branch with `--no-ff`, and removes the worktree,
+   its branch and the task's stub (`<id>.stub.json`; the merged envelope stays). On a conflict
+   it stops: the merge stays in progress, the conflicted paths and the commands to finish or
+   abort are printed, the worktree and the stub are kept. It never pushes and
    never marks the task done. Apply the rest of `needs_main` yourself.
 4. **Suite**: `python3 .claude/tools/tests/run_tests.py -q` on the merged branch.
 5. **Close**: `statectl.py task <id> --status done`. In this mode it refuses without a valid

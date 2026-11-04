@@ -34,6 +34,7 @@ import checkctl  # noqa: E402
 import consolectl  # noqa: E402
 import distctl  # noqa: E402
 import mapctl  # noqa: E402
+import progress  # noqa: E402
 import statectl  # noqa: E402
 
 PY = Path(sys.executable).as_posix()
@@ -497,6 +498,39 @@ class TestAccept(WorktreeCase):
         self.assertEqual(self.task_events("T1"), [], "accept never marks the task done")
         self.assertEqual(self.git("rev-parse", "--abbrev-ref", "HEAD"), "dev")
 
+    def in_flight_stubs(self) -> list:
+        return [s["task"] for s in progress.stub_states({}, time.time())]
+
+    def test_accept_removes_the_stub_and_keeps_the_envelope(self):
+        self.fake_builder()
+        stub = _lib.stub_path("T1")
+        self.assertTrue(stub.is_file(), "dispatch wrote the stub in the main checkout")
+        self.assertFalse(_lib.stub_path("T1", self.wt).exists(), "never in the worktree")
+        self.assertEqual(self.in_flight_stubs(), ["T1"], "the progress model sees the dispatch")
+        code, out = self.statectl("accept", "T1")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(STATE_RE.findall(out), ["OK"])
+        self.assertFalse(stub.exists(), "a successful merge removes the stub")
+        self.assertIn("removed the stub .claude/state/handshakes/T1.stub.json", out)
+        envelope = _lib.envelope_path("T1")
+        self.assertTrue(envelope.is_file(), "the merged envelope is kept")
+        self.assertEqual(_lib.validate_envelope(json.loads(envelope.read_text(encoding="utf-8")),
+                                                builder=True), [])
+        self.assertEqual(self.in_flight_stubs(), [])
+        self.assertEqual(progress.compute()["agents_in_flight"], [])
+        self.assertNotIn("WARNING", out)
+
+    def test_a_missing_stub_is_not_an_error(self):
+        self.fake_builder()
+        _lib.stub_path("T1").unlink()
+        code, out = self.statectl("accept", "T1")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(STATE_RE.findall(out), ["OK"])
+        self.assertNotIn("WARNING", out)
+        self.assertNotIn("removed the stub", out)
+        self.assertFalse(self.wt.exists())
+        self.assertTrue(_lib.envelope_path("T1").is_file())
+
     def test_message_names_the_commit(self):
         self.fake_builder()
         code, out = self.statectl("accept", "T1", "--message", "T1: widget renders")
@@ -522,6 +556,7 @@ class TestAccept(WorktreeCase):
                 self.assertEqual(self.git("diff", "--cached", "--name-only", cwd=self.wt), "")
                 self.assertEqual(self.git("rev-parse", "HEAD"), self.base)
                 self.assertTrue(self.wt.is_dir())
+                self.assertTrue(_lib.stub_path("T1").is_file(), "a refused accept keeps the stub")
 
     def test_no_run_validates_without_rerunning(self):
         self.fake_builder(tests=[{"command": py("raise SystemExit(3)"), "exit_code": 0,
@@ -548,6 +583,7 @@ class TestAccept(WorktreeCase):
         self.assertTrue(self.git("rev-parse", "-q", "--verify", "MERGE_HEAD"), "merge in progress")
         self.assertTrue(self.wt.is_dir(), "the worktree is kept")
         self.assertTrue(self.git("branch", "--list", "wt/t1"), "the branch is kept")
+        self.assertTrue(_lib.stub_path("T1").is_file(), "a conflicted accept keeps the stub")
         # The printed way to finish: resolve, commit, accept --no-run cleans up.
         (self.root / "src" / "app.py").write_text("x = 4\n", encoding="utf-8")
         self.git("add", "src/app.py")
@@ -557,6 +593,7 @@ class TestAccept(WorktreeCase):
         self.assertIn("already merged", out)
         self.assertFalse(self.wt.exists())
         self.assertEqual(self.git("branch", "--list", "wt/t1"), "")
+        self.assertFalse(_lib.stub_path("T1").exists(), "the finished accept removes the stub")
 
     def test_a_missing_worktree_says_re_dispatch(self):
         self.git("worktree", "remove", "--force", str(self.wt))

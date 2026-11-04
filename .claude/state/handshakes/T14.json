@@ -1,0 +1,43 @@
+{
+  "agent_id": "builder-T14",
+  "task_id": "T14",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "RESULT": "statectl accept now removes the main checkout's <id>.stub.json after a successful merge (after the worktree and branch removal, before the journal note); a missing stub is skipped silently and an unlink failure is a cleanup WARNING, not a failure. Refused and conflicted accepts never reach that step, so the stub stays; the merged <id>.json envelope is untouched. cmd_accept's docstring and the orchestration protocol's Accept step name the stub removal.",
+  "files_changed": [
+    ".claude/tools/statectl.py",
+    ".claude/tools/tests/test_orchestration.py",
+    ".claude/protocols/orchestration.md",
+    ".claude/state/handshakes/T14.json"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py test_orchestration test_progress -q",
+      "exit_code": 0,
+      "summary": "TESTS_OK"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "TESTS_OK"
+    }
+  ],
+  "EVIDENCE": [
+    "run_tests.py test_orchestration test_progress -q -> 127 passed, 0 failed, TESTS_OK",
+    "mutant (stub.unlink() replaced by pass) -> test_accept_removes_the_stub_and_keeps_the_envelope and test_a_conflict_stops_with_the_merge_in_progress FAIL; original restored",
+    "grep stub in cmd_accept docstring and protocols/orchestration.md Accept step -> both present",
+    "run_tests.py -q (whole suite) -> 786 passed, 0 failed, 0 errored, 2 skipped, TESTS_OK"
+  ],
+  "DEVIATIONS": [
+    "Stub removal sits after the worktree/branch cleanup loop and before the journal note, as the Plan says; an OSError on unlink joins the existing cleanup `problems` list (STATE_WARN) rather than failing the accept, since the merge already happened.",
+    "Existing tests extended, not weakened: test_an_invalid_envelope_commits_nothing and test_a_conflict_stops_with_the_merge_in_progress gained stub assertions (kept on refusal and conflict, gone after the printed finish)."
+  ],
+  "UNCERTAINTIES": [
+    "Not run on Ubuntu; the stub is matched by the exact task id given to accept (as dispatch writes it), so `accept t14` for a stub named T14.stub.json would leave it on a case-sensitive filesystem."
+  ],
+  "needs_main": [],
+  "SUGGESTIONS": [
+    "The task context says the verifier found T10/T12/T13 stubs left behind (PR-10); I did not check the main checkout. Stubs from earlier accepts are not cleaned up retroactively: the lead deletes them by hand after this merges."
+  ]
+}
