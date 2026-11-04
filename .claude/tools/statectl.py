@@ -876,8 +876,10 @@ def cmd_accept(args) -> int:
     (--no-run validates without rerunning); (2) restore .claude/dist/ and the derived files to
     HEAD in the worktree; (3) stage the rest, mark hook scripts executable in the index, commit
     there; (4) merge its branch into the current branch with --no-ff, stopping on a conflict with
-    the merge left in progress; (5) remove the worktree and its branch. Never pushes; never marks
-    the task done (the lead does, after the suite)."""
+    the merge left in progress; (5) remove the worktree and its branch, and the task's dispatch
+    stub (`<id>.stub.json`, in this checkout; the merged `<id>.json` envelope stays), so the task
+    no longer shows as in flight. A refused or conflicted accept keeps the stub. Never pushes;
+    never marks the task done (the lead does, after the suite)."""
     root = _lib.project_root()
     task_id = args.id
     try:
@@ -946,7 +948,7 @@ def cmd_accept(args) -> int:
 def _accept_merge(root: Path, task_id: str, topic: str, branch: str, wt: Path, wt_rel: str,
                   wt_branch: str) -> int:
     """accept's steps 4 and 5: merge --no-ff (stop on a conflict, merge left in progress), then
-    remove the worktree and its branch."""
+    remove the worktree, its branch and the task's stub (a missing stub is not an error)."""
     before = _git(["rev-parse", "HEAD"], root).stdout.strip()
     res = _git(["merge", "--no-ff", "--no-edit", "-m", f"merge {task_id}: {topic}", wt_branch], root)
     if res.returncode != 0:
@@ -977,6 +979,13 @@ def _accept_merge(root: Path, task_id: str, topic: str, branch: str, wt: Path, w
         res = _git(step, root)
         if res.returncode != 0:
             problems.append(f"`git {' '.join(step)}` failed: {_git_said(res)}")
+    stub = _lib.stub_path(task_id, root)  # the main checkout's, never the worktree's
+    try:
+        if stub.is_file():
+            stub.unlink()
+            print(f"removed the stub {_lib.rel(stub)}: {task_id} is no longer in flight")
+    except OSError as exc:
+        problems.append(f"removing the stub {_lib.rel(stub)} failed: {exc}")
     _lib.journal_append("note", text=f"accepted {task_id}: merged {wt_branch} into {branch} "
                                      f"({after})", tags=["accept"])
     refresh_all()
