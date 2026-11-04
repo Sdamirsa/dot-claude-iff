@@ -19,6 +19,9 @@
   "poll_active_seconds": 5,
   "poll_idle_seconds": 30,
   "active_window_minutes": 10,
+  "code_graph": {
+    "graphify_version": "0.9.102"
+  },
   "read_allowlist": [
     ".claude/system-map/map.json",
     ".claude/state/session.json",

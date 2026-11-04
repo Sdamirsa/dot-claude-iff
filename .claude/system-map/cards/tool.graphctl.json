@@ -1,0 +1,25 @@
+{
+  "id": "tool.graphctl",
+  "kind": "code",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Graphctl",
+  "path": ".claude/tools/graphctl.py",
+  "description": "graphctl.py - the code graph: files, classes, functions and the edges between them.",
+  "reads": [
+    "store.record"
+  ],
+  "writes": [],
+  "invokes": [
+    "tool._lib",
+    "tool.ctxmap"
+  ],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-11-04",
+    "hash": "2c6ccb18093ab157da161819f75f3d7cb410b44c099f6f4f078c352639d88969",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}
