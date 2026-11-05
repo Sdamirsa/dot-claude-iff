@@ -70,7 +70,8 @@ python3 .claude/tools/checkctl.py   run --phase check|polish|publish (inside the
                                     probe · generators · doctor · phase-exit · handoff <task_id>
                                     ticket --grant (the HUMAN, in their own terminal; never agents)
 python3 .claude/tools/distctl.py    export|gitignore|verify
-python3 .claude/tools/mapctl.py     scan|lint|compile|show|context
+python3 .claude/tools/mapctl.py     scan|lint|compile|show|context|architecture
+python3 .claude/tools/graphctl.py   build|update|status (code graph; extraction is the human's)
 python3 .claude/tools/obsctl.py     ingest|seal|rollup|anchor|report|story|size|analyze
 python3 .claude/tools/consolectl.py build|payload|serve · sysmon.py · tests/run_tests.py
 ```

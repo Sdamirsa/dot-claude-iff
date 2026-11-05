@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-02T11:03:50Z",
+  "generated_at": "2026-11-05T07:55:13Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -631,6 +631,18 @@
       "exists": true
     },
     {
+      "id": "tool.graphctl",
+      "kind": "code",
+      "layer": "CONSOLE",
+      "package": null,
+      "title": "Graphctl",
+      "path": ".claude/tools/graphctl.py",
+      "description": "graphctl.py - the code graph: files, classes, functions and the edges between them.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
       "id": "tool.mapctl",
       "kind": "code",
       "layer": "CONSOLE",
@@ -703,6 +715,20 @@
       "exists": true
     },
     {
+      "id": "store.architecture",
+      "kind": "data",
+      "layer": "CONSOLE",
+      "package": null,
+      "title": "Architecture spec",
+      "path": ".claude/system-map/architecture.json",
+      "description": "The architecture diagram's spec, one scope per diagram (groups, boxes, arrows), written by mapctl architecture with docs/ARCHITECTURE.md rendered from it.",
+      "glyphs": [
+        "derived"
+      ],
+      "flows": [],
+      "exists": true
+    },
+    {
       "id": "store.cards",
       "kind": "data",
       "layer": "CONSOLE",
@@ -711,6 +737,20 @@
       "path": ".claude/system-map/cards",
       "description": "One JSON card per component; the system map's own source of truth.",
       "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "store.code_graph",
+      "kind": "data",
+      "layer": "CONSOLE",
+      "package": null,
+      "title": "Code graph",
+      "path": ".claude/system-map/code-graph.json",
+      "description": "The normalised code graph (files, classes, functions; contains, imports, calls), written by graphctl build from graphify's output under the record root or the stdlib walker. Gitignored: machine-local, rebuilt by the ritual, never shipped; mapctl architecture collapses it into the code scopes of the architecture spec.",
+      "glyphs": [
+        "derived"
+      ],
       "flows": [],
       "exists": true
     },
@@ -1543,6 +1583,26 @@
       "type": "invokes"
     },
     {
+      "from": "tool.graphctl",
+      "to": "store.record",
+      "type": "reads"
+    },
+    {
+      "from": "tool.graphctl",
+      "to": "store.code_graph",
+      "type": "writes"
+    },
+    {
+      "from": "tool.graphctl",
+      "to": "tool._lib",
+      "type": "invokes"
+    },
+    {
+      "from": "tool.graphctl",
+      "to": "tool.ctxmap",
+      "type": "invokes"
+    },
+    {
       "from": "tool.mapctl",
       "to": "store.cards",
       "type": "reads"
@@ -1560,6 +1620,11 @@
     {
       "from": "tool.mapctl",
       "to": "store.map",
+      "type": "writes"
+    },
+    {
+      "from": "tool.mapctl",
+      "to": "store.architecture",
       "type": "writes"
     },
     {
@@ -1729,16 +1794,16 @@
     }
   ],
   "stats": {
-    "nodes": 69,
-    "edges": 165,
+    "nodes": 72,
+    "edges": 170,
     "by_kind": {
       "agent": 5,
-      "code": 22,
-      "data": 41,
+      "code": 23,
+      "data": 43,
       "human": 1
     },
     "by_layer": {
-      "CONSOLE": 11,
+      "CONSOLE": 14,
       "EVOLVE": 10,
       "GOVERN": 23,
       "MEMORY": 11,
@@ -1759,7 +1824,7 @@
   "context": {
     "v": 1,
     "root_guide": ".claude/CLAUDE.md",
-    "always_on_lines": 118,
+    "always_on_lines": 106,
     "always_on_budget": 400,
     "size_target": 200,
     "counts": {
@@ -1777,7 +1842,7 @@
         "kind": "guide",
         "scope": "root",
         "loads": "launch",
-        "lines": 118,
+        "lines": 106,
         "findings": 0,
         "via": null
       }

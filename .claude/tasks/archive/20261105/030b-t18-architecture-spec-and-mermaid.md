@@ -52,14 +52,14 @@ probe`, `test_contracts`, `test_mapctl` and `test_ritual` stay green.
 
 ## Plan
 
-- [ ] Folding rules as pure functions, done when: tests for folder-fold, test exclusion,
+- [x] Folding rules as pure functions, done when: tests for folder-fold, test exclusion,
       cap-to-"other", self-edge drop pass
-- [ ] `mapctl architecture` writes the spec and validates paths, done when: a test with a
+- [x] `mapctl architecture` writes the spec and validates paths, done when: a test with a
       bogus path sees exit 1 and the path in the message
-- [ ] Mermaid renderer, done when: the parser test passes on this repo's output
-- [ ] Generator + knobs + cards + allowlist + derived files, done when: probe, contracts,
+- [x] Mermaid renderer, done when: the parser test passes on this repo's output
+- [x] Generator + knobs + cards + allowlist + derived files, done when: probe, contracts,
       ritual tests green
-- [ ] Fake-graphctl wiring test, done when: it passes and a run without graphctl warns and exits 0
+- [x] Fake-graphctl wiring test, done when: it passes and a run without graphctl warns and exits 0
 
 ## Checkpoint
 
@@ -74,3 +74,5 @@ probe`, `test_contracts`, `test_mapctl` and `test_ritual` stay green.
 |----|------|----------|---------|-----------------|--------|
 
 ## Outcome
+
+Done 2026-11-04: `mapctl architecture` writes the spec and docs/ARCHITECTURE.md (Mermaid, GitHub click links); registered generator `architecture_build`, knobs and cards in place, missing paths fail the build. The verifier pass found no defect here. Closed PR-15 tier 1.

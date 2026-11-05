@@ -734,6 +734,8 @@ def _deliberately_ignored(rel: str) -> bool:
         return True
     if rel in DERIVED_STATE_IGNORED:  # projections of the journal; statectl rebuilds them
         return True
+    if rel == ".claude/system-map/code-graph.json":  # lazy derived store; the kits exclude it
+        return True
     if rel.endswith((".pyc", ".tmp", ".pid", ".log")):
         return True
     if "__pycache__" in rel:

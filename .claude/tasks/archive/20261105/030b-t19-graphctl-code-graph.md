@@ -52,13 +52,13 @@ it; a `checkctl probe` entry exists for the tool; the suite is green.
 
 ## Plan
 
-- [ ] Walker + normaliser + schema writer, done when: fixture tests cover a class, a
+- [x] Walker + normaliser + schema writer, done when: fixture tests cover a class, a
       function, an import, a call, a `source:` line
-- [ ] graphify normaliser, done when: a test feeds a small fake `graphify-out/graph.json`
+- [x] graphify normaliser, done when: a test feeds a small fake `graphify-out/graph.json`
       under the fixture record root and the same schema comes out
-- [ ] `build|update|status` CLI, done when: tests see the WARN command line, the counts, exit 0
-- [ ] `architecture_scope`, done when: fold and cap tests pass and every path exists
-- [ ] Probe entry, card, gitignore line, done when: `checkctl probe` and `mapctl lint` green
+- [x] `build|update|status` CLI, done when: tests see the WARN command line, the counts, exit 0
+- [x] `architecture_scope`, done when: fold and cap tests pass and every path exists
+- [x] Probe entry, card, gitignore line, done when: `checkctl probe` and `mapctl lint` green
 
 ## Checkpoint
 
@@ -73,3 +73,5 @@ it; a `checkctl probe` entry exists for the tool; the suite is green.
 |----|------|----------|---------|-----------------|--------|
 
 ## Outcome
+
+Done 2026-11-04: graphctl build|update|status, graphify normaliser plus ast walker, `architecture_scope` with folding and the node cap; probe entry, card, managed gitignore line. Post-accept fixes from the verifier: classes stay classes (the class flag wins) and the fixture mirrors real graphify output (L-15). Closed PR-15 tier 2.

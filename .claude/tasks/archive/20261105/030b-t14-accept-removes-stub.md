@@ -31,11 +31,11 @@ not an error; the progress model no longer counts the task as an agent in flight
 
 ## Plan
 
-- [ ] Remove the stub after the merge, before the journal note, done when: a test accepts a
+- [x] Remove the stub after the merge, before the journal note, done when: a test accepts a
       dispatched task end to end and asserts the stub is gone and the envelope remains
-- [ ] Refusal keeps the stub, done when: a test runs accept with a failing handoff and asserts
+- [x] Refusal keeps the stub, done when: a test runs accept with a failing handoff and asserts
       the stub still exists
-- [ ] Docstring of `cmd_accept` and the orchestration protocol's accept step (one clause) name
+- [x] Docstring of `cmd_accept` and the orchestration protocol's accept step (one clause) name
       the stub removal, done when: grep finds "stub" in both
 
 ## Checkpoint
@@ -51,3 +51,5 @@ not an error; the progress model no longer counts the task as an agent in flight
 |----|------|----------|---------|-----------------|--------|
 
 ## Outcome
+
+Done 2026-11-04: `_accept_merge` unlinks the dispatch stub after the worktree and branch go; an unlinkable stub is a warning, not a failure. Closed PR-10.

@@ -40,13 +40,13 @@ runner path differs, are never treated as subsets.
 
 ## Plan
 
-- [ ] Output-hash comparison, done when: two new tests in `test_ritual.py` (hand edit flagged;
+- [x] Output-hash comparison, done when: two new tests in `test_ritual.py` (hand edit flagged;
       legacy entry without output_hash not flagged for that reason) pass
-- [ ] Subset rule as a pure function with its own tests (covered; not covered for a different
+- [x] Subset rule as a pure function with its own tests (covered; not covered for a different
       runner; not covered when both name modules), done when: `test_phases` green
-- [ ] `exit_build` uses it and reports "covered by the full suite", done when: a test with
+- [x] `exit_build` uses it and reports "covered by the full suite", done when: a test with
       three tasks (full suite, a module subset, an unrelated command) shows exactly two runs
-- [ ] The `generators` subcommand's listing shows the new reason, done when: a test greps it
+- [x] The `generators` subcommand's listing shows the new reason, done when: a test greps it
 
 ## Checkpoint
 
@@ -61,3 +61,5 @@ runner path differs, are never treated as subsets.
 |----|------|----------|---------|-----------------|--------|
 
 ## Outcome
+
+Done 2026-11-04: generator freshness compares the output hash too (a hand-edited or out-of-ritual rebuild is a WARN naming the cause); `exit_build` runs full-suite commands first and marks subset commands as covered. Closed PR-9 and PR-11.

@@ -190,3 +190,6 @@
 {"ts": "2026-11-04T17:40:54Z", "action": "task", "id": "T19", "status": "done"}
 {"ts": "2026-11-04T17:40:54Z", "action": "task", "id": "T20", "status": "done"}
 {"ts": "2026-11-04T17:40:55Z", "action": "pointer", "text": "Wave 3 merged and closed; verifier running on wave 3 (envelope verify-wave3-030b). Next: read verdict, fix anything it finds, then suggest /project-memory (ritual rewrites STATUS, seals the record)."}
+{"ts": "2026-11-04T18:01:01Z", "action": "pointer", "text": "Build round done: waves 1-3 merged, suite green (894), verifier fixes in. Next: user types /project-memory (ROUTE: review phase, guided-solo for the testing sessions). Then review round per STATUS step 4."}
+{"ts": "2026-11-05T07:39:01Z", "action": "pointer", "text": "Ritual /project-memory in progress: CHECK phase"}
+{"ts": "2026-11-05T07:55:12Z", "action": "pointer", "text": "Ritual in progress: POLISH generators next; after the ritual, the review round (STATUS step 1)"}

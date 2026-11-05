@@ -1,18 +1,18 @@
 {
-  "run_id": "20261104T112152Z-ff5d20",
-  "started": "2026-11-04T11:21:52Z",
-  "status": "done",
+  "run_id": "20261105T074646Z-ca3669",
+  "started": "2026-11-05T07:46:46Z",
+  "status": "running",
   "phase": "publish",
-  "step": null,
+  "step": "obs_anchor",
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-11-04T11:30:11Z",
+      "ts": "2026-11-05T07:53:24Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "152 events parse",
+          "message": "194 events parse",
           "details": []
         },
         {
@@ -24,10 +24,12 @@
         {
           "name": "generator_freshness",
           "status": "WARN",
-          "message": "6 generator(s) need a POLISH rebuild",
+          "message": "8 generator(s) need a POLISH rebuild",
           "details": [
             "map_scan: inputs changed since the last run (POLISH will rebuild)",
             "map_compile: inputs changed since the last run (POLISH will rebuild)",
+            "code_graph_build: has never run through the ritual",
+            "architecture_build: has never run through the ritual",
             "story_build: inputs changed since the last run (POLISH will rebuild)",
             "console_build: inputs changed since the last run (POLISH will rebuild)",
             "demo_build: inputs changed since the last run (POLISH will rebuild)",
@@ -39,24 +41,34 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 5 warning(s)",
+            "MAP LINT: 0 error(s), 15 warning(s)",
             "  WARN   config.brainstorm: layer is null (unplaced)",
-            "  WARN   hook.session-start: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   config.console: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   config.memory: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   config.policy: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   config.registry: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   console.server: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   console.template: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
             "  WARN   skill.adhd: layer is null (unplaced)",
-            "  WARN   tool._lib: layer is null (unplaced)"
+            "  WARN   tool._lib: layer is null (unplaced)",
+            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool.consolectl: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool.distctl: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool.graphctl: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool.mapctl: auto.hash is stale (source changed since last scan; description may be stale)"
           ]
         },
         {
           "name": "context_health",
           "status": "OK",
-          "message": "1 guide(s), 0 rule(s), always-on 118/400 lines",
+          "message": "1 guide(s), 0 rule(s), always-on 105/400 lines",
           "details": []
         },
         {
           "name": "config_registry_lint",
           "status": "OK",
-          "message": "48 knobs registered, none dead",
+          "message": "52 knobs registered, none dead",
           "details": []
         },
         {
@@ -68,12 +80,14 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 14.6 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "message": "record is 48.4 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
+            "raw: 36.1 MB",
             "graph: 11.1 MB",
-            "raw: 3.0 MB",
-            "spool: 496.0 KB",
-            "cursors.json: 222 B",
+            "segments: 880.0 KB",
+            "spool: 287.8 KB",
+            "sealed-raw: 149.0 KB",
+            "cursors.json: 7.0 KB",
             "console.pid: 5 B",
             "console.log: 0 B"
           ]
@@ -87,7 +101,7 @@
         {
           "name": "task_reality",
           "status": "OK",
-          "message": "0 active task(s), checkpoints match disk",
+          "message": "1 active task(s), checkpoints match disk",
           "details": []
         },
         {
@@ -99,7 +113,7 @@
         {
           "name": "gitignore_shadowing",
           "status": "OK",
-          "message": "207 shippable path(s), none shadowed",
+          "message": "231 shippable path(s), none shadowed",
           "details": []
         },
         {
@@ -117,13 +131,13 @@
         {
           "name": "secrets_placement",
           "status": "OK",
-          "message": "215 file(s) scanned (tracked + unignored files), no key-shaped strings",
+          "message": "239 file(s) scanned (tracked + unignored files), no key-shaped strings",
           "details": []
         },
         {
           "name": "deploy_drift",
           "status": "SKIP",
-          "message": "phase is review, not deploy",
+          "message": "phase is build, not deploy",
           "details": []
         },
         {
@@ -136,7 +150,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-11-04T11:31:41Z",
+      "ts": "2026-11-05T07:55:14Z",
       "results": [
         {
           "name": "map_scan",
@@ -154,6 +168,18 @@
           "name": "story_build",
           "status": "OK",
           "message": "obsctl.py story",
+          "details": []
+        },
+        {
+          "name": "code_graph_build",
+          "status": "OK",
+          "message": "graphctl.py build",
+          "details": []
+        },
+        {
+          "name": "architecture_build",
+          "status": "OK",
+          "message": "mapctl.py architecture",
           "details": []
         },
         {
@@ -178,7 +204,7 @@
     },
     "publish": {
       "status": "OK",
-      "ts": "2026-11-04T11:31:50Z",
+      "ts": "2026-11-05T07:55:30Z",
       "results": [
         {
           "name": "polish_complete",
@@ -214,10 +240,9 @@
     }
   },
   "last_completed": "2026-11-04T14:38:49Z",
-  "updated": "2026-11-04T14:38:49Z",
+  "updated": "2026-11-05T07:55:30Z",
   "invoked_by": "user-ticket",
-  "ticket_ts": "2026-11-04T11:21:47Z",
+  "ticket_ts": "2026-11-05T07:38:54Z",
   "ticket_skill": "project-memory",
-  "ticket_session": "b6f519dc-85ed-4782-bf19-ce7dcaae72f1",
-  "ticket_consumed": "2026-11-04T11:21:47Z"
+  "ticket_session": "1c3dd6b8-a120-4e69-9813-f358440f24a7"
 }

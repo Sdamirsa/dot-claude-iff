@@ -41,9 +41,9 @@ contain `.claude/CREDITS.md`. NOTICE stays the legal file and is not edited.
 
 ## Plan
 
-- [ ] `CREDITS.md` written, done when: the new parser test passes on it
-- [ ] Shipped in both kits, done when: the manifest test passes
-- [ ] README mention: one line in the root README's licence paragraph, done when: grep
+- [x] `CREDITS.md` written, done when: the new parser test passes on it
+- [x] Shipped in both kits, done when: the manifest test passes
+- [x] README mention: one line in the root README's licence paragraph, done when: grep
 
 ## Checkpoint
 
@@ -58,3 +58,5 @@ contain `.claude/CREDITS.md`. NOTICE stays the legal file and is not edited.
 |----|------|----------|---------|-----------------|--------|
 
 ## Outcome
+
+Done 2026-11-04: CREDITS.md at the root with one section per source, licence read from each project; shipped in both kits beside LICENSE and NOTICE with a parser test and a manifest test. No source found for the Jev note, so no entry. Closed PR-16.

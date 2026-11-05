@@ -48,12 +48,12 @@ stay green.
 
 ## Plan
 
-- [ ] Payload field + live endpoint, done when: payload tests and the endpoint test pass
-- [ ] Scope switcher + spec renderer in the template, done when: string tests on the built
+- [x] Payload field + live endpoint, done when: payload tests and the endpoint test pass
+- [x] Scope switcher + spec renderer in the template, done when: string tests on the built
       HTML pass and a manual `consolectl build` shows the switcher with the fixture
-- [ ] Node dialog additions, done when: the editor-link rule is tested by a string check on
+- [x] Node dialog additions, done when: the editor-link rule is tested by a string check on
       the JS (the function and the protocol guard exist)
-- [ ] Self-containment, done when: the existing no-`<script src>` test still passes
+- [x] Self-containment, done when: the existing no-`<script src>` test still passes
 
 ## Checkpoint
 
@@ -68,3 +68,5 @@ stay green.
 |----|------|----------|---------|-----------------|--------|
 
 ## Outcome
+
+Done 2026-11-04: payload carries `architecture`, `/live/architecture.json` served through the allowlist, scope switcher and spec renderer with no new library, editor link only over http. Post-accept fix from the verifier: graphctl's verdict tag in checkctl (L-14). Closed PR-15 viewer.

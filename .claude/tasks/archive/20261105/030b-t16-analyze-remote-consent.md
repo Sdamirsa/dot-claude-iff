@@ -39,13 +39,13 @@ too and still sends nothing.
 
 ## Plan
 
-- [ ] Knob + card, done when: `test_contracts` and `checkctl probe` stay green
-- [ ] Redactor applied in `_serialize_batch` (or just after), done when: a test feeds an event
+- [x] Knob + card, done when: `test_contracts` and `checkctl probe` stay green
+- [x] Redactor applied in `_serialize_batch` (or just after), done when: a test feeds an event
       holding an `sk-` key and asserts the posted body has `[REDACTED:` and not the key
-- [ ] Consent gate, done when: tests for remote+false (exit 1, nothing posted, line printed),
+- [x] Consent gate, done when: tests for remote+false (exit 1, nothing posted, line printed),
       remote+true (posted, line printed), local (no line required, posted) pass
-- [ ] `analyze_status` booleans and dry-run text, done when: tests assert both
-- [ ] `reference/secrets.md` or the observe.json `_comment` names the knob, done when: grep
+- [x] `analyze_status` booleans and dry-run text, done when: tests assert both
+- [x] `reference/secrets.md` or the observe.json `_comment` names the knob, done when: grep
 
 ## Checkpoint
 
@@ -60,3 +60,5 @@ too and still sends nothing.
 |----|------|----------|---------|-----------------|--------|
 
 ## Outcome
+
+Done 2026-11-04: `analyze.remote_consent` knob with a registry card; a remote endpoint without consent sends nothing and exits 1; every batch is redacted with checkctl's secret patterns; status carries the two booleans; the console returns 409 without consent. The lead tightened the local-host rule to the parsed hostname. Closed PR-8.
