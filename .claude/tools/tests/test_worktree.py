@@ -570,6 +570,9 @@ class TestContainersAndSections(FixtureCase):
         self.assertFalse(checkctl._deliberately_ignored(".claude/state/journal.jsonl"))
         self.assertTrue(checkctl._deliberately_ignored(".claude/system-map/code-graph.json"))
         self.assertIn(".claude/system-map/code-graph.json", lines, "the code graph is a lazy derived store")
+        self.assertIn(".claude/state/handshakes/*.stub.json", lines, "a ritual commit must not pick up an in-flight stub")
+        self.assertTrue(checkctl._deliberately_ignored(".claude/state/handshakes/T9.stub.json"))
+        self.assertFalse(checkctl._deliberately_ignored(".claude/state/handshakes/T9.json"), "envelopes stay tracked")
 
     def test_the_home_guide_and_the_adopt_template_carry_both_role_sections(self):
         for guide in (CLAUDE_DIR / "CLAUDE.md", CLAUDE_DIR / "skills" / "adopt" / "CLAUDE.template.md"):

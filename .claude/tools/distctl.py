@@ -199,6 +199,9 @@ _VISIBILITY_BODY = {
 # Orchestration runtime (agent start times, the delegation counter), rewritten by hooks
 .claude/state/orchestration.json
 
+# Dispatch stubs (statectl dispatch writes one, accept removes it): in-flight state, never tracked
+.claude/state/handshakes/*.stub.json
+
 # Projections of the journal, rebuilt by statectl on every write and at session start; the
 # journal itself stays tracked. Ignored so a checkout that only ran a session ends clean and a
 # worktree's stale copy never merges back (Cview's merge refuses a dirty main checkout)

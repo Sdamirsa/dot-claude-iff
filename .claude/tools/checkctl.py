@@ -732,6 +732,8 @@ def _deliberately_ignored(rel: str) -> bool:
         return True
     if rel == ".claude/state/orchestration.json":  # per-machine runtime counters, rewritten by hooks
         return True
+    if rel.startswith(".claude/state/handshakes/") and rel.endswith(".stub.json"):  # in-flight dispatch
+        return True
     if rel in DERIVED_STATE_IGNORED:  # projections of the journal; statectl rebuilds them
         return True
     if rel == ".claude/system-map/code-graph.json":  # lazy derived store; the kits exclude it
