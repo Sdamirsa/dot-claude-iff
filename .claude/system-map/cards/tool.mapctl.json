@@ -8,14 +8,18 @@
   "description": "",
   "reads": [
     "store.cards",
-    "map.layers"
+    "map.layers",
+    "store.code_graph",
+    "config.console"
   ],
   "writes": [
     "store.cards",
     "store.map",
     "store.architecture"
   ],
-  "invokes": [],
+  "invokes": [
+    "tool.graphctl"
+  ],
   "flows": [],
   "glyphs": [],
   "auto": {

@@ -7,7 +7,8 @@
   "path": ".claude/console/console.py",
   "description": "console.py - hardened stdlib HTTP server for the console.",
   "reads": [
-    "config.console"
+    "config.console",
+    "store.architecture"
   ],
   "writes": [],
   "invokes": [

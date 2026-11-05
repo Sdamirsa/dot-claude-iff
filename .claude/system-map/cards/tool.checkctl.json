@@ -32,7 +32,8 @@
     "tool.mapctl",
     "tool.obsctl",
     "tool.consolectl",
-    "tool.statectl"
+    "tool.statectl",
+    "tool.graphctl"
   ],
   "flows": [],
   "glyphs": [],

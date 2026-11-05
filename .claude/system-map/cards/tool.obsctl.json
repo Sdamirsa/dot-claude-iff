@@ -20,7 +20,9 @@
     "store.anchor",
     "store.story"
   ],
-  "invokes": [],
+  "invokes": [
+    "tool.checkctl"
+  ],
   "flows": [],
   "glyphs": [],
   "auto": {
