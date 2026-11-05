@@ -10,7 +10,7 @@ the beta cut is the human review round; the release itself is the maintainer's c
 
 ## Active tasks
 
-- `030b-00-milestone.md` (M-0.3.0-beta.1): two plan items left, the review round and the release.
+- none registered. M-0.3.0-beta.1 stays in flight for the review round and the release; its index card is archived under `.claude/tasks/archive/`.
 
 ## Next steps
 

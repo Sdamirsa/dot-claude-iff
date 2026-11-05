@@ -197,3 +197,5 @@
 {"ts": "2026-11-05T08:26:01Z", "action": "tooling", "change_type": "rule", "what": "dispatch stubs (.claude/state/handshakes/*.stub.json) gitignored by the managed block and known to checkctl's deliberate-ignore list", "evidence": "three stubs were committed by a glob add on 2026-11-04 and untracked next commit; git add -A in the ritual would repeat it whenever a builder is in flight; approved by the user at the EVOLVE gate"}
 {"ts": "2026-11-05T08:30:43Z", "action": "mode", "value": "guided-solo"}
 {"ts": "2026-11-05T08:30:43Z", "action": "pointer", "text": "Review round: fresh session, phase review, guided-solo; run docs/alpha-test-checklist.md items 4, 10, 7 (STATUS step 1)"}
+{"ts": "2026-11-05T08:36:12Z", "action": "task", "id": "030b-00-milestone", "status": "done"}
+{"ts": "2026-11-05T08:43:02Z", "action": "phase", "value": "review", "from": "build"}

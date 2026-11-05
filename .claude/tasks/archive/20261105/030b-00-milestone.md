@@ -1,6 +1,6 @@
 # Task: Milestone M-0.3.0-beta.1 - index, waves and shared contracts
 
-_Created 2026-11-04 · Status: doing_
+_Created 2026-11-04 · Status: done_
 
 Milestone: M-0.3.0-beta.1
 
@@ -103,13 +103,11 @@ only by `mapctl architecture`):
 - [x] Wave 2 (lead), done when: `mapctl context` and `context_health` accept CLAUDE.md; PR-5 decided (both committed 2026-11-04)
 - [x] T18, T19, T20 accepted (2026-11-04), done when: `test_graph` green and the console MAP tab shows the `.claude` scope (suite 889 green; verifier envelope verify-wave3-030b)
 - [x] Proposals resolved (2026-11-04), done when: `statectl proposal list` shows none of PR-8/9/10/11/14/15/16 open
-- [ ] Review round (the human), done when: checklist items 4, 10 and 7 are run, findings are proposals or cards, and the review phase has a sign-off
-- [ ] Release 0.3.0-beta.1 from dev, done when: the tag's release workflow is green
 
 ## Checkpoint
 
 - **Last completed:** waves 1-3 accepted, verifier fixes merged, suite green on dev
-- **Next action:** review round (STATUS step 4), then release 0.3.0-beta.1 from dev
+- **Next action:** none; the review round and the release are tracked in STATUS
 - **State files:** `.claude/state/handshakes/verify-wave3-030b.json`
 - **Updated:** 2026-11-05
 
@@ -119,3 +117,5 @@ only by `mapctl architecture`):
 |----|------|----------|---------|-----------------|--------|
 
 ## Outcome
+
+Done 2026-11-05: the Definition of done is met (T14-T20 done with their Tests green on Windows and in CI, suite green on dev, proposals PR-5/8/9/10/11/14/15/16 resolved naming their tasks). The human review round and the beta cut follow under the milestone, tracked in STATUS, not in this card.
