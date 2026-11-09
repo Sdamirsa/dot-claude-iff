@@ -218,11 +218,13 @@ try:
         port = _lib.console_port(cfg)
         record = _lib.record_paths()["root"]
         pidfile = record / "console.pid"
+        # Liveness through _lib.pid_alive, never os.kill(pid, 0): on Windows that call kills
+        # or (3.14) raises for a process this interpreter did not spawn, which made every
+        # second session report its own console as another project's (PR-17).
         alive = False
         try:
             pid = int(pidfile.read_text(encoding="utf-8").strip())
-            os.kill(pid, 0)
-            alive = True
+            alive = _lib.pid_alive(pid)
         except Exception:
             alive = False
         busy = False

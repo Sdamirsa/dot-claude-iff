@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-04T17:33:41Z",
+  "generated_at": "2026-11-09T08:58:13Z",
   "project": "dot-claude-iff",
   "scopes": [
     {
@@ -487,6 +487,13 @@
         },
         {
           "from": "console.server",
+          "to": "folder.system-map",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "console.server",
           "to": "tool.consolectl",
           "label": "invokes",
           "style": "solid",
@@ -837,6 +844,13 @@
         },
         {
           "from": "tool.checkctl",
+          "to": "tool.graphctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.checkctl",
           "to": "tool.mapctl",
           "label": "invokes",
           "style": "solid",
@@ -991,10 +1005,17 @@
         },
         {
           "from": "tool.mapctl",
+          "to": "folder.config",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.mapctl",
           "to": "folder.system-map",
           "label": "reads",
           "style": "dashed",
-          "weight": 2
+          "weight": 3
         },
         {
           "from": "tool.mapctl",
@@ -1002,6 +1023,13 @@
           "label": "writes",
           "style": "solid",
           "weight": 3
+        },
+        {
+          "from": "tool.mapctl",
+          "to": "tool.graphctl",
+          "label": "invokes",
+          "style": "solid",
+          "weight": 1
         },
         {
           "from": "tool.obsctl",
@@ -1049,6 +1077,13 @@
           "from": "tool.obsctl",
           "to": "folder.state",
           "label": "writes",
+          "style": "solid",
+          "weight": 1
+        },
+        {
+          "from": "tool.obsctl",
+          "to": "tool.checkctl",
+          "label": "invokes",
           "style": "solid",
           "weight": 1
         },
@@ -1118,7 +1153,7 @@
       ],
       "stats": {
         "nodes": 40,
-        "edges": 106,
+        "edges": 111,
         "folded": 38
       }
     },

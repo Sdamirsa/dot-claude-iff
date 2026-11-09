@@ -16,9 +16,11 @@ divergent and focus instructions, the frame catalogue, the anti-patterns, the ou
   agent it may suggest `/adhd` for open, divergent questions. Upstream's self-judge pre-flight
   is dropped: the skill only runs when the user typed `/adhd`.
 - **Tunable.** Branch count, the frame catalogue, the branch model and the critic model moved
-  to `.claude/config/brainstorm.json` (one registry card each). Defaults are upstream's branch
-  count and frames, branches on `sonnet`, critic on `inherit`. Branches are dispatched with the
-  Agent tool's per-call `model`.
+  to `.claude/config/brainstorm.json` (one registry card each). Branch count and frames default
+  to upstream's. The models are OUR choice, not upstream's: upstream pins no model (branches and
+  critic inherit the session model); here branches run on `sonnet` and the critic on `inherit`,
+  decided by the maintainer 2026-11-06 without a measured comparison. Branches are dispatched
+  with the Agent tool's per-call `model`.
 - **No invented precision.** Upstream's 0-10 scores, weighted ranking and score chips next to
   each idea are removed; the critic judges novelty, viability and fit in words and states a
   one-line reason for each pick.

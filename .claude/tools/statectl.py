@@ -760,6 +760,19 @@ def _builder_prompt(root: Path, task_id: str, tf, wt_rel: str, name: str, branch
     return header + brief, sorted(set(_BRIEF_PLACEHOLDER_RE.findall(brief)))
 
 
+_CVIEW_REFUSAL = ("refused: .cview/ exists at the repo root, so Cview drives this repo - it cuts "
+                  "the worktrees and the human merges from its Intake; `statectl {cmd}` is the "
+                  "fableous lead's command and stays out of its way (CLAUDE.md, reviewing under "
+                  "Cview).")
+
+
+def _cview_drives(root: Path) -> bool:
+    """Cview's run state folder at the repo root is the one signal CLAUDE.md keys its reviewer
+    section on; dispatch and accept defer to it (PR-20: nothing under .claude/ runs
+    `git worktree` or merges while Cview does)."""
+    return (Path(root) / ".cview").exists()
+
+
 def cmd_dispatch(args) -> int:
     """Dispatch an agent for a task. For a builder (the default agent): cut its worktree from
     HEAD (`git worktree add .claude/worktrees/<id> -b wt/<id> HEAD`), write the stub and print the
@@ -770,6 +783,10 @@ def cmd_dispatch(args) -> int:
     agent in flight on the console and dates the dispatch for the builder stop check; the
     journal note lets a resumed session see it."""
     root = _lib.project_root()
+    if _cview_drives(root):
+        print(_CVIEW_REFUSAL.format(cmd="dispatch") + " Nothing was created.")
+        _lib.print_verdict("STATE", False)
+        return 1
     builder = args.agent == "builder"
     wt_rel = Path(args.worktree).as_posix() if args.worktree else None
     tf, name, branch, warn = None, None, "", False
@@ -881,6 +898,10 @@ def cmd_accept(args) -> int:
     no longer shows as in flight. A refused or conflicted accept keeps the stub. Never pushes;
     never marks the task done (the lead does, after the suite)."""
     root = _lib.project_root()
+    if _cview_drives(root):
+        print(_CVIEW_REFUSAL.format(cmd="accept") + " Nothing was changed.")
+        _lib.print_verdict("STATE", False)
+        return 1
     task_id = args.id
     try:
         branch = _repo_branch(root)

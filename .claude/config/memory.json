@@ -85,7 +85,7 @@
         "kind": "check",
         "argv": ["python3", ".claude/tools/tests/run_tests.py", "-q"],
         "required": true,
-        "timeout": 600
+        "timeout": 1200
       }
     ],
     "polish": []

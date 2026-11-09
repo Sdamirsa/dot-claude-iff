@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-05T07:55:13Z",
+  "generated_at": "2026-11-09T08:58:13Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -1039,6 +1039,11 @@
     },
     {
       "from": "console.server",
+      "to": "store.architecture",
+      "type": "reads"
+    },
+    {
+      "from": "console.server",
       "to": "tool.consolectl",
       "type": "invokes"
     },
@@ -1463,6 +1468,11 @@
       "type": "invokes"
     },
     {
+      "from": "tool.checkctl",
+      "to": "tool.graphctl",
+      "type": "invokes"
+    },
+    {
       "from": "tool.consolectl",
       "to": "store.heartbeat",
       "type": "reads"
@@ -1614,6 +1624,16 @@
     },
     {
       "from": "tool.mapctl",
+      "to": "store.code_graph",
+      "type": "reads"
+    },
+    {
+      "from": "tool.mapctl",
+      "to": "config.console",
+      "type": "reads"
+    },
+    {
+      "from": "tool.mapctl",
       "to": "store.cards",
       "type": "writes"
     },
@@ -1626,6 +1646,11 @@
       "from": "tool.mapctl",
       "to": "store.architecture",
       "type": "writes"
+    },
+    {
+      "from": "tool.mapctl",
+      "to": "tool.graphctl",
+      "type": "invokes"
     },
     {
       "from": "tool.obsctl",
@@ -1676,6 +1701,11 @@
       "from": "tool.obsctl",
       "to": "store.story",
       "type": "writes"
+    },
+    {
+      "from": "tool.obsctl",
+      "to": "tool.checkctl",
+      "type": "invokes"
     },
     {
       "from": "tool.progress",
@@ -1795,7 +1825,7 @@
   ],
   "stats": {
     "nodes": 72,
-    "edges": 170,
+    "edges": 176,
     "by_kind": {
       "agent": 5,
       "code": 23,
@@ -1824,7 +1854,7 @@
   "context": {
     "v": 1,
     "root_guide": ".claude/CLAUDE.md",
-    "always_on_lines": 106,
+    "always_on_lines": 108,
     "always_on_budget": 400,
     "size_target": 200,
     "counts": {
@@ -1842,7 +1872,7 @@
         "kind": "guide",
         "scope": "root",
         "loads": "launch",
-        "lines": 106,
+        "lines": 108,
         "findings": 0,
         "via": null
       }

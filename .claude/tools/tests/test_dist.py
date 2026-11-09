@@ -293,6 +293,18 @@ class TestPayload(DistCase):
                 lines = self.read(zip_name, entry).splitlines()
                 self.assertIn(".claude/state/heartbeat.json", lines)
                 self.assertIn(".claude/worktrees/", lines)
+                self.assertIn(".cview/", lines)
+
+    def test_every_kit_ships_gitattributes_pinning_the_hooks_to_lf(self):
+        """PR-18: Git for Windows defaults to autocrlf=true; without this file the first checkout
+        that touches the hooks rewrites them CRLF and bash cannot run them."""
+        distctl.build(self.root)
+        for zip_name, entry in (("dot-claude-iff-fresh.zip", ".gitattributes"),
+                                ("dot-claude-iff-adopt-kit.zip", "dot-claude-iff-kit/.gitattributes")):
+            with self.subTest(zip=zip_name):
+                lines = self.read(zip_name, entry).splitlines()
+                self.assertIn("*.sh text eol=lf", lines)
+                self.assertIn(".claude/hooks/" + "* text eol=lf", lines)
 
     def test_license_and_notice_travel_inside_claude_of_every_kit(self):
         """Apache-2.0: LICENSE and NOTICE go with every copy. They ship inside .claude/ so they

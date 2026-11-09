@@ -154,6 +154,12 @@ Do not create `RECORD_ROOT` (the sibling `<target-parent>/<target-name>_claude_i
 hand: the first hook invocation creates it on demand, empty, and that is the correct starting
 state.
 
+**Line endings (`.gitattributes`)** (every install path). The kit ships a root `.gitattributes`
+(`*.sh text eol=lf`, `.claude/hooks/* text eol=lf`). When `<target>` has none, copy it; when it
+has one, append the two rules it lacks. Without them Git for Windows (autocrlf=true) rewrites
+the hooks CRLF on the first checkout that touches them and bash cannot run them; `doctor`
+warns (`gitattributes` row) while the rule is missing.
+
 **Visibility and the managed `.gitignore` block** (every install path: clone, fresh zip, kit).
 Record the Phase 2 answer in `<target>/.claude/config/memory.json` as `"visibility": "tracked"`
 or `"visibility": "ignored"` (kits ship `tracked`; a clone carries its source's value), then

@@ -1915,6 +1915,32 @@ def _doctor_hook_scripts():
                                       f"all wired"), ""
 
 
+def _doctor_gitattributes():
+    """The hooks stay LF only when git is told so: a root .gitattributes with an eol=lf rule
+    that covers the hooks folder (or every *.sh). Git for Windows ships autocrlf=true, so
+    without the rule the first checkout that touches the hooks rewrites them CRLF and bash
+    cannot run them. WARN, not FAIL: today's bytes may still be fine (hook_scripts says)."""
+    path = _lib.project_root() / ".gitattributes"
+    hooks_glob = ".claude/hooks/" + "*"
+    fix = ("copy the kit's .gitattributes to the repo root (`*.sh text eol=lf` and "
+           f"`{hooks_glob} text eol=lf`), then `git add --renormalize .claude/hooks`")
+    if not path.is_file():
+        return Result("gitattributes", WARN, "no .gitattributes at the repo root: nothing pins "
+                                             "the hooks to LF on a Windows checkout"), fix
+    covering = {"*", "*.sh", "**/*.sh", hooks_glob, ".claude/hooks/**", "/" + hooks_glob}
+    covered = False
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        parts = line.strip().split()
+        if not parts or parts[0].startswith("#") or "eol=lf" not in parts[1:]:
+            continue
+        if parts[0] in covering:
+            covered = True
+    if not covered:
+        return Result("gitattributes", WARN, ".gitattributes has no eol=lf rule covering "
+                                             f"{hooks_glob} (or *.sh)"), fix
+    return Result("gitattributes", OK, "eol=lf rule covers the hooks"), ""
+
+
 def _doctor_record_root():
     fix = ("set CLAUDE_IFF_RECORD_ROOT in the repo-root .env (or policy.record_root) to a "
            "writable folder outside the repo")
@@ -2056,7 +2082,8 @@ def _doctor_ritual_ticket():
 
 DOCTOR_ROWS = (
     _doctor_python, _doctor_python3, _doctor_bash, _doctor_git, _doctor_config, _doctor_hooks,
-    _doctor_hook_scripts, _doctor_record_root, _doctor_cloud_sync, _doctor_console, _doctor_heartbeat,
+    _doctor_hook_scripts, _doctor_gitattributes, _doctor_record_root, _doctor_cloud_sync, _doctor_console,
+    _doctor_heartbeat,
     _doctor_secrets, _doctor_mode, _doctor_phase, _doctor_ritual_ticket,
 )
 

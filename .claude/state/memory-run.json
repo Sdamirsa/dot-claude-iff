@@ -1,18 +1,18 @@
 {
-  "run_id": "20261105T074646Z-ca3669",
-  "started": "2026-11-05T07:46:46Z",
-  "status": "done",
+  "run_id": "20261109T084704Z-42b0af",
+  "started": "2026-11-09T08:47:04Z",
+  "status": "running",
   "phase": "publish",
-  "step": null,
+  "step": "obs_anchor",
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-11-05T07:53:24Z",
+      "ts": "2026-11-09T08:57:55Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "194 events parse",
+          "message": "224 events parse",
           "details": []
         },
         {
@@ -28,8 +28,8 @@
           "details": [
             "map_scan: inputs changed since the last run (POLISH will rebuild)",
             "map_compile: inputs changed since the last run (POLISH will rebuild)",
-            "code_graph_build: has never run through the ritual",
-            "architecture_build: has never run through the ritual",
+            "code_graph_build: inputs changed since the last run (POLISH will rebuild)",
+            "architecture_build: inputs changed since the last run (POLISH will rebuild)",
             "story_build: inputs changed since the last run (POLISH will rebuild)",
             "console_build: inputs changed since the last run (POLISH will rebuild)",
             "demo_build: inputs changed since the last run (POLISH will rebuild)",
@@ -41,28 +41,25 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 15 warning(s)",
+            "MAP LINT: 0 error(s), 12 warning(s)",
             "  WARN   config.brainstorm: layer is null (unplaced)",
-            "  WARN   config.console: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   config.memory: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   config.policy: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   config.registry: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   console.server: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   console.template: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   hook.session-start: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
             "  WARN   skill.adhd: layer is null (unplaced)",
+            "  WARN   skill.adopt: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool._lib: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   tool._lib: layer is null (unplaced)",
             "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool.consolectl: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   tool.distctl: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool.graphctl: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool.mapctl: auto.hash is stale (source changed since last scan; description may be stale)"
+            "  WARN   tool.mapctl: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   tool.statectl: auto.hash is stale (source changed since last scan; description may be stale)"
           ]
         },
         {
           "name": "context_health",
           "status": "OK",
-          "message": "1 guide(s), 0 rule(s), always-on 105/400 lines",
+          "message": "1 guide(s), 0 rule(s), always-on 108/400 lines",
           "details": []
         },
         {
@@ -80,14 +77,14 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 48.4 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "message": "record is 63.2 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
-            "raw: 36.1 MB",
+            "raw: 50.7 MB",
             "graph: 11.1 MB",
-            "segments: 880.0 KB",
-            "spool: 287.8 KB",
-            "sealed-raw: 149.0 KB",
-            "cursors.json: 7.0 KB",
+            "segments: 1.2 MB",
+            "sealed-raw: 225.2 KB",
+            "spool: 103.9 KB",
+            "cursors.json: 9.4 KB",
             "console.pid: 5 B",
             "console.log: 0 B"
           ]
@@ -113,7 +110,7 @@
         {
           "name": "gitignore_shadowing",
           "status": "OK",
-          "message": "231 shippable path(s), none shadowed",
+          "message": "233 shippable path(s), none shadowed",
           "details": []
         },
         {
@@ -131,7 +128,7 @@
         {
           "name": "secrets_placement",
           "status": "OK",
-          "message": "239 file(s) scanned (tracked + unignored files), no key-shaped strings",
+          "message": "241 file(s) scanned (tracked + unignored files), no key-shaped strings",
           "details": []
         },
         {
@@ -150,7 +147,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-11-05T07:55:14Z",
+      "ts": "2026-11-09T08:58:14Z",
       "results": [
         {
           "name": "map_scan",
@@ -204,7 +201,7 @@
     },
     "publish": {
       "status": "OK",
-      "ts": "2026-11-05T07:55:30Z",
+      "ts": "2026-11-09T08:58:27Z",
       "results": [
         {
           "name": "polish_complete",
@@ -240,10 +237,9 @@
     }
   },
   "last_completed": "2026-11-05T07:58:03Z",
-  "updated": "2026-11-05T07:58:03Z",
+  "updated": "2026-11-09T08:58:27Z",
   "invoked_by": "user-ticket",
-  "ticket_ts": "2026-11-05T07:38:54Z",
+  "ticket_ts": "2026-11-09T08:35:41Z",
   "ticket_skill": "project-memory",
-  "ticket_session": "1c3dd6b8-a120-4e69-9813-f358440f24a7",
-  "ticket_consumed": "2026-11-05T07:38:54Z"
+  "ticket_session": "9538a1cb-0f96-4274-b177-2f59f8d00916"
 }

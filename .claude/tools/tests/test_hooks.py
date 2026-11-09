@@ -1309,6 +1309,54 @@ class TestConsolePortCollision(HookCase):
         finally:
             blocker.close()
 
+    def test_own_live_console_from_an_earlier_session_is_recognised(self):
+        """The pidfile names a process the hook's interpreter did not spawn (a console an
+        earlier session started) and the port is busy because that console holds it. The hook
+        must print the URL, not the collision line: os.kill(pid, 0) as the probe raised on
+        Windows for exactly this case and every second session reported a false collision."""
+        import socket
+        import subprocess
+        import sys
+        import _lib
+        blocker = socket.socket()
+        sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL)
+        try:
+            blocker.bind(("127.0.0.1", 0))
+            blocker.listen(1)
+            port = blocker.getsockname()[1]
+            (self.root / ".claude" / "console").mkdir(parents=True, exist_ok=True)
+            (self.root / ".claude" / "console" / "console.py").write_text("# stub", encoding="utf-8")
+            cfg = _lib.read_json(self.root / ".claude" / "config" / "console.json", {}) or {}
+            cfg.update({"autostart": True, "host": "127.0.0.1", "port": port})
+            _lib.atomic_write_json(self.root / ".claude" / "config" / "console.json", cfg)
+            self.record.mkdir(parents=True, exist_ok=True)
+            (self.record / "console.pid").write_text(str(sleeper.pid), encoding="utf-8")
+            res = self.run_hook("session-start.sh", {"hook_event_name": "SessionStart"})
+            self.assertEqual(res.returncode, 0)
+            self.assertNotIn("already in use", res.stdout)
+            self.assertIn(f":{port}/console.html", res.stdout)
+        finally:
+            blocker.close()
+            sleeper.kill()
+            sleeper.wait()
+
+    def test_pid_alive_tells_a_live_foreign_process_from_a_dead_one(self):
+        import subprocess
+        import sys
+        import _lib
+        sleeper = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL)
+        try:
+            self.assertTrue(_lib.pid_alive(sleeper.pid))
+        finally:
+            sleeper.kill()
+            sleeper.wait()
+        self.assertFalse(_lib.pid_alive(sleeper.pid))
+        self.assertFalse(_lib.pid_alive(0))
+
 
 IDENTITIES = (None, "worker", "builder", "anatomist", "verifier")
 

@@ -393,7 +393,7 @@ class TestRegistration(SecretsCase):
 # --------------------------------------------------------------------------- doctor
 
 ROW_RE = re.compile(r"^\[(OK  |WARN|FAIL|SKIP)\] (\S+)\s+(.*)$")
-DOCTOR_NAMES = {"python", "python3", "bash", "git", "config", "hooks", "hook_scripts", "record_root",
+DOCTOR_NAMES = {"python", "python3", "bash", "git", "config", "hooks", "hook_scripts", "gitattributes", "record_root",
                 "record_cloud_sync", "console", "heartbeat", "secrets_placement", "mode",
                 "phase", "ritual_ticket"}
 

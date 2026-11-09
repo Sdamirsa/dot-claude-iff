@@ -4,30 +4,31 @@ _Rewritten by `/project-memory`. Read this first, every session._
 
 ## Current focus
 
-The build round for v0.3.0-beta.1 is merged into `dev`: waves 1-3 (T14-T20) closed with
-their envelopes, the wave-3 verifier's two findings fixed, suite green. What remains before
-the beta cut is the human review round; the release itself is the maintainer's call.
+The human review round for v0.3.0-beta.1 is signed off (items 4, 7, 10 run live) and its fix
+round, task 030b-t21, is implemented with the suite green. What remains before the beta cut is
+the verification pass on the fixes and the release itself, which the maintainer names.
 
 ## Active tasks
 
-- none registered. M-0.3.0-beta.1 stays in flight for the review round and the release; its index card is archived under `.claude/tasks/archive/`.
+- `030b-t21-beta1-fix-round` (doing): every edit is in and the suite passes; open items are the
+  zips rebuilt by this ritual and the human's verification pass.
 
 ## Next steps
 
-1. **Review round** (phase review, guided-solo): run `docs/alpha-test-checklist.md` items 4,
-   10 and 7 in a fresh session; `/adhd` with the PR-12 question (sonnet vs inherit for the
-   branch model); every finding becomes a proposal or a task card; sign off the phase.
-2. **Tune the diagram**: open the console MAP tab, switch to the `claude` scope, and set
-   `architecture.max_nodes` in `console.json` if it is denser than the approved sample.
-3. **Release 0.3.0-beta.1** from `dev` per the ritual's release steps (maintainer names it).
-4. After it holds: PR-4 maturation pass, merge to `main`, stable tag, PR-13 Zenodo.
+1. **Verify the fixes** (the human, Place D and A): fresh adoption from the new zip plus the Cview
+   paste, expecting eight PASS (E4 on intent); one new session here prints the console URL
+   instead of the port-collision line. Then close T21 and run the build exit.
+2. **Three live boxes still owed** from items 1, 5, 6: the plain-words ritual refusal, the
+   deploy-phase proposal reflex, the three sub-agent denials (about fifteen minutes).
+3. **Release 0.3.0-beta.1** from `dev` per the ritual's release steps, when the maintainer says so.
+4. After it holds: PR-21 (documented 3-way upgrade path), PR-23 (fresh-kit test assumptions),
+   PR-4 maturation pass, merge to `main`, stable tag, PR-13 Zenodo.
 
 ## Blockers / open decisions
 
-- graphify extraction stays a human-terminal command; `graphctl build` only normalises
-  what exists under the record root and prints the exact command otherwise.
-- PR-5 scope: the deny layer names only universal denies (deny rules bind the main session too).
-- Open proposals: `python3 .claude/tools/statectl.py proposal list` (PR-1, 4, 7, 12, 13).
+- None blocking. The suite now takes about eleven minutes here; the CHECK step allows twenty.
+- The Claude Chrome extension half of item 4 is still untested; the browser half passed.
+- Open proposals: `python3 .claude/tools/statectl.py proposal list` (PR-1, 4, 7, 13, 21, 23).
 
 ## Watch-outs
 
@@ -35,5 +36,5 @@ the beta cut is the human review round; the release itself is the maintainer's c
   filing a feature proposal (L-13).
 - Test fixtures for an external format are cut from a real sample of that output, never
   typed from memory (L-15).
-- A gitignored file under .claude/ needs three entries: the managed gitignore block, the kit
-  exclude list and checkctl's deliberate-ignore list; CHECK warns when one is missing.
+- A probe of something the code did not create (a pid, a port) gets a test where a different
+  interpreter created it, and its Windows branch runs on Windows before the card closes (L-16).

@@ -84,6 +84,7 @@ flowchart LR
   agent_retro_analyst -.->|reads| store_project_log
   agent_verifier -->|writes| folder_state
   console_server -.->|reads| folder_config
+  console_server -.->|reads| folder_system_map
   console_server -->|invokes| tool_consolectl
   console_server -->|invokes| tool_sysmon
   hook_handoff_guard -.->|reads x3| folder_state
@@ -134,6 +135,7 @@ flowchart LR
   tool_checkctl -.->|reads x7| folder_state
   tool_checkctl -->|writes x3| folder_state
   tool_checkctl -->|invokes| tool_consolectl
+  tool_checkctl -->|invokes| tool_graphctl
   tool_checkctl -->|invokes| tool_mapctl
   tool_checkctl -->|invokes| tool_obsctl
   tool_checkctl -->|invokes| tool_statectl
@@ -156,8 +158,10 @@ flowchart LR
   tool_graphctl -->|writes| folder_system_map
   tool_graphctl -->|invokes| tool__lib
   tool_graphctl -->|invokes| tool_ctxmap
-  tool_mapctl -.->|reads x2| folder_system_map
+  tool_mapctl -.->|reads| folder_config
+  tool_mapctl -.->|reads x3| folder_system_map
   tool_mapctl -->|writes x3| folder_system_map
+  tool_mapctl -->|invokes| tool_graphctl
   tool_obsctl -.->|reads| folder_claude_iff
   tool_obsctl -->|writes x2| folder_claude_iff
   tool_obsctl -.->|reads x3| folder_config
@@ -165,6 +169,7 @@ flowchart LR
   tool_obsctl -->|writes| folder_record
   tool_obsctl -.->|reads| folder_state
   tool_obsctl -->|writes| folder_state
+  tool_obsctl -->|invokes| tool_checkctl
   tool_progress -.->|reads x5| folder_state
   tool_progress -->|invokes| tool__lib
   tool_progress -->|invokes| tool_checkctl

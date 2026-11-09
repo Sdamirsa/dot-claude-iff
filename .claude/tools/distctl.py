@@ -215,13 +215,16 @@ _VISIBILITY_BODY = {
 # Agent worktrees (build-time scratch copies of the repo; a Cview task's worktree lives here too)
 .claude/worktrees/
 
+# Cview's run state when that orchestrator drives this repo (CLAUDE.md's reviewer section keys on it)
+.cview/
+
 # Atomic-write leftovers (the temp file of a write that died before its rename)
 .claude/**/*.tmp
 
 """ + _PY_CACHES),
     "ignored": ("# visibility: ignored - the agent system stays in this checkout and never "
                 "reaches git;\n# publish a clean copy with `distctl.py export` "
-                "(.claude/reference/public-private.md)\n.claude/\n.claude-iff/\n\n"
+                "(.claude/reference/public-private.md)\n.claude/\n.claude-iff/\n.cview/\n\n"
                 + _SAFETY_NET + "\n" + _PY_CACHES),
 }
 # What the kits wrote before the managed block existed, byte for byte: `gitignore --apply`
@@ -240,6 +243,16 @@ settings.local.json
 
 # Agent worktrees (build-time scratch copies of the repo)
 .claude/worktrees/
+"""
+
+
+# Shipped at every kit's root beside the .gitignore: Git for Windows defaults to autocrlf=true,
+# which rewrites the hooks CRLF on the first checkout that touches them, and bash then cannot run
+# them (doctor's hook_scripts check catches it only afterwards). Same text as the home repo's.
+GITATTRIBUTES = """# Shell scripts are LF on every OS: a CRLF shebang breaks a hook outside Git Bash.
+*.sh text eol=lf
+# Everything a hook runs is LF on every OS (doctor checks it).
+.claude/hooks/* text eol=lf
 """
 
 
@@ -508,10 +521,13 @@ def build(root: Path | None = None, out_dir: Path | None = None, quiet: bool = F
     # rides along on the same path.
     legal = [(f".claude/{name}", (root / name).read_bytes())
              for name in LEGAL_FILES + CREDIT_FILES if (root / name).is_file()]
-    fresh = payload + legal + [("START-HERE.md", START_HERE.encode()), (".gitignore", gitignore)]
+    attributes = GITATTRIBUTES.encode()
+    fresh = payload + legal + [("START-HERE.md", START_HERE.encode()), (".gitignore", gitignore),
+                               (".gitattributes", attributes)]
     kit = [(f"dot-claude-iff-kit/{p}", d) for p, d in payload + legal]
     kit += [("ADOPT.md", ADOPT_MD.encode()),
-            ("dot-claude-iff-kit/.gitignore", gitignore)]
+            ("dot-claude-iff-kit/.gitignore", gitignore),
+            ("dot-claude-iff-kit/.gitattributes", attributes)]
 
     results = {}
     for name, entries in zip(ZIP_NAMES, (fresh, kit)):

@@ -385,6 +385,16 @@ class TestDispatch(WorktreeCase):
         code, out = self.statectl("dispatch", "T9")
         self.assert_refused(code, out, "no task file maps to T9", before)
 
+    def test_dispatch_and_accept_defer_to_cview_when_it_drives_the_repo(self):
+        """PR-20: with .cview/ at the repo root Cview cuts the worktrees and the human merges;
+        nothing under .claude/ may run `git worktree` or merge then."""
+        (self.root / ".cview").mkdir()
+        before = self.snapshot()
+        code, out = self.statectl("dispatch", "T1")
+        self.assert_refused(code, out, ".cview/ exists at the repo root", before)
+        code, out = self.statectl("accept", "T1")
+        self.assert_refused(code, out, ".cview/ exists at the repo root", before)
+
     def test_an_existing_worktree_path_is_refused(self):
         self.wt.mkdir(parents=True)
         before = self.snapshot()

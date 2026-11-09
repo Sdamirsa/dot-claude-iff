@@ -986,7 +986,10 @@ def cap_boxes(boxes: dict, edges: list, max_nodes: int):
             common = None
         out[oid] = {"id": oid, "group": group, "label": f"other ({len(members)})",
                     "path": common or None, "kind": "folder", "members": sorted(members),
-                    "_lazy": False}
+                    # A fold of planned (lazy) cards is lazy too: its missing path is then a
+                    # WARN, not an error that blocks the whole spec for an adopter with many
+                    # planned cards (found in extrct_private's upgrade, PR-22).
+                    "_lazy": all(boxes[m].get("_lazy") for m in members)}
         for m in members:
             del out[m]
             remap[m] = oid

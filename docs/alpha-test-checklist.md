@@ -31,6 +31,14 @@ URL), `checkctl doctor` clean, the progress-report advisory firing on a file wri
 Fableous Orchestrated mode, the console serving its page and live payload over HTTP, and the
 worktree rules against a real `git worktree add` (suite only, not a live session).
 
+Evidenced by this repo's own history, ruled so by the maintainer on 2026-11-08: item 1's ritual
+end to end (runs closed on `dev`, the latest at commit 9c50c60) and the STATUS rewrite; item 5's
+phase exits (the plan, build and review sign-offs are in the journal); item 6's dispatch, builder
+and accept flow (tasks T14 to T20 carry their envelopes). Still to run live from those items:
+item 1's plain-words refusal, item 5's deploy-phase proposal reflex, item 6's three sub-agent
+denials. Run live in the review round of 2026-11-05 to 08: items 4, 7 and 10 (findings PR-17
+to PR-23; the fixes landed in task 030b-t21).
+
 ## 1. The ritual opens for you and only for you - Place A
 
 The biggest unknown: CHECK, POLISH, PUBLISH and ROUTE have never run end to end live.
@@ -123,10 +131,12 @@ The biggest unknown: CHECK, POLISH, PUBLISH and ROUTE have never run end to end 
 
 - [ ] In B: `git worktree add .claude/worktrees/t1 -b worktree-t1`, then write a `TASK.md`
       in that folder. Start Claude Code inside `.claude/worktrees/t1`. Expect: the first thing
-      printed is a WORKTREE SESSION block, the first prompt is accepted with no tool call, and
-      nothing of main's orientation (resume block, RITUAL, CONSOLE) appears.
-- [ ] In that session: ask for `python3 .claude/tools/statectl.py pointer x` (refuses in one
-      line); type `/project-memory` (`checkctl` refuses in one line); ask for a `git commit`
+      printed is a WORKTREE SESSION block, the first prompt is accepted (the worker may read
+      TASK.md, its brief, and nothing else before answering), and nothing of main's
+      orientation (resume block, RITUAL, CONSOLE) appears.
+- [ ] In that session: ask for `python3 .claude/tools/statectl.py pointer x` (refuses with a
+      one-line reason, then its `STATE_FAIL` trailer); type `/project-memory` (`checkctl`
+      refuses the same way, trailer `CHECK_FAIL`); ask for a `git commit`
       on the branch (goes through); ask for a Write to `.claude/state/journal.jsonl` (the gate
       denies it with a reason naming DONE.md).
 - [ ] End a turn with `TASK.md` present and no `DONE.md`. Expect: one advisory line, the turn
@@ -137,13 +147,17 @@ The biggest unknown: CHECK, POLISH, PUBLISH and ROUTE have never run end to end 
       .claude/worktrees/t1` and `git branch -d worktree-t1`.
 - [ ] Under Cview (Place D, an empty repo adopted with the fresh zip): paste the agent block
       at the end of Cview's `docs/setup/repo-claude-setup.md` as the first prompt. Expect:
-      eight PASS with no edits.
+      eight PASS after the kit's own fixes (PR-19 and PR-20, in the beta.1 fix round): E3 passes
+      because `statectl dispatch` and `accept` refuse while `.cview/` exists, E4 on intent (the
+      root resolver avoids a git subprocess and lands on the same answer).
 
 ## Beta criteria
 
 - Every box above ticked once by a human, or its failure fixed and re-ticked.
-- One upgrade adoption (item 7, `extrct_private`) and one fresh adoption green on their own
-  `doctor`.
+- One fresh adoption green on its own `doctor`. The upgrade adoption (item 7, `extrct_private`)
+  ran once on 2026-11-08 and ended green, but by a 3-way merge the skill does not describe
+  (PR-21); a green upgrade by the documented path is a criterion for the stable 0.3 tag, not
+  for beta.
 - CI green on both OS at the release commit (it is today).
 - Then, in Place A, say "release 0.3.0-beta.1": the release steps in the project-memory skill
   bump the stamp and the citation, pin the changelog, rebuild the zips and tag on `dev`.
@@ -155,5 +169,9 @@ The biggest unknown: CHECK, POLISH, PUBLISH and ROUTE have never run end to end 
   beta blocker.
 - The periodic progress report fires on the lead's next file write, not on a timer.
 - Between releases the zips on `dev` may lag the tree; `main` and every tag are exact.
-- The Claude Chrome extension could not be reached from the alpha.2 session, so item 4 has
-  only the HTTP half of its evidence.
+- Item 4 was passed in a browser on 2026-11-06; the Claude Chrome extension is still untested.
+- `/adopt --upgrade` assumes an unmodified install. On a target that customised system files
+  the agent must classify each file against the source's history and 3-way merge by hand
+  (PR-21); it worked once, on `extrct_private`, and is not yet the documented path.
+- Before the beta.1 fix round, a session start on Windows could report its own console from an
+  earlier session as another project's and print no URL (PR-17, fixed in task 030b-t21).

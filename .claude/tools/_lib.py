@@ -387,6 +387,40 @@ def console_port(cfg: dict | None = None) -> int:
         return 7100 + int(digest, 16) % 800
 
 
+def pid_alive(pid: int) -> bool:
+    """True when a process with this pid exists. NOT `os.kill(pid, 0)`: on Windows that call is
+    documented to TerminateProcess the target (older Pythons) and on 3.14 it raises WinError 87
+    for any process this interpreter did not spawn - both wrong for a liveness probe of a
+    console started by an earlier session. Windows asks the kernel through ctypes (stdlib);
+    elsewhere signal 0 is the POSIX existence check."""
+    if pid <= 0:
+        return False
+    if sys.platform == "win32":
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        process_query_limited_information = 0x1000
+        still_active = 259
+        handle = kernel32.OpenProcess(process_query_limited_information, False, int(pid))
+        if not handle:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                return False
+            return code.value == still_active
+        finally:
+            kernel32.CloseHandle(handle)
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # exists, owned by someone else
+    except OSError:
+        return False
+
+
 def console_hostname() -> str:
     """Folder-name host for display URLs: browsers resolve every *.localhost name to
     loopback with zero configuration (RFC 6761), so http://<folder>.localhost:<port>/ names

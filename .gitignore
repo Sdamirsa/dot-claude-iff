@@ -49,6 +49,9 @@ settings.local.json
 # Agent worktrees (build-time scratch copies of the repo; a Cview task's worktree lives here too)
 .claude/worktrees/
 
+# Cview's run state when that orchestrator drives this repo (CLAUDE.md's reviewer section keys on it)
+.cview/
+
 # Atomic-write leftovers (the temp file of a write that died before its rename)
 .claude/**/*.tmp
 

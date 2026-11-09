@@ -199,6 +199,21 @@ class TestFoldingRules(unittest.TestCase):
         self.assertEqual(remap["hub"], "hub")
         self.assertIn("f", out, "a folder box is never folded again")
 
+    def test_a_fold_of_planned_cards_is_itself_planned(self):
+        """PR-22: an adopter with many planned (lazy) cards folded them into an "other" box
+        marked not lazy, so its missing path blocked the whole spec instead of a WARN."""
+        boxes = self.boxes({"a": ("g", "data"), "b": ("g", "data"), "c": ("g", "data"),
+                            "d": ("h", "code")})
+        for bid in ("a", "b", "c"):
+            boxes[bid]["_lazy"] = True
+            boxes[bid]["path"] = None
+        out, _ = mapctl.cap_boxes(boxes, [], 2)
+        self.assertIn("other.g", out)
+        self.assertTrue(out["other.g"]["_lazy"])
+        boxes["b"]["_lazy"] = False
+        out, _ = mapctl.cap_boxes(boxes, [], 2)
+        self.assertFalse(out["other.g"]["_lazy"], "one real member keeps the fold real")
+
     def test_under_the_cap_nothing_folds_and_a_lone_other_is_undone(self):
         boxes = self.boxes({"a": ("govern", "code"), "b": ("memory", "code"), "c": ("memory", "code")})
         out, remap = mapctl.cap_boxes(boxes, [], 3)
