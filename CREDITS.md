@@ -41,27 +41,30 @@ nothing from it ships yet. `tests/test_dist.py` checks that every entry is compl
 
 - **URL:** https://github.com/ahmedkhaleel2004/gitdiagram
 - **Licence:** MIT.
-- **What we took:** planned (PR-15). The pipeline shape for the code-graph console: from the
-  file tree and README, one model step returns a strict graph of groups, nodes and edges, every
-  path is validated against the real repository, and a deterministic compiler renders the
-  diagram with click-through links. The design is in
+- **What we took:** design only. Its pipeline shape (from the file tree and README, one model
+  step returns a strict graph of groups, nodes and edges, every path is validated against the
+  real repository, and a deterministic compiler renders the diagram with click-through links)
+  informed the architecture view that shipped in 0.3.0-beta.1 (PR-15). The design is in
   `.claude/research/2026-11-04-code-graph-console.md`. No GitDiagram code is vendored.
 
 ## Graphify
 
 - **URL:** https://github.com/Graphify-Labs/graphify
 - **Licence:** Apache-2.0 (the repository's `LICENSE`).
-- **What we took:** planned (PR-15). The reference for the code-graph design, and the optional
-  extractor (`graphify extract --code-only`, run from the human's terminal through uvx when
-  present). Never installed into this repo or a kit: `graphify install` would add a third-party
+- **What we took:** the reference for the code-graph design, and the optional extractor
+  (shipped in 0.3.0-beta.1, PR-15): the human runs `graphify extract --code-only` in their own
+  terminal through uvx (`graphctl.py build` prints the version-pinned command), and
+  `graphctl.py` only normalises its output, falling back to a stdlib walker when there is
+  none. Never installed into this repo or a kit: `graphify install` would add a third-party
   hook to the protected tree.
 
 ## tree-sitter
 
 - **URL:** https://github.com/tree-sitter/tree-sitter
 - **Licence:** MIT.
-- **What we took:** planned (PR-15). The parser Graphify uses to read source code; this system
-  reaches it only through Graphify and never imports it.
+- **What we took:** nothing directly. It is the parser Graphify uses to read source code; this
+  system reaches it only through Graphify's output, when the human runs that extraction, and
+  never imports it (the stdlib walker reads Python through `ast`).
 
 ## actions/checkout
 
@@ -75,8 +78,9 @@ nothing from it ships yet. `tests/test_dist.py` checks that every entry is compl
 - **URL:** https://zenodo.org (source: https://github.com/zenodo/zenodo)
 - **Licence:** GPL, as the source repositories state: `zenodo/zenodo` reads GPL-2.0 and
   `zenodo/zenodo-rdm` reads GPL-3.0. The hosted service's terms of use were not read.
-- **What we took:** planned (PR-13). Archival of the stable release and its concept DOI,
-  through the GitHub integration and `CITATION.cff`. Nothing of Zenodo ships in the kits.
+- **What we took:** archival of the releases through the GitHub integration and
+  `CITATION.cff`: the concept DOI 10.5281/zenodo.24089281 is live, and v0.3.0-beta.1 has the
+  version DOI 10.5281/zenodo.24089282. Nothing of Zenodo ships in the kits.
 
 ## Source system one: an adaptive .claude template (the memory spine)
 

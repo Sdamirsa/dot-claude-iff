@@ -36,14 +36,18 @@
         a session properly: <b>check</b> (does reality match the record?), <b>polish</b>
         (curate memory, rebuild every derived surface), <b>publish</b> (seal the record,
         commit, ask before pushing), <b>evolve</b> (propose at most three evidence-backed
-        improvements, you approve).</p></div></div>
+        improvements, you approve), then <b>route</b> (the next session's phase and mode, and
+        whether to run a maturation pass). Only you can open it: your own typed prompt mints a
+        short-lived ticket, and <code>checkctl</code> refuses a ritual without one.</p></div></div>
       <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
         <span class="mod you">/project-memory</span> <span class="mod hook">checkctl.py</span>
         <span class="mod agent">retro-analyst</span> <span class="mod agent">anatomist</span></div></div>
       <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>In Claude Code, type
-        <code>/project-memory</code>. Read what CHECK reports before anything is written.
-        When the retro proposes changes (or says <code>NO-CHANGES</code> - a good outcome),
-        decide. Expect your first retro to be <code>NO-CHANGES</code>.</p></div></div>
+        <code>/project-memory</code> yourself (asking the agent to run it gets you a request
+        to type it). Read what CHECK reports before anything is written. When the retro
+        proposes changes (or says <code>NO-CHANGES</code> - a good outcome), decide. Expect
+        your first retro to be <code>NO-CHANGES</code>. At ROUTE, answer the questions the
+        next session starts from.</p></div></div>
       <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>The phases
         share one transaction id: PUBLISH refuses unless CHECK and POLISH completed in the
         <em>same</em> ritual, so a half-built state can never be committed as whole. Every

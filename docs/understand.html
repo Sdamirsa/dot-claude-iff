@@ -33,26 +33,46 @@
   checkpoints that name their evidence, and one ritual that seals each block. Your half is a
   single page called the console, which watches without interrupting.</p>
 
+  <div class="call"><b>New in 0.3 (beta).</b>
+  <ul>
+    <li>Three modes (freestyle, guided-solo, fableous-orchestrated) and four phases (plan →
+    build → review → deploy), each phase exit checked.</li>
+    <li>Only you open <code>/project-memory</code>; it ends with ROUTE (next phase, next mode,
+    an optional maturation pass).</li>
+    <li>A lead dispatches builders into git worktrees and merges what passes.</li>
+    <li>Cview-ready worker sessions: a session started inside a linked worktree knows it is a
+    worker and is kept out of the main checkout's state and ritual.</li>
+    <li>A code graph and an architecture view in the console's
+    <span class="console-where"><span class="tab">MAP</span></span> tab.</li>
+  </ul></div>
+
   <h3>The modules, and exactly what each one touches</h3>
   <div class="tblwrap"><table>
     <tr><th>Module</th><th>What it does</th><th>Writes to</th><th>Network</th></tr>
-    <tr><td>5 hooks</td><td>heartbeat each turn, resume block at session start, event capture,
-      a policy gate on writes, JSON validation on writes</td>
+    <tr><td>hooks</td><td><code>heartbeat</code> each turn, <code>session-start</code> (the
+      resume block), <code>obs-capture</code> (event capture), <code>policy-gate</code> (a
+      gate on writes), <code>post-write-validate</code> (JSON validation on writes),
+      <code>ritual-ticket</code> (only your own prompt opens the ritual),
+      <code>handoff-guard</code> (a builder hands back its envelope before it stops)</td>
       <td>local: <code>.claude/state/</code>, the record folder</td>
       <td><span class="chip local">none</span></td></tr>
-    <tr><td>7 tools</td><td>continuity, observation, map, console build, ritual runner,
-      distribution - bash + python3 stdlib, zero pip packages</td>
+    <tr><td>tools</td><td><code>statectl</code> (continuity), <code>obsctl</code>
+      (observation), <code>mapctl</code> (map), <code>graphctl</code> (code graph),
+      <code>consolectl</code> (console build), <code>checkctl</code> (ritual runner),
+      <code>distctl</code> (distribution) - bash + python3 stdlib, zero pip packages</td>
       <td>local: <code>.claude/</code>, <code>.claude-iff/</code>, the record folder</td>
       <td><span class="chip local">none</span></td></tr>
     <tr><td>console</td><td>one HTML page + a tiny server</td>
       <td>reads only; buttons emit commands for you to paste</td>
       <td><span class="chip local">127.0.0.1 only</span></td></tr>
-    <tr><td>3 agents</td><td>anatomist (map), retro-analyst (evolution proposals),
-      verifier (claim checking) - run inside Claude Code</td>
+    <tr><td>agents</td><td>anatomist (map), retro-analyst (evolution proposals),
+      verifier (claim checking), builder (one task card in a worktree), scout (read-only
+      research) - run inside Claude Code</td>
       <td>governed by the policy gate</td>
       <td><span class="chip anthropic">via Claude Code</span></td></tr>
     <tr><td><code>obsctl analyze</code></td><td>optional: labels the record with an
-      LLM you configure. Off until you configure it.</td>
+      LLM you configure. Off until you configure it; a remote endpoint also needs your
+      explicit consent.</td>
       <td>local: the record's <code>analysis/</code></td>
       <td><span class="chip config">only if you enable it</span></td></tr>
   </table></div>
@@ -64,9 +84,13 @@
     <li><b>This system phones home to no one.</b> There is no telemetry, no analytics, no
     update check, no CDN. The hooks and tools make exactly zero network calls. The one
     exception is <code>obsctl analyze</code>, which is off by default and only ever talks to
-    the endpoint <em>you</em> configure - and with a local Ollama endpoint, even that never
-    leaves your machine. API keys live in the <code>env</code> block of your gitignored
-    <code>.claude/settings.local.json</code> (or your shell), never in a committed file: this
+    the endpoint <em>you</em> configure. A remote endpoint gets nothing until you give an
+    explicit consent line (<code>analyze.remote_consent</code>), and record text is
+    secret-redacted before any send; with a local Ollama endpoint, nothing leaves your
+    machine at all. The code graph's optional graphify extraction is a network step too, and
+    it is yours: <code>graphctl.py build</code> prints the command, you run it in your own
+    terminal, and the tools only read its output. API keys live in the <code>env</code> block
+    of your gitignored <code>.claude/settings.local.json</code> (or your shell), never in a committed file: this
     system reads no keys from <code>.env</code>, and Claude Code does not load <code>.env</code>
     either. The tests prove a key placed in config is ignored, and the ritual's
     <code>secrets_placement</code> check fails if a key-shaped string lands in a file git would
@@ -77,9 +101,8 @@
     it. What it adds is a <em>local</em> copy: the record captures events so you can inspect
     and analyze what happened on your own disk.</li>
     <li><b>The record is radioactive, and treated that way.</b> Raw captured events contain
-    prompts, file contents and tool output verbatim (measured at ~70% of capture volume). So
-    the raw record lives in a sibling folder <em>outside the repo</em>, where git structurally
-    cannot reach it; only allowlisted metadata (event names, timestamps, token counts, an
+    prompts, file contents and tool output verbatim. So the raw record lives in a sibling
+    folder <em>outside the repo</em>, where git structurally cannot reach it; only allowlisted metadata (event names, timestamps, token counts, an
     integrity anchor) is ever committed. A <code>git push</code> can therefore never publish
     a prompt, a file body, or a secret from the record - and a CHECK-phase gate fails the
     ritual if any committed file so much as names your home directory.</li>
@@ -119,7 +142,8 @@ python3 .claude/tools/tests/run_tests.py</code></pre>
 <b class="rt-zone">your-repo_claude_iff/</b>  <span class="rt-note">(sibling folder - git cannot reach it)</span>
 ├─ spool/ · sealed-raw/        <span class="risk-chip never">never share</span> <span class="rt-note">VERBATIM: prompts, file contents, tool output</span>
 ├─ raw/transcripts/            <span class="risk-chip never">never share</span> <span class="rt-note">full conversation copies</span>
-├─ vault/                      <span class="risk-chip never">never share</span> <span class="rt-note">whole-repo + chat snapshots</span>
+├─ graph/                      <span class="rt-note">code-graph extraction (graphify output): as sensitive as your code</span>
+├─ console.pid · console.log   <span class="rt-note">console runtime: the server's pid and its log</span>
 ├─ analysis/                   <span class="risk-chip careful">contains your words</span> <span class="rt-note">model-written summaries of raw events</span>
 └─ segments/                   <span class="risk-chip safe">metadata only</span> <span class="rt-note">allowlisted: names, times, counts</span>
 

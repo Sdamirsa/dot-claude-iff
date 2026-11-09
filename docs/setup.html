@@ -30,14 +30,25 @@
   <p>Requirements: <code>bash</code>, <code>python3</code>, <code>git</code>, and a browser.
   Nothing to install - no pip, no node.</p>
 
+  <div class="call honest"><b>On Windows:</b> run the commands in Git Bash, and make
+  <code>python3</code> a python.org interpreter - not a uv-managed Python build (Windows 11
+  Smart App Control blocks those, and venvs built on them, as unsigned:
+  <a href="https://github.com/astral-sh/uv/issues/22869" target="_blank" rel="noopener">astral-sh/uv#22869</a>),
+  and not the Microsoft Store stub. Either way the hooks never get to run.
+  <code>python3 .claude/tools/checkctl.py doctor</code> checks both, in its
+  <code>smart_app_control</code> and <code>python3</code> rows.</div>
+
   <h3>Pick your path</h3>
   <div class="tblwrap"><table>
     <tr><th>Situation</th><th>Do this</th></tr>
     <tr><td>New / empty repo</td><td>Download <code>dot-claude-iff-fresh.zip</code> from the
-      Releases page, unzip into the repo root, follow its <code>START-HERE.md</code>.</td></tr>
-    <tr><td>Existing repo</td><td>Download <code>dot-claude-iff-adopt-kit.zip</code>, unzip it
-      anywhere <em>outside</em> your repo, open Claude Code in your repo, paste the one
-      instruction from the kit's <code>ADOPT.md</code>. Your files are merged, never
+      <a href="https://github.com/Sdamirsa/dot-claude-iff/releases/tag/v0.3.0-beta.1" target="_blank" rel="noopener">v0.3.0-beta.1 release</a>
+      (a pre-release: GitHub's "Latest" label still shows v0.2.2), unzip into the repo root,
+      follow its <code>START-HERE.md</code>. Type its <code>/adopt</code> prompt yourself:
+      typing the command is what lets the system's ritual run.</td></tr>
+    <tr><td>Existing repo</td><td>Download <code>dot-claude-iff-adopt-kit.zip</code> from the
+      same release, unzip it anywhere <em>outside</em> your repo, open Claude Code in your
+      repo, paste the one instruction from the kit's <code>ADOPT.md</code>. Your files are merged, never
       overwritten - a pre-existing <code>.claude/</code> is the designed case.</td></tr>
     <tr><td>Just exploring</td><td>Clone this repo; it runs on itself. Everything below works
       here directly.</td></tr>
@@ -51,9 +62,13 @@
 cat .claude/state/heartbeat.json   <span class="c"># a timestamp means the harness is alive</span></code></pre></li>
     <li><b>Open the console.</b>
     <pre><code>python3 .claude/console/console.py
-<span class="c"># then open  http://127.0.0.1:7717/console.html</span></code></pre>
-    Give it half the screen, Claude Code the other half - terminal, VS Code and the desktop
-    app all work the same. (The SessionStart hook auto-starts the server afterwards.)</li>
+<span class="c"># prints your URL:  http://&lt;folder&gt;.localhost:&lt;port&gt;/console.html</span></code></pre>
+    The port derives from the folder name (unless <code>.claude/config/console.json</code>
+    pins one), so projects never fight over one default, and every session start prints the
+    URL again. Give it half the screen, Claude Code the other half - terminal, VS Code and the
+    desktop app all work the same. (The SessionStart hook auto-starts the server afterwards.)
+    To move or delete the repo folder, run <code>python3 .claude/tools/consolectl.py stop</code>
+    first.</li>
     <li><b>Tell it how you're billed</b> (optional). If you use a Claude subscription, you are
     done: costs read "in plan". On API billing, set <code>billing: "api"</code> in
     <code>.claude/config/model-prices.json</code> and fill in your verified prices.</li>

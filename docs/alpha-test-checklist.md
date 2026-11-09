@@ -1,9 +1,11 @@
-# v0.3.0 - the road to beta: what to test by hand
+# v0.3.0 test checklist (alpha run complete; beta.1 shipped 2026-11-09)
 
 The automated suite passes on Windows and Ubuntu (CI, every push). What it cannot cover is
 anything that only happens inside a live Claude Code session: hooks firing, prompts, the
-console in a browser, a second repository adopting the kit. Those are below. When every box
-is ticked once by a human, or its failure fixed and re-ticked, 0.3.0 goes to beta.
+console in a browser, a second repository adopting the kit. Those are below. The alpha run
+ticked every box, each evidenced by a session or by this repo's own history, and
+0.3.0-beta.1 shipped on 2026-11-09. What stands between the beta and the stable 0.3.0 is
+under "Stable criteria".
 
 Write findings as GitHub issues, or straight into the proposal box from a session in this
 repo: `python3 .claude/tools/statectl.py proposal add "<text>" --source human`.
@@ -54,7 +56,8 @@ verbatim": Claude Code shows hook output to the model, not in the chat (PR-25).
 
 ## 1. The ritual opens for you and only for you - Place A
 
-The biggest unknown: CHECK, POLISH, PUBLISH and ROUTE have never run end to end live.
+Evidenced: CHECK, POLISH, PUBLISH and ROUTE have run end to end on `dev`, and the plain-words
+refusal ran live (see "Already evidenced"). Re-run after a Claude Code update.
 
 - [ ] Type `/project-memory`. Expect: the ritual starts and CHECK runs. If it refuses with
       "no ritual ticket", the prompt hook did not fire: note your Claude Code version, then in
@@ -119,7 +122,7 @@ The biggest unknown: CHECK, POLISH, PUBLISH and ROUTE have never run end to end 
 - [ ] Adopt kit into an existing repo: start Claude Code in that repo and type `/adopt` with
       the kit path. Expect: the visibility question once, defaulting to `ignored` for a public
       remote, and the `.gitignore` block appears.
-- [ ] `/adopt --upgrade` in `extrct_private` (it runs v0.2-era files plus its own worker
+- [ ] `/adopt --upgrade` in a private repo running v0.2-era files (plus its own worker
       rules). Expect: nothing of yours is overwritten, drift is reported, and the two new
       `CLAUDE.md` sections (worker, reviewer) land in its filled guide.
 
@@ -164,27 +167,28 @@ The biggest unknown: CHECK, POLISH, PUBLISH and ROUTE have never run end to end 
       because `statectl dispatch` and `accept` refuse while `.cview/` exists, E4 on intent (the
       root resolver avoids a git subprocess and lands on the same answer).
 
-## Beta criteria
+## Stable criteria
 
-- Every box above ticked once by a human, or its failure fixed and re-ticked.
-- One fresh adoption green on its own `doctor`. The upgrade adoption (item 7, `extrct_private`)
-  ran once on 2026-11-08 and ended green, but by a 3-way merge the skill does not describe
-  (PR-21); a green upgrade by the documented path is a criterion for the stable 0.3 tag, not
-  for beta.
-- CI green on both OS at the release commit (it is today).
-- Then, in Place A, say "release 0.3.0-beta.1": the release steps in the project-memory skill
-  bump the stamp and the citation, pin the changelog, rebuild the zips and tag on `dev`.
+- Every box above ticked once by a human, or its failure fixed and re-ticked (met for beta.1).
+- One fresh adoption green on its own `doctor`. The upgrade adoption (item 7, a private repo
+  running v0.2-era files) ran once on 2026-11-08 and ended green, but by a 3-way merge the
+  skill does not describe (PR-21); a green `/adopt --upgrade` on a customised install by the
+  documented path is the criterion for the stable 0.3.0 tag.
+- CI green on both OS at the release commit.
+- Then, in Place A, ask for the release: the release steps in the project-memory skill bump
+  the stamp and the citation, pin the changelog, rebuild the zips and tag.
 
-## Known limits of this alpha
+## Known limits of this beta
 
 - The policy gate reads shell commands statically. It stops honest mistakes; it is not a
-  sandbox, and its resistance to deliberate evasion was not independently verified. Not a
-  beta blocker.
+  sandbox, and its resistance to deliberate evasion was not independently verified. It was
+  not a beta blocker.
 - The periodic progress report fires on the lead's next file write, not on a timer.
 - Between releases the zips on `dev` may lag the tree; `main` and every tag are exact.
 - Item 4 was passed in a browser on 2026-11-06; the Claude Chrome extension is still untested.
 - `/adopt --upgrade` assumes an unmodified install. On a target that customised system files
   the agent must classify each file against the source's history and 3-way merge by hand
-  (PR-21); it worked once, on `extrct_private`, and is not yet the documented path.
+  (PR-21); it worked once, on a private repo running v0.2-era files, and is not yet the
+  documented path.
 - Before the beta.1 fix round, a session start on Windows could report its own console from an
   earlier session as another project's and print no URL (PR-17, fixed in task 030b-t21).

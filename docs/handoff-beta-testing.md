@@ -1,5 +1,7 @@
 # Handoffs: testing v0.3.0-alpha.2 toward beta
 
+Superseded: v0.3.0-beta.1 shipped 2026-11-09; kept for the record.
+
 Three handoffs for three machines. Each is the first message of a fresh Claude Code session;
 paste it as is. They share one core (the checklist, the report shape, the constraints) and
 differ in how the repo gets there and which checklist items the machine can run. Findings
@@ -7,7 +9,7 @@ land as GitHub issues or in the proposal box; the beta call is made against
 `docs/alpha-test-checklist.md`, every box ticked once.
 
 Before any of them: `dev` is pushed (head includes the CHECKOUT line at session start); the
-canonical Windows clone is `~/Documents/GIT/dot-claude-iff`; a fresh clone's record root is
+canonical Windows clone is the one on the maintainer's PC; a fresh clone's record root is
 empty, so its first session-start block says "no sealed history here", which is correct for a
 fresh clone and not a fault.
 
@@ -15,7 +17,7 @@ fresh clone and not a fault.
 
 ## 1. Windows (the canonical clone, the maintainer's PC)
 
-Where: a terminal in `~/Documents/GIT/dot-claude-iff`, then `claude`. The console opens in a
+Where: a terminal in the canonical clone's root, then `claude`. The console opens in a
 browser on this machine, so this is the one place items 4 and 6 run in full.
 
 ```
@@ -36,7 +38,7 @@ Run, in this order: item 4 (I open the console URL you print; tell me what to lo
 report back), item 10 (the worktree session: you prepare the worktree and TASK.md, I start a
 second Claude Code inside it and paste what it prints), item 5, item 6 (you are the lead;
 dispatch a small real task to a builder), item 8, item 9, then item 7 last (adopt --upgrade
-into ~/Documents/GIT/extrct_private; stop and ask before writing anything there).
+into a private repo running v0.2-era files; stop and ask before writing anything there).
 
 Report after each item, not at the end: a table with item, box, PASS/FAIL/SKIP, and the
 evidence (the exact line printed, the file written, the command's exit). On FAIL: the smallest
@@ -99,7 +101,7 @@ a cloud sandbox can run, and report, so the maintainer can decide on 0.3.0-beta.
 
 Setup first, report each step: confirm the checkout is branch dev (`git branch --show-current`,
 `git log --oneline -1`); `python3 .claude/tools/checkctl.py doctor`; `python3
-.claude/tools/tests/run_tests.py -q` (6-8 minutes; run it once, in the background if you can).
+.claude/tools/tests/run_tests.py -q` (run it once, in the background if you can).
 Paste the session-start block you received: it should show a CHECKOUT line with "no sealed
 history here" (expected in a fresh sandbox), the MODE line (Guided Solo, phase review) and no
 hook errors. If Claude Code reported any problem loading .claude/settings.json, quote it.

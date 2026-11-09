@@ -2,7 +2,7 @@
 
 **What makes us human, built into Claude:** *adapt to context · evolve to challenge · communicate to partner.*
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24089281.svg)](https://doi.org/10.5281/zenodo.24089281) · [Latest release](https://github.com/Sdamirsa/dot-claude-iff/releases): v0.3.0-beta.1 (pre-release; the `latest` tag stays on the last stable)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24089281.svg)](https://doi.org/10.5281/zenodo.24089281) · Newest: [v0.3.0-beta.1](https://github.com/Sdamirsa/dot-claude-iff/releases/tag/v0.3.0-beta.1) (pre-release). GitHub's "Latest" label stays on v0.2.2 until the stable 0.3.0.
 
 Agent sessions forget, work unseen, ask badly, and rot - so you re-explain context every
 morning, catch problems three sessions late, and answer "should I?" with no situation attached.
@@ -134,8 +134,17 @@ flowchart TD
   own terminal.
 - **Fableous orchestration**: a lead dispatches builders into worktrees and merges what passes.
   `python3 .claude/tools/statectl.py dispatch <task>`
+- **Worktree sessions (Cview-ready)**: a session started inside a linked worktree is a worker,
+  kept out of the main checkout's state and ritual; `dispatch` and `accept` refuse while
+  `.cview/` exists, because Cview owns the worktrees there.
+- **Code graph and architecture view**: `python3 .claude/tools/graphctl.py build`, then the
+  console's MAP tab shows the architecture view, one diagram per scope.
 - **Progress view**: `python3 .claude/tools/statectl.py progress`
-- **Secrets check and doctor**: `python3 .claude/tools/checkctl.py doctor`
+- **Secrets check and doctor**: `python3 .claude/tools/checkctl.py doctor`; its `gitattributes`
+  row checks the hooks are pinned to LF, and its `smart_app_control` row catches Windows 11
+  blocking a uv-managed `python3`.
+- **Stop the console**: `python3 .claude/tools/consolectl.py stop`, so the repo folder can be
+  moved or deleted.
 - **Visibility and export**: `python3 .claude/tools/distctl.py export --to <checkout> --dry-run`
 - **Folder context**: `python3 .claude/tools/mapctl.py context`
 - **`/adhd`**: a brainstorm you invoke; the agent may suggest it, never run it.
@@ -195,6 +204,10 @@ is reported, and your version wins by default. Both zips are rebuilt by the ritu
 - **Installs** into any repo - new or existing - and merges, never overwrites.
 
 Runs on `bash`, `python3` and `git`. Installs nothing, imports nothing, sends nothing.
+On Windows: Git Bash, and `python3` must be a python.org interpreter. Windows 11 Smart App
+Control blocks uv-managed Python builds, and venvs built on them, as unsigned
+([astral-sh/uv#22869](https://github.com/astral-sh/uv/issues/22869)); `checkctl doctor` reports
+it in its `smart_app_control` row.
 
 </details>
 

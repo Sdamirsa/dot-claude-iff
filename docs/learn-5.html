@@ -37,20 +37,25 @@
         cards compiled: orange is agent, blue is code, green is data, gold is human.</p></div></div>
       <div class="ex-row"><div class="ex-k">You'll use</div><div class="ex-v">
         <span class="mod you">the MAP tab</span> <span class="mod agent">anatomist</span>
-        <span class="mod hook">mapctl.py</span></div></div>
+        <span class="mod hook">mapctl.py</span> <span class="mod hook">graphctl.py</span></div></div>
       <div class="ex-row"><div class="ex-k">Do</div><div class="ex-v"><p>Open
         <span class="console-where"><span class="tab">MAP</span></span> and click
         <code>journal</code>. Everything unconnected fades; its neighborhood raises to the
-        front. Click it again for the detail popup; press Esc to clear. Find the two
-        components sitting in the <em>unplaced</em> band and read why honest unplacement
-        beats confident wrong placement.</p></div></div>
+        front. Click it again for the detail popup; press Esc to clear. Find any components
+        sitting in the <em>unplaced</em> band and read why honest unplacement beats confident
+        wrong placement. Then use the scope switcher to open the architecture view: one
+        diagram per scope, the <code>.claude</code> system from the cards and the code scopes
+        from the code graph.</p></div></div>
       <div class="ex-row"><div class="ex-k">Underneath</div><div class="ex-v"><p>
         <span class="mod hook">mapctl.py scan</span> auto-discovers components and drafts
         cards; the <span class="mod agent">anatomist</span> agent curates relations with
         cited evidence; a two-tier lint fails the ritual on a wrong edge but only warns on a
-        missing one. A wrong edge is worse than a missing one.</p></div></div>
+        missing one. A wrong edge is worse than a missing one.
+        <span class="mod hook">mapctl.py architecture</span> renders the cards as a diagram
+        spec, and <span class="mod hook">graphctl.py build</span> supplies the code scopes
+        from the code graph.</p></div></div>
       <div class="ex-row"><div class="ex-k">Console</div><div class="ex-v"><span class="console-where">
-        <span class="tab">MAP</span> focus mode, backbone/flows views, click-through to sources.</span></div></div>
+        <span class="tab">MAP</span> focus mode, backbone/flows views, the architecture view with its scope switcher, click-through to sources.</span></div></div>
     </div>
   </div>
 

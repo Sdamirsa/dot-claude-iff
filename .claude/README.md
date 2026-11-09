@@ -49,8 +49,18 @@ Each item with the one command to try it.
   builder's envelope checked by `python3 .claude/tools/checkctl.py handoff <task> --run`.
 - **Progress view**: one model for the console panel and the terminal.
   `python3 .claude/tools/statectl.py progress`
+- **Code graph and architecture view**: `graphctl.py` builds the code graph from graphify's
+  output (an extraction you run in your own terminal; `build` prints the command) or, without
+  it, a stdlib walker; `mapctl.py architecture` renders the system-map cards as a diagram
+  spec; the console's MAP tab shows one architecture diagram per scope, with a scope switcher.
+  The ritual's POLISH rebuilds both. `python3 .claude/tools/graphctl.py build`
 - **Secrets check and doctor**: can this machine run the system, and are keys where they
-  belong (`reference/secrets.md`)? `python3 .claude/tools/checkctl.py doctor`
+  belong (`reference/secrets.md`)? `python3 .claude/tools/checkctl.py doctor`. Its
+  `gitattributes` row checks that the hooks are pinned to LF; its `smart_app_control` row
+  catches Windows 11 blocking a uv-managed `python3` and names the remedy.
+- **Stop the console**: ends the console server a session start launched, so the repo folder
+  can be moved or deleted (on Windows a running console holds it).
+  `python3 .claude/tools/consolectl.py stop`
 - **Visibility and export**: keep the system tracked or ignored in git, and copy it into a
   public checkout without this project's history. `python3 .claude/tools/distctl.py gitignore`,
   `python3 .claude/tools/distctl.py export --to <checkout> --dry-run`
@@ -71,15 +81,29 @@ of the diff, the git denylist and your own approval are the other layers.
 
 ## Install it into a project
 
-Open Claude Code in the target project and say *adopt the claude-iff system*, or run `/adopt`
-from a project already running it. Adoption inventories the target, asks a blocking round of
-framing questions, installs with merge-never-overwrite, fills the placeholders, seeds the map
-with spine layers only, dispatches the anatomist to fill in relations, builds the console, and
+Three ways in, one adopt skill behind them (the zips: [Get it into your own
+project](#get-it-into-your-own-project)):
+
+- **A new or empty repo**: unzip `dot-claude-iff-fresh.zip` into its root, open Claude Code
+  there, trust the hooks, and type the `/adopt` prompt from the unzipped `START-HERE.md`
+  yourself (typing it is what lets the system's ritual run).
+- **An existing repo**: unzip `dot-claude-iff-adopt-kit.zip` anywhere outside it, open Claude
+  Code in your repo, and paste the instruction from the kit's `ADOPT.md`.
+- **From a clone**: clone this repo to a folder outside yours and have the agent follow the
+  clone's `.claude/skills/adopt/SKILL.md` end to end.
+
+Adoption inventories the target, asks a blocking round of framing questions, installs with
+merge-never-overwrite, fills the placeholders, seeds the map with spine layers only, dispatches the anatomist to fill in relations, builds the console, and
 **probes that hooks actually fire** (project hooks require your trust first, so "silently off"
 is a real state worth checking).
 
-Requirements: `bash` and `python3`. That is the whole floor for the hooks and every tool in
-`.claude/tools/`, forever. Project-registered steps and optional features may use `uv`.
+Requirements: `bash`, `python3` and `git`. That is the whole floor for the hooks and every
+tool in `.claude/tools/`, forever. Project-registered steps and optional features may use `uv`.
+On Windows, use Git Bash and make `python3` a python.org interpreter: Windows 11 Smart App
+Control blocks uv-managed Python builds, and venvs built on them, as unsigned
+([astral-sh/uv#22869](https://github.com/astral-sh/uv/issues/22869)), and `python3` can also be
+the Microsoft Store stub. `python3 .claude/tools/checkctl.py doctor`
+reports both, in its `smart_app_control` and `python3` rows.
 
 ## The daily shape
 
@@ -95,7 +119,7 @@ behind your back is a second source of truth.
 | Tab | What it answers |
 |-----|-----------------|
 | **NOW** | How far the current milestone is (the Progress panel, same model as `statectl.py progress`), is anything running, what is the resume pointer, what needs a human, what did the last turns do, what have we spent |
-| **MAP** | What this system is made of, how the pieces relate, which layer each belongs to |
+| **MAP** | What this system is made of, how the pieces relate, which layer each belongs to, and the architecture view per scope (the system from its cards, code scopes from the code graph) |
 | **STORY** | How the project evolved, on a dual clock (wall time, or cumulative output tokens) |
 | **WORK** | Active tasks and their next actions, the decision log, active watch-outs, research index |
 
@@ -203,9 +227,8 @@ served stale data. So there is exactly one ritual, every generator is registered
 2. **Gates fail closed, telemetry fails open.** A broken validator blocks the write. A broken
    capture hook loses one event and nothing else. Both directions are deliberate.
 3. **The record is radioactive.** Raw capture contains prompts, file contents and tool output
-   verbatim (about 70% of capture volume, measured). It never enters git. It lives in a sibling
-   folder outside the repo; only allowlisted metadata rollups and a tamper-evidence anchor are
-   committed.
+   verbatim. It never enters git. It lives in a sibling folder outside the repo; only
+   allowlisted metadata rollups and a tamper-evidence anchor are committed.
 
 ## Where things are
 
@@ -225,19 +248,27 @@ inspectable next to the project it belongs to. Override it with `record_root` in
 ## Commands
 
 ```
-python3 .claude/tools/statectl.py   pointer|task|milestone|decision|loop|note|need|refresh|resume
-                                    mode|phase|proposal|dispatch|accept|progress
-python3 .claude/tools/checkctl.py   run --phase check|polish|publish · probe · generators
-                                    phase-exit --from plan|build|review|deploy · doctor
+python3 .claude/tools/statectl.py   start|pointer|task|milestone|decision|loop|note|intent|gate
+                                    need|tooling|device|refresh|resume|status
+                                    mode|phase|proposal|progress
+                                    dispatch|accept   # the lead only; refused while .cview/ exists
+python3 .claude/tools/checkctl.py   run --phase check|polish|publish (inside the ritual) · status
+                                    probe · generators · doctor
+                                    phase-exit --from plan|build|review|deploy
                                     handoff <task_id> [--run] [--root <worktree>]
                                     ticket --grant   # you, in your own terminal; never an agent
 python3 .claude/tools/distctl.py    export --to <checkout> [--dry-run] · gitignore · verify
+python3 .claude/tools/mapctl.py     scan|lint|compile|show|context|architecture
+python3 .claude/tools/graphctl.py   build|update|status   # code graph; extraction is yours
 python3 .claude/tools/obsctl.py     ingest|seal|rollup|anchor|report|story|size|analyze
-python3 .claude/tools/mapctl.py     scan|lint|compile|show|context
 python3 .claude/tools/consolectl.py build|payload|serve|stop   # stop frees the folder (Windows)
-python3 .claude/console/console.py                    # serve the console on 127.0.0.1
+python3 .claude/tools/sysmon.py                       # CPU, RAM, GPU snapshot (optional)
+python3 .claude/console/console.py                    # serve the console on loopback; prints the URL
 python3 .claude/tools/tests/run_tests.py              # the whole suite
 ```
+
+`statectl dispatch` and `accept` refuse when `.cview/` exists at the repo root: Cview owns the
+worktrees there.
 
 The habit that matters most: **set the pointer before anything long or risky.**
 
