@@ -5,7 +5,7 @@
   "package": null,
   "title": "Consolectl",
   "path": ".claude/tools/consolectl.py",
-  "description": "consolectl.py - build the console payload, render it into console.html, or delegate to the live server.",
+  "description": "consolectl.py - build the console payload, render it into console.html, delegate to the live server, or stop the server session-start launched (its pidfile lives in the record root) so the repo folder is free to delete or move.",
   "reads": [
     "store.heartbeat",
     "store.session",
@@ -32,7 +32,7 @@
   "glyphs": [],
   "auto": {
     "discovered": "2026-08-25",
-    "hash": "8489c7e214f51ec4294f7eebad1a3f38f607c8d5036f6df50f7deaf4921f1314",
+    "hash": "182057191b2a0aa440c3479cc7cb937236e15b2ebb192be92a7af4b9b112b273",
     "suggested_reads": [
       "store.handshakes",
       "store.heartbeat",
@@ -41,6 +41,7 @@
       "store.map",
       "store.needs_human",
       "store.project_log",
+      "store.record",
       "store.rollups",
       "store.session",
       "store.story"
@@ -52,6 +53,7 @@
       "store.map",
       "store.needs_human",
       "store.project_log",
+      "store.record",
       "store.rollups",
       "store.session",
       "store.story"

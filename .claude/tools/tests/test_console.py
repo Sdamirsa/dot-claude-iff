@@ -867,3 +867,88 @@ class ArchitectureEndpointTests(FixtureCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ConsoleStopTests(FixtureCase):
+    """`consolectl.py stop` ends the console session-start launched and frees the folder.
+    Both processes here are spawned by the TEST interpreter and probed by consolectl in the
+    same interpreter, which is fine for the stop path; the foreign-process liveness case is
+    pinned in test_hooks (L-16)."""
+
+    def _console_cfg(self, port: int) -> None:
+        cfg = _lib.read_json(self.root / ".claude" / "config" / "console.json", {}) or {}
+        cfg.update({"autostart": True, "host": "127.0.0.1", "port": port})
+        _lib.atomic_write_json(self.root / ".claude" / "config" / "console.json", cfg)
+
+    def _sleeper(self):
+        import subprocess
+        return subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
+                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL)
+
+    def test_no_pidfile_is_nothing_to_stop(self):
+        import io
+        import contextlib
+        self._console_cfg(7199)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = consolectl.main(["stop"])
+        self.assertEqual(rc, 0)
+        self.assertIn("nothing to stop", buf.getvalue())
+        self.assertIn("CONSOLE_OK", buf.getvalue())
+
+    def test_live_console_is_stopped_and_the_pidfile_removed(self):
+        import io
+        import contextlib
+        import socket
+        blocker = socket.socket()
+        sleeper = self._sleeper()
+        try:
+            blocker.bind(("127.0.0.1", 0))
+            blocker.listen(1)
+            port = blocker.getsockname()[1]
+            self._console_cfg(port)
+            self.record.mkdir(parents=True, exist_ok=True)
+            pidfile = self.record / "console.pid"
+            pidfile.write_text(str(sleeper.pid), encoding="utf-8")
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = consolectl.main(["stop"])
+            self.assertEqual(rc, 0, buf.getvalue())
+            self.assertIn("stopped the console", buf.getvalue())
+            self.assertFalse(pidfile.exists(), "the pidfile must go with the process")
+            sleeper.wait(timeout=5)
+            self.assertFalse(_lib.pid_alive(sleeper.pid))
+        finally:
+            blocker.close()
+            if sleeper.poll() is None:
+                sleeper.kill()
+                sleeper.wait()
+
+    def test_a_live_pid_with_a_silent_port_is_left_alone(self):
+        """A reused pid after a reboot: alive, but nothing answers on the console port. The
+        stop command must refuse rather than end a process it cannot tie to this console."""
+        import io
+        import contextlib
+        import socket
+        probe = socket.socket()
+        probe.bind(("127.0.0.1", 0))
+        free_port = probe.getsockname()[1]
+        probe.close()
+        sleeper = self._sleeper()
+        try:
+            self._console_cfg(free_port)
+            self.record.mkdir(parents=True, exist_ok=True)
+            pidfile = self.record / "console.pid"
+            pidfile.write_text(str(sleeper.pid), encoding="utf-8")
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = consolectl.main(["stop"])
+            self.assertEqual(rc, 1)
+            self.assertIn("Not stopping it", buf.getvalue())
+            self.assertIn("CONSOLE_FAIL", buf.getvalue())
+            self.assertTrue(pidfile.exists())
+            self.assertIsNone(sleeper.poll(), "the process must still be running")
+        finally:
+            sleeper.kill()
+            sleeper.wait()

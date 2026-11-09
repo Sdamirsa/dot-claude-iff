@@ -261,8 +261,12 @@ try:
         elif alive:
             lines.append(f"CONSOLE: http://{_lib.console_hostname()}:{port}/console.html "
                          f"(open it beside this terminal; http://{host}:{port}/console.html works too)")
-except Exception:
-    pass
+except Exception as exc:
+    # Telemetry fails open: the session starts regardless. But say so in one line, since the
+    # usual cause on Windows is the interpreter itself being blocked (Smart App Control and an
+    # unsigned uv-managed Python), which `checkctl doctor` names in its smart_app_control row.
+    lines.append(f"CONSOLE: not started ({type(exc).__name__}: {exc}); "
+                 f"run python3 .claude/tools/checkctl.py doctor")
 
 if lines:
     print("\n\n".join(lines))

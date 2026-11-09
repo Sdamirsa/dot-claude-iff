@@ -17,8 +17,8 @@ authors:
 repository-code: "https://github.com/Sdamirsa/dot-claude-iff"
 url: "https://sdamirsa.github.io/dot-claude-iff/"
 license: Apache-2.0
-version: 0.3.0-alpha.2
-date-released: 2026-10-29
+version: 0.3.0-beta.1
+date-released: 2026-11-09
 keywords:
   - Claude Code
   - agent operating system

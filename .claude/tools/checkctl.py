@@ -1781,6 +1781,97 @@ def _doctor_python3():
     return Result("python3", FAIL, "`python3` on PATH does not run Python 3"), fix
 
 
+def _is_windows() -> bool:
+    return sys.platform == "win32"
+
+
+def _smart_app_control_state() -> int | None:
+    """Windows 11 Smart App Control: 0 off, 1 enforcing, 2 evaluation; None when the registry
+    value is absent (older Windows, or the feature was never offered on this install)."""
+    if not _is_windows():
+        return None
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                            r"SYSTEM\CurrentControlSet\Control\CI\Policy") as key:
+            value, _kind = winreg.QueryValueEx(key, "VerifiedAndReputablePolicyState")
+        return int(value)
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def _in_uv_python_store(path: Path) -> bool:
+    """.../uv/python/cpython-<ver>-.../: where uv keeps the CPython builds it downloads."""
+    parts = [p.lower() for p in Path(path).parts]
+    return any(parts[i] == "uv" and parts[i + 1] == "python" and parts[i + 2].startswith("cpython-")
+               for i in range(len(parts) - 2))
+
+
+def _uv_managed_interpreter(exe) -> str | None:
+    """Why this interpreter is one Smart App Control blocks, or None. uv's downloaded CPython
+    builds are unsigned, and a venv launcher is a copy of its base interpreter's launcher: a
+    venv on a uv-managed base inherits the problem, a venv on a python.org base (PSF-signed)
+    does not. Read from the path and the venv's pyvenv.cfg, never by running anything."""
+    exe = Path(exe)
+    if _in_uv_python_store(exe):
+        return "a uv-managed CPython build"
+    cfg = exe.parent.parent / "pyvenv.cfg"  # <venv>/Scripts/python.exe -> <venv>/pyvenv.cfg
+    try:
+        lines = cfg.read_text(encoding="utf-8", errors="replace").splitlines() if cfg.is_file() else []
+    except OSError:
+        lines = []
+    for line in lines:
+        key, _sep, value = line.partition("=")
+        if key.strip().lower() == "home" and value.strip() and _in_uv_python_store(Path(value.strip())):
+            return "a venv whose base interpreter is a uv-managed build"
+    return None
+
+
+def _hooks_interpreter() -> Path:
+    """The interpreter the hooks actually get: what `python3` on PATH resolves to at run time
+    (the Microsoft Store alias forwards, so ask the process itself), else this one."""
+    import shutil
+    exe = shutil.which("python3")
+    if exe:
+        try:
+            res = subprocess.run([exe, "-c", "import sys; print(sys.executable)"],
+                                 capture_output=True, text=True, timeout=20, check=False)
+            if res.returncode == 0 and res.stdout.strip():
+                return Path(res.stdout.strip())
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return Path(sys.executable)
+
+
+def _doctor_smart_app_control():
+    """Windows 11 Smart App Control blocks executables that are unsigned and unknown to
+    Microsoft's reputation service. uv's downloaded Python builds and the venv launchers
+    copied from them are unsigned (astral-sh/uv#22869, open; the maintainers intend to sign),
+    so with the policy enforcing, every hook, tool and the console die before they print a
+    line, and nothing in this system can see why. The one confirmed remedy is a python.org
+    interpreter (PSF-signed) behind `python3`, with uv pinned to system interpreters."""
+    if not _is_windows():
+        return Result("smart_app_control", SKIP, "Windows 11 only"), ""
+    state = _smart_app_control_state()
+    labels = {0: "off", 1: "enforcing", 2: "in evaluation"}
+    if state not in (1, 2):
+        return Result("smart_app_control", OK,
+                      f"Smart App Control {labels.get(state, 'not present')}; signing does not matter here"), ""
+    exe = _hooks_interpreter()
+    why = _uv_managed_interpreter(exe)
+    if why:
+        return (Result("smart_app_control", WARN,
+                       f"Smart App Control is {labels[state]} and `python3` is {why} "
+                       f"({_lib.tilde(exe)}): Windows blocks it as unsigned (astral-sh/uv#22869), "
+                       f"so hooks, tools and the console fail before they print anything"),
+                "install Python from python.org and make `python3` resolve to it; for uv projects "
+                "put python-preference = \"only-system\" and python-downloads = \"never\" in "
+                "%APPDATA%\\uv\\uv.toml, then rebuild the venv with `uv sync --python <that exe>`")
+    return Result("smart_app_control", OK,
+                  f"Smart App Control is {labels[state]}; `python3` ({_lib.tilde(exe)}) is not a "
+                  f"uv-managed build, so the policy lets it run"), ""
+
+
 def _doctor_bash():
     found = _lib.find_bash()
     if found:
@@ -2081,7 +2172,7 @@ def _doctor_ritual_ticket():
 
 
 DOCTOR_ROWS = (
-    _doctor_python, _doctor_python3, _doctor_bash, _doctor_git, _doctor_config, _doctor_hooks,
+    _doctor_python, _doctor_python3, _doctor_smart_app_control, _doctor_bash, _doctor_git, _doctor_config, _doctor_hooks,
     _doctor_hook_scripts, _doctor_gitattributes, _doctor_record_root, _doctor_cloud_sync, _doctor_console,
     _doctor_heartbeat,
     _doctor_secrets, _doctor_mode, _doctor_phase, _doctor_ritual_ticket,

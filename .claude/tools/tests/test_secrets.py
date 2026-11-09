@@ -393,7 +393,7 @@ class TestRegistration(SecretsCase):
 # --------------------------------------------------------------------------- doctor
 
 ROW_RE = re.compile(r"^\[(OK  |WARN|FAIL|SKIP)\] (\S+)\s+(.*)$")
-DOCTOR_NAMES = {"python", "python3", "bash", "git", "config", "hooks", "hook_scripts", "gitattributes", "record_root",
+DOCTOR_NAMES = {"python", "python3", "smart_app_control", "bash", "git", "config", "hooks", "hook_scripts", "gitattributes", "record_root",
                 "record_cloud_sync", "console", "heartbeat", "secrets_placement", "mode",
                 "phase", "ritual_ticket"}
 
@@ -606,3 +606,78 @@ class TestDocs(SecretsCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestSmartAppControlRow(unittest.TestCase):
+    """Windows 11 Smart App Control blocks uv's unsigned Python builds and the venv launchers
+    copied from them (astral-sh/uv#22869); the doctor row tells that interpreter from a
+    python.org one by path and pyvenv.cfg alone, and says the remedy."""
+
+    def setUp(self) -> None:
+        import tempfile
+        self._tmp = tempfile.TemporaryDirectory(prefix="claude-iff-sac-")
+        self.base = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _store_exe(self) -> Path:
+        exe = self.base / "AppData" / "Roaming" / "uv" / "python" / "cpython-3.14.6-windows-x86_64-none" / "python.exe"
+        exe.parent.mkdir(parents=True)
+        exe.write_bytes(b"")
+        return exe
+
+    def _venv_exe(self, home: Path) -> Path:
+        venv = self.base / "proj" / ".venv"
+        (venv / "Scripts").mkdir(parents=True)
+        (venv / "pyvenv.cfg").write_text(f"home = {home}\nimplementation = CPython\nuv = 0.11.31\n",
+                                          encoding="utf-8")
+        exe = venv / "Scripts" / "python.exe"
+        exe.write_bytes(b"")
+        return exe
+
+    def test_a_uv_store_build_is_named(self):
+        self.assertEqual(checkctl._uv_managed_interpreter(self._store_exe()), "a uv-managed CPython build")
+
+    def test_a_venv_on_a_uv_store_base_inherits_the_problem(self):
+        store = self._store_exe().parent
+        self.assertIn("venv", checkctl._uv_managed_interpreter(self._venv_exe(store)))
+
+    def test_a_venv_on_a_python_org_base_is_fine(self):
+        home = self.base / "AppData" / "Local" / "Python" / "pythoncore-3.14-64"
+        home.mkdir(parents=True)
+        self.assertIsNone(checkctl._uv_managed_interpreter(self._venv_exe(home)))
+
+    def test_a_plain_interpreter_is_fine(self):
+        exe = self.base / "Python314" / "python.exe"
+        exe.parent.mkdir()
+        exe.write_bytes(b"")
+        self.assertIsNone(checkctl._uv_managed_interpreter(exe))
+
+    def test_row_warns_only_when_enforcing_and_the_interpreter_is_a_uv_build(self):
+        import unittest.mock as mock
+        store = self._store_exe()
+        plain = self.base / "Python314" / "python.exe"
+        plain.parent.mkdir()
+        plain.write_bytes(b"")
+        with mock.patch.object(checkctl, "_is_windows", return_value=False):
+            row, _fix = checkctl._doctor_smart_app_control()
+            self.assertEqual(row.status, checkctl.SKIP)
+        with mock.patch.object(checkctl, "_is_windows", return_value=True), \
+             mock.patch.object(checkctl, "_smart_app_control_state", return_value=0), \
+             mock.patch.object(checkctl, "_hooks_interpreter", return_value=store):
+            row, _fix = checkctl._doctor_smart_app_control()
+            self.assertEqual(row.status, checkctl.OK, "policy off: signing does not matter")
+        with mock.patch.object(checkctl, "_is_windows", return_value=True), \
+             mock.patch.object(checkctl, "_smart_app_control_state", return_value=1), \
+             mock.patch.object(checkctl, "_hooks_interpreter", return_value=plain):
+            row, _fix = checkctl._doctor_smart_app_control()
+            self.assertEqual(row.status, checkctl.OK)
+        with mock.patch.object(checkctl, "_is_windows", return_value=True), \
+             mock.patch.object(checkctl, "_smart_app_control_state", return_value=1), \
+             mock.patch.object(checkctl, "_hooks_interpreter", return_value=store):
+            row, fix = checkctl._doctor_smart_app_control()
+            self.assertEqual(row.status, checkctl.WARN)
+            self.assertIn("uv#22869", row.message)
+            self.assertIn("python.org", fix)
+            self.assertIn("only-system", fix)

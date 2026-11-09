@@ -67,7 +67,7 @@ python3 .claude/tools/distctl.py    export|gitignore|verify (build: home repo on
 python3 .claude/tools/mapctl.py     scan|lint|compile|show|context|architecture
 python3 .claude/tools/graphctl.py   build|update|status (code graph; extraction is the human's)
 python3 .claude/tools/obsctl.py     ingest|seal|rollup|anchor|report|story|size|analyze
-python3 .claude/tools/consolectl.py build|payload|serve · sysmon.py · tests/run_tests.py
+python3 .claude/tools/consolectl.py build|payload|serve|stop · sysmon.py · tests/run_tests.py
 ```
 
 - **Three dials**: mode (`statectl mode`: freestyle, guided-solo, fableous-orchestrated),

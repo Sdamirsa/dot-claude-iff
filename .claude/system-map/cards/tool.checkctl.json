@@ -39,7 +39,7 @@
   "glyphs": [],
   "auto": {
     "discovered": "2026-08-25",
-    "hash": "308ed8dca9feaa4ec426b2742652290a07220fea0b7f2bd0ff2b27fce6c30bf0",
+    "hash": "f6eb422a24bfdd1400ff7ce94a54464160c3ead80283c1d10771080238cf3c78",
     "suggested_reads": [
       "store.generators",
       "store.heartbeat",

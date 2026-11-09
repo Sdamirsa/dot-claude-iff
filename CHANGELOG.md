@@ -11,10 +11,55 @@ this project's own release history structurally never reaches an adopting repo.
 
 ## Unreleased
 
-- License: the project is now under Apache-2.0 (`LICENSE`, `NOTICE` at the root; both ship inside
-  `.claude/` of every kit so they travel with the system, never as the adopter's root license).
-  `CITATION.cff` added for GitHub's "Cite this repository" and Zenodo; `changelog_parity` also
-  checks its `version` against `system_version`.
+## v0.3.0-beta.1 - 2026-11-09
+
+Pre-release for testing, cut from `dev`; "latest" does not move. The alpha checklist
+(`docs/alpha-test-checklist.md`) has now been run live end to end: every item is evidenced by a
+session or by this repo's own history, and the fixes that run produced are in this cut.
+
+- License and citation: the project is under Apache-2.0 (`LICENSE`, `NOTICE` at the root; both
+  ship inside `.claude/` of every kit so they travel with the system, never as the adopter's
+  root license). `CITATION.cff` added for GitHub's "Cite this repository" and Zenodo;
+  `changelog_parity` also checks its `version` against `system_version`. `CREDITS.md` names the
+  lineage and ships with the kits.
+- Code graph and architecture: `graphctl.py` builds `code-graph.json` from graphify's output
+  (a human-terminal extraction step) or a stdlib walker; `mapctl.py architecture` renders the
+  system-map cards as a Mermaid spec; the console's MAP tab shows it with a scope switcher.
+  A fold whose cards are all planned stays planned (WARN, not a blocked spec).
+- `checkctl doctor` gained a `smart_app_control` row (Windows 11): when Smart App Control is
+  enforcing and `python3` resolves to a uv-managed Python build, or to a venv built on one,
+  Windows blocks it as unsigned (astral-sh/uv#22869, open upstream) and every hook, tool and
+  the console die before printing a line; the row says so and names the remedy (a python.org
+  interpreter behind `python3`, uv pinned to system interpreters, venv rebuilt). Session
+  start now prints one line when the console could not be launched instead of staying silent.
+- `consolectl.py stop` ends the console server a session start launched (the pidfile in the
+  record root) and removes the pidfile, so a repo folder can be deleted or moved; on Windows a
+  running console holds the folder and `Remove-Item` fails until it is stopped. It refuses a
+  live pid whose console port answers nothing (a reused pid is not this console).
+- Windows: the session-start console autostart asks the kernel whether the pidfile's process
+  is alive instead of `os.kill(pid, 0)`, which on Windows is not a liveness probe; every second
+  session used to print a false "port in use" line and no URL. Both kits ship a
+  `.gitattributes` pinning hooks and shell scripts to LF (Git for Windows' `core.autocrlf`
+  rewrote them on `git add`), and `checkctl doctor` gained a `gitattributes` row. Repo-relative
+  paths in the code graph survive an aliased root (the 8.3 short names GitHub's Windows runner
+  uses).
+- Cview readiness: `.cview/` joins the managed `.gitignore` block; `statectl dispatch` and
+  `accept` refuse when `.cview/` exists at the repo root (Cview owns worktrees there); the
+  worker section of `CLAUDE.md` and the adopt template tells a worker never to open the ritual
+  or commit state from a worktree. A fresh adoption passes Cview's eight Essential requirements
+  with no edits.
+- Ritual and gates: `settings.json` carries a `permissions.deny` layer for the universal denies
+  under the policy gate; generator freshness also sees hand-edited outputs; the build exit check
+  runs each distinct Test once (a full-suite run covers its subsets); `statectl accept` removes
+  the task's dispatch stub after a merge, and stubs are never tracked; record text goes to a
+  remote analysis endpoint only after an explicit consent line and redaction.
+- Docs: `CLAUDE.md` trimmed to a map (dials in one bullet, role sections short); the alpha
+  checklist names where each step runs, what is already evidenced, how to author an item, and
+  its known limits (the `/adopt --upgrade` path on a customised install is documented for the
+  stable tag, not this one).
+- Tests: `test_worktree.py`, `test_graph.py`, `test_architecture.py`, `test_dist.py` and
+  `test_hooks.py` pin the above, including a liveness test against a process the test did not
+  spawn and a kit self-test that lints the shipped guide against the kit manifest.
 
 ## v0.3.0-alpha.2 - 2026-10-29
 

@@ -1,6 +1,6 @@
 # Task: beta.1 fix round - the review round's findings
 
-_Created 2026-11-08 · Status: doing_
+_Created 2026-11-08 · Status: done_
 
 Milestone: M-0.3.0-beta.1
 
@@ -68,9 +68,9 @@ be cut with the checklist and the kit agreeing.
 - [x] PR-12 UPSTREAM.md sentence, done when: the file says the branch model is ours.
 - [x] checklist rewording per the DoD, done when: the six edits are in and
       `docs/alpha-test-checklist.md` has no "refuses in one line".
-- [ ] resolve PR-12/17/18/19/22 as planned -> this card (done 2026-11-09); zips rebuilt by the
+- [x] resolve PR-12/17/18/19/22 as planned -> this card (done 2026-11-09); zips rebuilt by the
       ritual's generator (anti-rot law: never by hand); suite green; done when: `statectl proposal list` shows them resolved and the Test passes.
-- [ ] verification pass with the human: fresh adoption + Cview paste expects eight PASS;
+- [x] verification pass with the human: fresh adoption + Cview paste expects eight PASS;
       one session start here shows the console URL, done when: both reported.
 
 
@@ -81,4 +81,23 @@ be cut with the checklist and the kit agreeing.
 | - | - | none open; all five rulings recorded in the journal 2026-11-08 | | | |
 
 ## Outcome
+
+Done 2026-11-09. All six fixes landed in commit 36e67c0 (suite 898 green), the ritual run of
+the same day rebuilt the zips, and the Windows CI run went green at 5cfdf92 after a graphctl
+path fix that the fix round itself did not cover (the GitHub runner's 8.3 temp name; see the
+journal). Verification by the maintainer, both recorded as journal notes:
+
+- Place D: a fresh adoption from the rebuilt zip gave no CRLF warnings on `git add`, doctor
+  13 ok with the new `gitattributes` row, and the Cview paste eight PASS with zero commits
+  (E3 conditional on the `.cview/` refusal, E4 on behaviour, both as ruled).
+- Place A: a new session here printed the console URL line while the console belonged to an
+  earlier session; the collision line is gone.
+- The three live boxes owed from items 1, 5, 6 passed in the same pass (plain-words refusal,
+  deploy-phase proposal reflex, three sub-agent denials; a native PowerShell tool route is
+  untested because the sub-agent had none).
+
+Left open, on purpose: the zips are stale again because 5cfdf92 touched two kit files after
+the rebuild; the release step rebuilds and verifies them on the release commit. New findings
+from the pass went to PR-24 (CI status row in CHECK) and PR-25 (the human cannot see the
+session-start block; ask the session to quote it).
 

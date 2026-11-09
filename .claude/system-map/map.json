@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-09T09:35:03Z",
+  "generated_at": "2026-11-09T15:33:16Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -613,7 +613,7 @@
       "package": null,
       "title": "Consolectl",
       "path": ".claude/tools/consolectl.py",
-      "description": "consolectl.py - build the console payload, render it into console.html, or delegate to the live server.",
+      "description": "consolectl.py - build the console payload, render it into console.html, delegate to the live server, or stop the server session-start launched (its pidfile lives in the record root) so the repo folder is free to delete or move.",
       "glyphs": [],
       "flows": [],
       "exists": true

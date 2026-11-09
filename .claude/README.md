@@ -234,7 +234,7 @@ python3 .claude/tools/checkctl.py   run --phase check|polish|publish · probe ·
 python3 .claude/tools/distctl.py    export --to <checkout> [--dry-run] · gitignore · verify
 python3 .claude/tools/obsctl.py     ingest|seal|rollup|anchor|report|story|size|analyze
 python3 .claude/tools/mapctl.py     scan|lint|compile|show|context
-python3 .claude/tools/consolectl.py build|payload|serve
+python3 .claude/tools/consolectl.py build|payload|serve|stop   # stop frees the folder (Windows)
 python3 .claude/console/console.py                    # serve the console on 127.0.0.1
 python3 .claude/tools/tests/run_tests.py              # the whole suite
 ```

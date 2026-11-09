@@ -58,12 +58,15 @@ flowchart TD
     node_systemmap["Clickable system map<br/>[mapctl.py]"]
     node_export["Visibility and export<br/>[distctl.py]"]
     node_progress["Progress view<br/>[progress.py]"]
+    node_codegraph[("Code graph<br/>[graphctl.py]")]
+    node_architecture["Architecture diagram<br/>[mapctl.py]"]
   end
 
   subgraph group_extension["Orchestration and adoption"]
     node_orchestration["Fableous orchestration<br/>[orchestration.md]"]
     node_dispatch["Worktree dispatch<br/>[statectl.py]"]
     node_adoption["Merge-based adoption<br/>[SKILL.md]"]
+    node_worktree["Worktree sessions, Cview-ready<br/>[_lib.py]"]
   end
 
   node_human(("Human<br/>maintainer"))
@@ -85,10 +88,15 @@ flowchart TD
   node_console -->|"presents questions"| node_human
   node_human -->|"returns answer"| node_agent
   node_systemmap -->|"maps components"| node_console
+  node_codegraph -->|"feeds"| node_architecture
+  node_systemmap -->|"feeds"| node_architecture
+  node_architecture -->|"renders in the MAP tab"| node_console
   node_progress -->|"shows progress"| node_human
   node_export -->|"offers export"| node_human
   node_orchestration -->|"defines dispatch"| node_dispatch
   node_dispatch -->|"dispatches builders"| node_agent
+  node_dispatch -->|"opens"| node_worktree
+  node_worktree -->|"one worker per task"| node_agent
   node_adoption -->|"guides installation"| node_agent
   node_checks -->|"reports findings"| node_human
 
@@ -99,8 +107,8 @@ flowchart TD
   classDef toneIndigo fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
   class node_hooks,node_policy,node_checks toneBlue
   class node_record,node_heartbeat,node_ritual,node_check,node_polish,node_publish,node_evolve,node_route,node_state toneAmber
-  class node_console,node_systemmap,node_export,node_progress toneMint
-  class node_orchestration,node_dispatch,node_adoption toneRose
+  class node_console,node_systemmap,node_export,node_progress,node_codegraph,node_architecture toneMint
+  class node_orchestration,node_dispatch,node_adoption,node_worktree toneRose
   class node_human,node_agent toneIndigo
 ```
 

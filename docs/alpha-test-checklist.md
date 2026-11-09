@@ -43,10 +43,14 @@ worktree rules against a real `git worktree add` (suite only, not a live session
 Evidenced by this repo's own history, ruled so by the maintainer on 2026-11-08: item 1's ritual
 end to end (runs closed on `dev`, the latest at commit 9c50c60) and the STATUS rewrite; item 5's
 phase exits (the plan, build and review sign-offs are in the journal); item 6's dispatch, builder
-and accept flow (tasks T14 to T20 carry their envelopes). Still to run live from those items:
-item 1's plain-words refusal, item 5's deploy-phase proposal reflex, item 6's three sub-agent
-denials. Run live in the review round of 2026-11-05 to 08: items 4, 7 and 10 (findings PR-17
-to PR-23; the fixes landed in task 030b-t21).
+and accept flow (tasks T14 to T20 carry their envelopes). The three boxes left from those
+items ran live on 2026-11-09 and passed: item 1's plain-words refusal, item 5's deploy-phase
+proposal reflex, item 6's three sub-agent denials (the PowerShell attempt went through Bash,
+since the sub-agent had no native PowerShell tool). Run live in the review round of 2026-11-05
+to 08: items 4, 7 and 10 (findings PR-17 to PR-23; the fixes landed in task 030b-t21 and were
+verified live on 2026-11-09: Cview paste eight PASS, console URL at session start). To read
+the session-start block as a human, make your first prompt "quote your session-start block
+verbatim": Claude Code shows hook output to the model, not in the chat (PR-25).
 
 ## 1. The ritual opens for you and only for you - Place A
 

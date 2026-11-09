@@ -18,9 +18,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import signal
+import socket
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pathlib
@@ -658,8 +662,72 @@ def _cmd_open(args: argparse.Namespace) -> int:
     return 0
 
 
+def _console_port_answers(host: str, port: int) -> bool:
+    try:
+        probe = socket.create_connection((host, port), timeout=0.25)
+        probe.close()
+        return True
+    except OSError:
+        return False
+
+
+def _cmd_stop(args: argparse.Namespace) -> int:
+    """End the console server this project's session-start launched, so its folder can be
+    deleted or moved without hunting the process (on Windows a running console holds the
+    repo folder: Remove-Item fails with "being used by another process"). Reads the pidfile
+    session-start writes in the record root, ends that process, removes the file. Idempotent:
+    no pidfile or a dead pid is "nothing to stop" and exits 0. Refuses when the pid is alive
+    but the console port answers nothing: after a reboot the pid may belong to some other
+    program, and a stop command must never end a process it cannot tie to this console."""
+    cfg = _lib.load_config("console")
+    host = cfg.get("host", "127.0.0.1")
+    port = _lib.console_port(cfg)
+    pidfile = _lib.record_paths()["root"] / "console.pid"
+    if not pidfile.exists():
+        print("CONSOLE: no pidfile in the record root; nothing to stop")
+        _lib.print_verdict("CONSOLE", True)
+        return 0
+    try:
+        pid = int(pidfile.read_text(encoding="utf-8").strip())
+    except ValueError:
+        pidfile.unlink(missing_ok=True)
+        print("CONSOLE: pidfile held no pid; removed, nothing to stop")
+        _lib.print_verdict("CONSOLE", True)
+        return 0
+    if not _lib.pid_alive(pid):
+        pidfile.unlink(missing_ok=True)
+        print(f"CONSOLE: pid {pid} is not running; stale pidfile removed")
+        _lib.print_verdict("CONSOLE", True)
+        return 0
+    if not _console_port_answers(host, port):
+        print(f"CONSOLE_FAIL: pid {pid} is alive but nothing answers on {host}:{port}, so it may "
+              f"not be this console (a reused pid). Not stopping it; check the process yourself "
+              f"and remove {_lib.tilde(pidfile)} by hand if it is stale.")
+        _lib.print_verdict("CONSOLE", False)
+        return 1
+    try:
+        # SIGTERM; on Windows os.kill maps it to TerminateProcess, which is the intent here.
+        os.kill(pid, signal.SIGTERM)
+    except OSError as exc:
+        print(f"CONSOLE_FAIL: could not stop pid {pid}: {exc}")
+        _lib.print_verdict("CONSOLE", False)
+        return 1
+    deadline = time.monotonic() + 5.0
+    while _lib.pid_alive(pid) and time.monotonic() < deadline:
+        time.sleep(0.1)
+    if _lib.pid_alive(pid):
+        print(f"CONSOLE_FAIL: pid {pid} is still running five seconds after the stop signal")
+        _lib.print_verdict("CONSOLE", False)
+        return 1
+    pidfile.unlink(missing_ok=True)
+    print(f"CONSOLE: stopped the console (pid {pid}) on {host}:{port}; pidfile removed. The next "
+          f"session start launches a fresh one.")
+    _lib.print_verdict("CONSOLE", True)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="consolectl.py", description="Console build / payload / serve control.")
+    p = argparse.ArgumentParser(prog="consolectl.py", description="Console build / payload / serve / stop control.")
     sub = p.add_subparsers(dest="command", required=True)
 
     p_build = sub.add_parser("build", help="Build console.html from the current payload.")
@@ -679,6 +747,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_open = sub.add_parser("open", help="Print the file:// path and the serve one-liner.")
     p_open.set_defaults(func=_cmd_open)
+
+    p_stop = sub.add_parser("stop", help="End the console server session-start launched "
+                                         "(pidfile in the record root) so the folder is free.")
+    p_stop.set_defaults(func=_cmd_stop)
 
     return p
 
