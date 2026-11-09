@@ -32,6 +32,9 @@ session or by this repo's own history, and the fixes that run produced are in th
   the console die before printing a line; the row says so and names the remedy (a python.org
   interpreter behind `python3`, uv pinned to system interpreters, venv rebuilt). Session
   start now prints one line when the console could not be launched instead of staying silent.
+- Liveness probe: `pid_alive` treats a zombie (a child that exited but was never waited on)
+  as gone on Linux, and the stop command reaps a child of its own while it waits. The first
+  cut of this tag failed its release run on ubuntu on exactly that case; it was re-cut.
 - `consolectl.py stop` ends the console server a session start launched (the pidfile in the
   record root) and removes the pidfile, so a repo folder can be deleted or moved; on Windows a
   running console holds the folder and `Remove-Item` fails until it is stopped. It refuses a
