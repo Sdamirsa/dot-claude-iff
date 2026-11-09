@@ -451,11 +451,19 @@ def _repo_rel(source_file, root: Path):
         return None
     text = source_file.strip().replace("\\", "/")
     if Path(text).is_absolute() or re.match(r"^[A-Za-z]:/", text):
+        # Resolve BOTH sides before comparing: the root resolved and the source path as
+        # written disagree whenever one spelling is an alias of the other - a symlinked
+        # checkout, or the 8.3 short name GitHub's Windows runner uses for its temp folder
+        # (C:/Users/RUNNER~1 against C:/Users/runneradmin), which dropped every node whose
+        # source_file graphify wrote absolute.
         base = _fold(root.resolve().as_posix()).rstrip("/") + "/"
-        folded = _fold(text)
+        try:
+            folded = _fold(Path(text).resolve().as_posix())
+        except (OSError, RuntimeError, ValueError):
+            folded = _fold(text)
         if not folded.startswith(base):
             return None
-        text = text[len(base):]
+        text = folded[len(base):]
     norm = posixpath.normpath(text)
     if norm in (".", "") or norm.startswith("../") or norm == "..":
         return None

@@ -266,6 +266,40 @@ class TestGraphifyNormaliser(GraphCase):
         self.assertNotIn(("a_top", "a_base", "references"), conf)
         self.assertEqual(set(graph["stats"]["types"]), set(graphctl.EDGE_TYPES))
 
+    def _root_alias(self) -> Path:
+        """Another spelling of self.root: on Windows its 8.3 short name (what the GitHub runner's
+        temp folder is called), elsewhere a symlink; skip when the OS offers neither."""
+        import ctypes
+        import sys
+        if sys.platform == "win32":
+            buf = ctypes.create_unicode_buffer(1024)
+            n = ctypes.windll.kernel32.GetShortPathNameW(str(self.root), buf, 1024)
+            short = Path(buf.value) if n else None
+            if short and str(short).lower() != str(self.root).lower():
+                return short
+            self.skipTest("no 8.3 short name for the fixture root on this volume")
+        alias = self.root.parent / "proj-alias"
+        try:
+            alias.symlink_to(self.root, target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"no symlink here: {exc}")
+        return alias
+
+    def test_an_absolute_source_file_spelled_through_an_alias_of_the_root_is_made_relative(self):
+        """GitHub's Windows runner names its temp folder by an 8.3 short name (RUNNER~1), so the
+        root resolves to one spelling while graphify's absolute source_file carries another;
+        the node was dropped and two tests went red there only. Here the alias is a symlink
+        to the root (skipped where the OS refuses one); the CI runner covers the 8.3 case."""
+        alias = self._root_alias()
+        data = fake_graphify(self.root)
+        for node in data["nodes"]:
+            if node["id"] == "b_helper":
+                node["source_file"] = (alias / "pkg" / "b.py").as_posix()
+        self.write_graphify(data)
+        nodes = {n["id"]: n for n in graphctl.build_graph()["nodes"]}
+        self.assertIn("b_helper", nodes)
+        self.assertEqual(nodes["b_helper"]["path"], "pkg/b.py")
+
     def test_networkx_edges_key_is_read_too(self):
         data = fake_graphify(self.root)
         data["edges"] = data.pop("links")
