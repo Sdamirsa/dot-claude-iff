@@ -17,6 +17,14 @@ authors:
 repository-code: "https://github.com/Sdamirsa/dot-claude-iff"
 url: "https://sdamirsa.github.io/dot-claude-iff/"
 license: Apache-2.0
+doi: 10.5281/zenodo.24089281
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24089281
+    description: "Concept DOI: resolves to the latest archived release"
+  - type: doi
+    value: 10.5281/zenodo.24089282
+    description: "Version DOI for v0.3.0-beta.1"
 version: 0.3.0-beta.1
 date-released: 2026-11-09
 keywords:
