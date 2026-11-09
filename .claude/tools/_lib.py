@@ -412,13 +412,25 @@ def pid_alive(pid: int) -> bool:
             kernel32.CloseHandle(handle)
     try:
         os.kill(int(pid), 0)
-        return True
     except ProcessLookupError:
         return False
     except PermissionError:
         return True  # exists, owned by someone else
     except OSError:
         return False
+    # Signal 0 also succeeds on a zombie: a child that exited but whose parent has not waited
+    # on it yet. That is not a live process (the release run of beta.1 went red on exactly
+    # this: a test's own child, stopped, stayed "alive" for the whole wait). Linux exposes the
+    # state in /proc; elsewhere the existence check stands.
+    try:
+        with open(f"/proc/{int(pid)}/stat", encoding="utf-8", errors="replace") as fh:
+            stat = fh.read()
+        state = stat.rsplit(")", 1)[1].split()[0]
+        if state in ("Z", "X"):
+            return False
+    except (OSError, IndexError, ValueError):
+        pass
+    return True
 
 
 def console_hostname() -> str:

@@ -714,6 +714,13 @@ def _cmd_stop(args: argparse.Namespace) -> int:
         return 1
     deadline = time.monotonic() + 5.0
     while _lib.pid_alive(pid) and time.monotonic() < deadline:
+        # If the console happens to be THIS process's child (a test, or a caller that spawned
+        # it), reap it: on POSIX a dead child stays a zombie until the parent waits on it.
+        # ChildProcessError when it is not our child, which is the normal case; ignored.
+        try:
+            os.waitpid(pid, os.WNOHANG)
+        except (ChildProcessError, OSError, AttributeError):
+            pass
         time.sleep(0.1)
     if _lib.pid_alive(pid):
         print(f"CONSOLE_FAIL: pid {pid} is still running five seconds after the stop signal")
