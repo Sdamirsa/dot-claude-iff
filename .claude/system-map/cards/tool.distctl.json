@@ -5,7 +5,7 @@
   "package": null,
   "title": "Distctl",
   "path": ".claude/tools/distctl.py",
-  "description": "distctl.py - build the distribution zips, write the managed .gitignore block, and export a clean public copy. The managed ignore block ignores session.json, HANDOFF.md and needs-human.json; LEGAL_FILES (LICENSE, NOTICE) ship inside .claude/ of both kits.",
+  "description": "distctl.py - build the distribution zips, write the managed .gitignore block, and export a clean public copy. The managed ignore block ignores session.json, HANDOFF.md and needs-human.json; LEGAL_FILES (LICENSE, NOTICE) ship inside .claude/ of both kits. A GITATTRIBUTES constant (eol=lf rules) ships at both kits' roots, and the managed .gitignore block also ignores .cview/ in both visibilities.",
   "reads": [
     "store.cards",
     "config.memory",

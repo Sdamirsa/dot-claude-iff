@@ -5,7 +5,7 @@
   "package": null,
   "title": "adhd",
   "path": ".claude/skills/adhd/SKILL.md",
-  "description": "Parallel divergent ideation - isolated branches under different cognitive frames, then a separate critic pass that clusters, flags traps and shortlists. User-invoked only (/adhd), because one run costs about ten agent calls. For an open, divergent question (architecture, public API or SDK surface, schema, naming a real product, a fuzzy bug with no known root cause) you may SUGGEST \"/adhd <problem>\" in one line; never run it unasked. Not for lookups, syntax, bugs with a known root cause, or asks phrased \"quick\", \"just\", \"standard\" or \"textbook\".",
+  "description": "Parallel divergent ideation - isolated branches under different cognitive frames, then a separate critic pass that clusters, flags traps and shortlists. User-invoked only (/adhd), because one run costs about ten agent calls. For an open, divergent question (architecture, public API or SDK surface, schema, naming a real product, a fuzzy bug with no known root cause) you may SUGGEST \"/adhd <problem>\" in one line; never run it unasked. Not for lookups, syntax, bugs with a known root cause, or asks phrased \"quick\", \"just\", \"standard\" or \"textbook\". UPSTREAM.md documents the branch model as our own choice.",
   "reads": [
     "config.brainstorm"
   ],

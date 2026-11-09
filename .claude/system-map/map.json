@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-09T08:58:13Z",
+  "generated_at": "2026-11-09T09:35:03Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -50,7 +50,7 @@
       "package": null,
       "title": "Session Start",
       "path": ".claude/hooks/session-start.sh",
-      "description": "session-start.sh - the orientation hook. Its stdout is injected into the fresh session's context, which makes it the one place where \"where were we\" arrives without anyone asking. Three jobs, in order of importance: 1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts), then one MODE/PHASE line; in the guided-solo and fableous-orchestrated modes also the current phase's contract (at most five lines, from config/phases.json). 2. Nudge the agent to ASK THE USER for the ritual when it has not run in a while (only the user can open it). The nudge lives HERE rather than on SessionEnd because SessionStart's stdout->context path is the one we can prove works. Sessions are counted from the capture lane's SessionStart events (spool + sealed segments), plus this one; with that capture off the count is unknown and the nudge says so and goes by age alone. 3. Optionally start the console server, guarded by a pidfile so N sessions start one server. Read-only with respect to project state: it never writes to the journal. In a linked worktree (_lib.worktree_info; a Cview worker) it prints a WORKTREE SESSION block instead and exits 0: no resume block, no ritual nudge, no console start. It also prints one CHECKOUT line (resolved root, record root, and a 'no sealed history' flag). It never blocks.",
+      "description": "session-start.sh - the orientation hook. Its stdout is injected into the fresh session's context, which makes it the one place where \"where were we\" arrives without anyone asking. Three jobs, in order of importance: 1. Print the resume block (pointer, open loops, unfinished intents, SEV0/SEV1 counts), then one MODE/PHASE line; in the guided-solo and fableous-orchestrated modes also the current phase's contract (at most five lines, from config/phases.json). 2. Nudge the agent to ASK THE USER for the ritual when it has not run in a while (only the user can open it). The nudge lives HERE rather than on SessionEnd because SessionStart's stdout->context path is the one we can prove works. Sessions are counted from the capture lane's SessionStart events (spool + sealed segments), plus this one; with that capture off the count is unknown and the nudge says so and goes by age alone. 3. Optionally start the console server, guarded by a pidfile so N sessions start one server. Read-only with respect to project state: it never writes to the journal. In a linked worktree (_lib.worktree_info; a Cview worker) it prints a WORKTREE SESSION block instead and exits 0: no resume block, no ritual nudge, no console start. It also prints one CHECKOUT line (resolved root, record root, and a 'no sealed history' flag). It never blocks. The console autostart reads the pidfile and checks liveness through _lib.pid_alive, never os.kill(pid, 0) (which kills on Windows).",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -74,7 +74,7 @@
       "package": null,
       "title": "Statectl",
       "path": ".claude/tools/statectl.py",
-      "description": "statectl.py - the continuity engine: journal in, projections out. Every tracked-state writer refuses inside a linked worktree with one line (_lib.main_state_guard).",
+      "description": "statectl.py - the continuity engine: journal in, projections out. Every tracked-state writer refuses inside a linked worktree with one line (_lib.main_state_guard). dispatch and accept refuse when .cview/ exists at the repo root (_cview_drives, _CVIEW_REFUSAL): Cview drives, not the lead.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -649,7 +649,7 @@
       "package": null,
       "title": "Mapctl",
       "path": ".claude/tools/mapctl.py",
-      "description": "",
+      "description": "mapctl.py - the anatomy tool: scan stubs cards, lint checks the map, compile builds the node/edge map, context audits guides and rules, architecture renders the code graph. cap_boxes marks a fold whose members are all lazy as lazy.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -799,7 +799,7 @@
       "package": null,
       "title": "adopt",
       "path": ".claude/skills/adopt/SKILL.md",
-      "description": "Install the dot-claude-iff system into a target project, or upgrade an already-installed one. Invoke on \"adopt this system into <path>\", \"set up my project like this\", \"install the claude system\", \"bootstrap .claude for <project>\", or \"/adopt --upgrade\" to bring an installed project's system up to date. A rare, high-blast-radius operation: runs only when the user explicitly asks for it.",
+      "description": "Install the dot-claude-iff system into a target project, or upgrade an already-installed one. Invoke on \"adopt this system into <path>\", \"set up my project like this\", \"install the claude system\", \"bootstrap .claude for <project>\", or \"/adopt --upgrade\" to bring an installed project's system up to date. A rare, high-blast-radius operation: runs only when the user explicitly asks for it. A Line endings (.gitattributes) step precedes the visibility step; the CLAUDE.template.md worker section says never open the ritual from a worktree and never stage or commit under the state folder.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -823,7 +823,7 @@
       "package": null,
       "title": "Checkctl",
       "path": ".claude/tools/checkctl.py",
-      "description": "checkctl.py - the ritual runner: CHECK, POLISH, PUBLISH mechanics for /project-memory. In a linked worktree run/complete are refused; check_changelog_parity also checks CITATION.cff against the version (citation_version); DERIVED_STATE_IGNORED lists projections kept out of the dirty-tree test.",
+      "description": "checkctl.py - the ritual runner: CHECK, POLISH, PUBLISH mechanics for /project-memory. In a linked worktree run/complete are refused; check_changelog_parity also checks CITATION.cff against the version (citation_version); DERIVED_STATE_IGNORED lists projections kept out of the dirty-tree test. The doctor has a gitattributes row: WARN when no eol=lf rule covers the hooks.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -835,7 +835,7 @@
       "package": null,
       "title": "Distctl",
       "path": ".claude/tools/distctl.py",
-      "description": "distctl.py - build the distribution zips, write the managed .gitignore block, and export a clean public copy. The managed ignore block ignores session.json, HANDOFF.md and needs-human.json; LEGAL_FILES (LICENSE, NOTICE) ship inside .claude/ of both kits.",
+      "description": "distctl.py - build the distribution zips, write the managed .gitignore block, and export a clean public copy. The managed ignore block ignores session.json, HANDOFF.md and needs-human.json; LEGAL_FILES (LICENSE, NOTICE) ship inside .claude/ of both kits. A GITATTRIBUTES constant (eol=lf rules) ships at both kits' roots, and the managed .gitignore block also ignores .cview/ in both visibilities.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -899,7 +899,7 @@
       "package": null,
       "title": "adhd",
       "path": ".claude/skills/adhd/SKILL.md",
-      "description": "Parallel divergent ideation - isolated branches under different cognitive frames, then a separate critic pass that clusters, flags traps and shortlists. User-invoked only (/adhd), because one run costs about ten agent calls. For an open, divergent question (architecture, public API or SDK surface, schema, naming a real product, a fuzzy bug with no known root cause) you may SUGGEST \"/adhd <problem>\" in one line; never run it unasked. Not for lookups, syntax, bugs with a known root cause, or asks phrased \"quick\", \"just\", \"standard\" or \"textbook\".",
+      "description": "Parallel divergent ideation - isolated branches under different cognitive frames, then a separate critic pass that clusters, flags traps and shortlists. User-invoked only (/adhd), because one run costs about ten agent calls. For an open, divergent question (architecture, public API or SDK surface, schema, naming a real product, a fuzzy bug with no known root cause) you may SUGGEST \"/adhd <problem>\" in one line; never run it unasked. Not for lookups, syntax, bugs with a known root cause, or asks phrased \"quick\", \"just\", \"standard\" or \"textbook\". UPSTREAM.md documents the branch model as our own choice.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -911,7 +911,7 @@
       "package": null,
       "title": "Lib",
       "path": ".claude/tools/_lib.py",
-      "description": "_lib.py - shared foundation for the dot-claude-iff tools. Worktree awareness: worktree_info (the one linked-worktree detector), main_checkout, main_state_guard (refuses tracked-state writes in a worktree), worker_task; the record root anchors at the main checkout.",
+      "description": "_lib.py - shared foundation for the dot-claude-iff tools. Worktree awareness: worktree_info (the one linked-worktree detector), main_checkout, main_state_guard (refuses tracked-state writes in a worktree), worker_task; the record root anchors at the main checkout. pid_alive(pid) is the cross-platform process liveness probe (ctypes on win32, signal 0 elsewhere).",
       "glyphs": [],
       "flows": [],
       "exists": true

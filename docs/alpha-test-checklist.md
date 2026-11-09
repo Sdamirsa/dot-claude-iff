@@ -23,6 +23,15 @@ agents load at session start.
 "Session start" means the block Claude Code prints before your first prompt. "The ritual"
 means typing `/project-memory` yourself; nothing else opens it.
 
+**Authoring an item** (rule from the beta.1 review round, where three expectations were wrong
+against reality and the tester asked three times for exact commands): an expectation quotes
+output captured from a real run of the command, never a paraphrase of what it should say; the
+tools answer with a one-line reason plus a status trailer (`STATE_FAIL`, `CHECK_FAIL`), so
+write that. Every step a human runs carries a copy-paste command block for PowerShell, with one
+line on what it does and whether it touches the network or pushes. Keep multi-line pastes to
+single commands (a PowerShell here-string truncated a pasted file once); keep absolute machine
+paths out (`no_machine_paths` fails the ritual on them).
+
 ## Already evidenced (2026-10-29, the alpha.2 session)
 
 These ran live during the session that cut alpha.2 and need no repeat unless something

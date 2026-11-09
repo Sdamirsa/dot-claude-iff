@@ -5,7 +5,7 @@
   "package": null,
   "title": "Statectl",
   "path": ".claude/tools/statectl.py",
-  "description": "statectl.py - the continuity engine: journal in, projections out. Every tracked-state writer refuses inside a linked worktree with one line (_lib.main_state_guard).",
+  "description": "statectl.py - the continuity engine: journal in, projections out. Every tracked-state writer refuses inside a linked worktree with one line (_lib.main_state_guard). dispatch and accept refuse when .cview/ exists at the repo root (_cview_drives, _CVIEW_REFUSAL): Cview drives, not the lead.",
   "reads": [
     "store.journal",
     "store.needs_human",

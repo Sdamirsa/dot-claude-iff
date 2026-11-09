@@ -5,7 +5,7 @@
   "package": null,
   "title": "Mapctl",
   "path": ".claude/tools/mapctl.py",
-  "description": "",
+  "description": "mapctl.py - the anatomy tool: scan stubs cards, lint checks the map, compile builds the node/edge map, context audits guides and rules, architecture renders the code graph. cap_boxes marks a fold whose members are all lazy as lazy.",
   "reads": [
     "store.cards",
     "map.layers",

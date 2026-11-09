@@ -5,7 +5,7 @@
   "package": null,
   "title": "adopt",
   "path": ".claude/skills/adopt/SKILL.md",
-  "description": "Install the dot-claude-iff system into a target project, or upgrade an already-installed one. Invoke on \"adopt this system into <path>\", \"set up my project like this\", \"install the claude system\", \"bootstrap .claude for <project>\", or \"/adopt --upgrade\" to bring an installed project's system up to date. A rare, high-blast-radius operation: runs only when the user explicitly asks for it.",
+  "description": "Install the dot-claude-iff system into a target project, or upgrade an already-installed one. Invoke on \"adopt this system into <path>\", \"set up my project like this\", \"install the claude system\", \"bootstrap .claude for <project>\", or \"/adopt --upgrade\" to bring an installed project's system up to date. A rare, high-blast-radius operation: runs only when the user explicitly asks for it. A Line endings (.gitattributes) step precedes the visibility step; the CLAUDE.template.md worker section says never open the ritual from a worktree and never stage or commit under the state folder.",
   "reads": [],
   "writes": [
     "config.registry"
