@@ -260,9 +260,9 @@ Turn the copied scaffold into this project's system:
 7. **Home-only generators stay off.** Kits ship `memory.json` with `distribution.enabled`
    already false; when `<source>` was a clone or a running project, its copy arrived with the
    knob TRUE - set it to `false` in `<target>/.claude/config/memory.json` now. It gates
-   `demo_build` and `dist_build`, dot-claude-iff's own release machinery: in `<target>` they
-   would zip its private `.claude/` into redistributable archives and render its real session
-   state into `docs/`, which many repos publish. checkctl reports them as SKIP with the reason
+   `demo_build`, `anatomy_build` and `dist_build`, dot-claude-iff's own release machinery: in
+   `<target>` they would zip its private `.claude/` into redistributable archives and render
+   its real session state and system into `docs/`, which many repos publish. checkctl reports them as SKIP with the reason
    named; that is the correct steady state everywhere except the source repo. In the same
    file, empty the `check` and `polish` lists under `project_steps`: a clone
    carries the source's own steps (dot-claude-iff runs its test suite as a CHECK step), and

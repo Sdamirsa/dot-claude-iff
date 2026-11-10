@@ -5,12 +5,15 @@
   "package": null,
   "title": "Mapctl",
   "path": ".claude/tools/mapctl.py",
-  "description": "mapctl.py - the anatomy tool: scan stubs cards, lint checks the map, compile builds the node/edge map, context audits guides and rules, architecture renders the code graph. cap_boxes marks a fold whose members are all lazy as lazy.",
+  "description": "mapctl.py - the anatomy tool: scan stubs cards, lint checks the map, compile builds the node/edge map, context audits guides and rules, architecture renders the code graph, anatomy renders the docs site's interactive anatomy page (docs/anatomy.html: layers, one component, its file). cap_boxes marks a fold whose members are all lazy as lazy.",
   "reads": [
     "store.cards",
     "map.layers",
     "store.code_graph",
-    "config.console"
+    "config.console",
+    "store.map",
+    "store.architecture",
+    "console.anatomy-template"
   ],
   "writes": [
     "store.cards",

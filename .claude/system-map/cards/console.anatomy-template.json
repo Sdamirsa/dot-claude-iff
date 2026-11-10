@@ -1,0 +1,20 @@
+{
+  "id": "console.anatomy-template",
+  "kind": "data",
+  "layer": "CONSOLE",
+  "package": null,
+  "title": "Anatomy Template",
+  "path": ".claude/console/anatomy.template.html",
+  "description": "The anatomy page's HTML shell (the docs site's three-level map: layers, one component, its file) with one JSON token replaced by mapctl anatomy's payload at build time.",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-11-10",
+    "hash": "0873a42e3d7c2d19a1e8ee732115770454a0826d3e1c51a5868e64cef774c8e8",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

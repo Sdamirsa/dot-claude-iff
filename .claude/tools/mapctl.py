@@ -20,6 +20,7 @@ card per guide, and lint never asks for one. `context` asks what loads for a fil
     mapctl.py lint       # two-tier validation; exit 1 on any ERROR
     mapctl.py compile    # write system-map/map.json (write-gated)
     mapctl.py architecture   # write system-map/architecture.json + docs/ARCHITECTURE.md
+    mapctl.py anatomy [--out docs/anatomy.html]   # the interactive anatomy page (docs site)
     mapctl.py show [--id ID]
     mapctl.py context [<path>] [--json] | --suggest   # folder context (ctxmap.py)
 """
@@ -161,6 +162,11 @@ SINGLETONS = [
      "title": "Console Template", "extract": "static",
      "description": "The console's single HTML shell (head, theme, styles, tabs) with one JSON "
                      "token replaced by consolectl's payload at build time."},
+    {"id": "console.anatomy-template", "rel": "console/anatomy.template.html", "kind": "data",
+     "title": "Anatomy Template", "extract": "static",
+     "description": "The anatomy page's HTML shell (the docs site's three-level map: layers, one "
+                     "component, its file) with one JSON token replaced by mapctl anatomy's "
+                     "payload at build time."},
 ]
 
 # Guides and rules are deliberately absent: they are derived context entries (ctxmap.py), so
@@ -1151,13 +1157,15 @@ def parse_github_remote(url: str):
     return f"{m.group(1)}/{m.group(2)}" if m else None
 
 
-def link_base(root: Path | None = None):
+def link_base(root: Path | None = None, branch: str | None = None):
     """'https://github.com/<owner>/<repo>/blob/<branch>/' when origin is on GitHub, else None
-    (relative links). Never raises: _lib.git_output returns '' when git is missing."""
+    (relative links). `branch` pins the branch (the published anatomy page links `main`);
+    without it, the checked-out branch. Never raises: _lib.git_output returns '' when git is
+    missing."""
     repo = parse_github_remote(_lib.git_output(["remote", "get-url", "origin"], root))
     if not repo:
         return None
-    branch = _lib.git_output(["rev-parse", "--abbrev-ref", "HEAD"], root) or "HEAD"
+    branch = branch or _lib.git_output(["rev-parse", "--abbrev-ref", "HEAD"], root) or "HEAD"
     return f"https://github.com/{repo}/blob/{branch}/"
 
 
@@ -1283,6 +1291,242 @@ def cmd_architecture(_args) -> int:
     return 0
 
 
+# --------------------------------------------------------------------------- anatomy
+#
+# `anatomy` renders ONE standalone page for the docs site (docs/anatomy.html by default): the
+# template .claude/console/anatomy.template.html with one JSON token replaced by the payload,
+# the consolectl build pattern (no runtime fetch). Level 1 is every layer of layers.json as a
+# tile with its components as chips; level 2 one component with its relations both ways; level
+# 3 its file, linked on GitHub (branch ANATOMY_BRANCH) or relatively when origin is not GitHub.
+# Sources: map.json gives the component set and its order (the compiled map); a card, when
+# present, is the authority for its own fields and relations (map.json may lag it by a
+# compile, with a WARN); layers.json the tiles; architecture.json the folded box each store
+# sits in on the diagram (optional, WARN when absent). The payload carries ids, labels,
+# titles, layers, kinds, paths, links, descriptions and relations only, never `auto`. Gates
+# fail closed: no map.json, no layers.json, a broken template or a linked path that does not
+# exist writes nothing; a lazy store not written yet loses its link with a WARN (lint's own
+# exemption). Write-gated: an unchanged page is not rewritten.
+
+ANATOMY_TOKEN = "__ANATOMY_DATA__"
+ANATOMY_DEFAULT_OUT = "docs/anatomy.html"
+ANATOMY_BRANCH = "main"
+ANATOMY_UNPLACED = "UNPLACED"
+_ANATOMY_RELATIONS = ("reads", "writes", "invokes")
+
+
+def anatomy_template_path() -> Path:
+    return _lib.console_dir() / "anatomy.template.html"
+
+
+def anatomy_layers(layers_cfg: dict) -> list:
+    """Tiles in order: the spines, then the flow layers (each by `order`), unplaced last."""
+    def ranked(items, start):
+        good = [x for x in items or [] if isinstance(x, dict) and x.get("id")]
+        return sorted(good, key=lambda x: (x.get("order", start), str(x["id"])))
+    out = []
+    for item in ranked(layers_cfg.get("spines"), 0) + ranked(layers_cfg.get("flows"), 100):
+        out.append({"id": str(item["id"]), "title": item.get("title") or str(item["id"]),
+                    "blurb": item.get("blurb") or ""})
+    unplaced = layers_cfg.get("unplaced") if isinstance(layers_cfg.get("unplaced"), dict) else {}
+    out.append({"id": ANATOMY_UNPLACED, "title": unplaced.get("title") or "unplaced",
+                "blurb": unplaced.get("blurb") or ""})
+    return out
+
+
+def anatomy_url(path: str, base, prefix: str) -> str:
+    """The file link: on GitHub under `base`, else relative to the page's own folder."""
+    from urllib.parse import quote
+    quoted = quote(path, safe="/-_.~")
+    return base + quoted if base else prefix + quoted
+
+
+def anatomy_tracked(root: Path):
+    """The repo's tracked paths (posix), or None when that cannot be told (no git, not a repo).
+    A GitHub link to a file that exists here but is gitignored would 404 on the published page."""
+    out = _lib.git_output(["ls-files", "-z"], root)
+    return {p for p in out.split("\0") if p} or None
+
+
+def anatomy_linkable(path: str, tracked) -> bool:
+    """A path (file or folder) GitHub serves: tracked itself, or a folder holding tracked files."""
+    if tracked is None:
+        return True
+    return path in tracked or any(t.startswith(path.rstrip("/") + "/") for t in tracked)
+
+
+def anatomy_disambiguate(nodes: list) -> None:
+    """Chip labels are the id after its prefix; labels that would read alike (orchestration
+    the protocol, the config and the store; ritual-ticket and ritual_ticket) carry their prefix
+    in brackets instead, so no two chips on the page look the same."""
+    def key(label):
+        return label.lower().replace("_", "-")
+    counts: dict = {}
+    for n in nodes:
+        counts[key(n["label"])] = counts.get(key(n["label"]), 0) + 1
+    for n in nodes:
+        prefix, _, rest = n["id"].partition(".")
+        if counts[key(n["label"])] > 1 and rest:
+            n["label"] = f"{n['label']} ({prefix})"
+
+
+def anatomy_boxes(arch) -> dict:
+    """card id -> the label of the folded box it sits in on the cards-sourced diagram."""
+    out = {}
+    if not isinstance(arch, dict):
+        return out
+    for scope in arch.get("scopes") or []:
+        if not isinstance(scope, dict) or scope.get("source") != "cards":
+            continue
+        for node in scope.get("nodes") or []:
+            if isinstance(node, dict) and node.get("members"):
+                for member in node["members"]:
+                    out.setdefault(member, node.get("label") or node.get("id"))
+    return out
+
+
+def build_anatomy(base, prefix: str, warnings: list, errors: list):
+    """The page payload, in memory (nothing is written); None, or `errors` non-empty, means the
+    caller must not write it."""
+    root = _lib.project_root()
+    map_obj = _lib.read_json(map_json_path(), None)
+    if not isinstance(map_obj, dict) or not isinstance(map_obj.get("nodes"), list):
+        errors.append(f"{_lib.rel(map_json_path())} is missing or malformed: run `mapctl.py compile`")
+        return None
+    layers_cfg = _lib.read_json(_lib.map_dir() / "layers.json", None)
+    if not isinstance(layers_cfg, dict) or not isinstance(layers_cfg.get("spines"), list):
+        errors.append("layers.json is missing or malformed: the tiles cannot be laid out")
+        return None
+    cards_by_id, malformed, dup = load_all_cards()
+    errors.extend(malformed + dup)
+    arch = _lib.read_json(architecture_json_path(), None)
+    if not isinstance(arch, dict):
+        warnings.append("no architecture.json: the folded-box notes are left out "
+                        "(run `mapctl.py architecture`)")
+    boxes = anatomy_boxes(arch)
+    layers = anatomy_layers(layers_cfg)
+    layer_ids = {layer["id"] for layer in layers}
+
+    map_nodes = {}
+    for n in map_obj["nodes"]:
+        if isinstance(n, dict) and n.get("id") and n["id"] not in map_nodes:
+            map_nodes[n["id"]] = n
+    map_edges: dict = {}
+    for e in map_obj.get("edges") or []:
+        if isinstance(e, dict) and e.get("type") in _ANATOMY_RELATIONS:
+            map_edges.setdefault(e.get("from"), []).append((e.get("to"), e["type"]))
+    order = list(map_nodes)
+    for cid in sorted(cards_by_id):
+        if cid not in map_nodes:
+            warnings.append(f"{cid}: card not in map.json yet (run `mapctl.py compile`); shown anyway")
+            order.append(cid)
+    for cid in order:
+        if cid not in cards_by_id:
+            warnings.append(f"{cid}: in map.json but has no card; shown from map.json")
+
+    tracked = anatomy_tracked(root) if base else None
+    nodes, ids = [], set(order)
+    for cid in order:
+        src = cards_by_id.get(cid) or map_nodes[cid]
+        layer = src.get("layer") or ANATOMY_UNPLACED
+        if layer not in layer_ids:
+            warnings.append(f"{cid}: layer '{layer}' is not in layers.json; shown as unplaced")
+            layer = ANATOMY_UNPLACED
+        path = src.get("path")
+        url, local = None, False
+        if path:
+            path = Path(str(path).replace("\\", "/")).as_posix()
+            full = Path(path) if Path(path).is_absolute() else root / path
+            lazy = bool(((cards_by_id.get(cid) or {}).get("auto") or {}).get("lazy"))
+            if full.exists() and anatomy_linkable(path, tracked):
+                url = anatomy_url(path, base, prefix)
+            elif full.exists() or (lazy and tracked is not None):
+                local = True  # machine-local (gitignored): real here, absent on GitHub
+            elif lazy:
+                warnings.append(f"{cid} has no {path} yet (lazy store): no link")
+            else:
+                errors.append(f"{cid}: path does not exist: {path}")
+        node = {"id": cid, "label": arch_label(cid), "title": src.get("title") or cid,
+                "kind": src.get("kind") if src.get("kind") in _KIND_ORDER else "data",
+                "layer": layer, "path": path or None, "url": url,
+                "description": src.get("description") or ""}
+        if local:
+            node["local"] = True
+        if cid in boxes:
+            node["box"] = boxes[cid]
+        nodes.append(node)
+    anatomy_disambiguate(nodes)
+
+    edges, seen = [], set()
+    for cid in order:
+        card = cards_by_id.get(cid)
+        rels = ([(t, r) for r in _ANATOMY_RELATIONS for t in card.get(r) or []] if card
+                else map_edges.get(cid, []))
+        for target, rel in rels:
+            key = (cid, target, rel)
+            if target in ids and target != cid and key not in seen:
+                seen.add(key)
+                edges.append([cid, target, rel])
+
+    arch_md = architecture_md_path()
+    arch_url = anatomy_url(arch_md.relative_to(root).as_posix(), base, prefix) if arch_md.exists() else None
+    return {"v": 1, "project": map_obj.get("project") or _lib.project_name(),
+            "compiled": str(map_obj.get("generated_at") or "")[:10], "base": base,
+            "arch_url": arch_url, "layers": layers, "nodes": nodes, "edges": edges}
+
+
+def render_anatomy(payload: dict, template_path: Path | None = None) -> str:
+    """The template with its one token replaced. Every `<` is escaped inside the JSON, so no
+    card text can close the data block or open a comment in it."""
+    template_path = template_path or anatomy_template_path()
+    text = template_path.read_text(encoding="utf-8")
+    count = text.count(ANATOMY_TOKEN)
+    if count != 1:
+        raise _lib.LibError(f"expected exactly one {ANATOMY_TOKEN} in {_lib.rel(template_path)}, "
+                            f"found {count}")
+    data = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return text.replace(ANATOMY_TOKEN, data.replace("<", "\\u003c"), 1)
+
+
+def cmd_anatomy(args) -> int:
+    root = _lib.project_root()
+    out_arg = getattr(args, "out", None) or ANATOMY_DEFAULT_OUT
+    out_path = Path(out_arg) if Path(out_arg).is_absolute() else root / out_arg
+    prefix = Path(os.path.relpath(root, out_path.parent)).as_posix() + "/"
+    prefix = "" if prefix == "./" else prefix
+    warnings, errors = [], []
+    payload = build_anatomy(link_base(branch=ANATOMY_BRANCH), prefix, warnings, errors)
+    html = None
+    if payload is not None and not errors:
+        try:
+            html = render_anatomy(payload)
+        except (OSError, _lib.LibError) as exc:
+            errors.append(f"template: {exc}")
+    if errors or html is None:
+        print(f"MAP ANATOMY: {len(errors)} error(s); nothing written")
+        for e in errors:
+            print(f"  ERROR  {e}")
+        for w in warnings:
+            print(f"  WARN   {w}")
+        _lib.print_verdict("MAP", False)
+        return 1
+
+    try:
+        old = out_path.read_text(encoding="utf-8")
+    except OSError:
+        old = None
+    wrote = old != html
+    if wrote:
+        _lib.atomic_write_text(out_path, html, durable=False)
+    print(f"MAP ANATOMY: {len(payload['nodes'])} components in {len(payload['layers'])} layers, "
+          f"{len(payload['edges'])} relations, file links "
+          + ("on GitHub" if payload["base"] else "relative"))
+    print(f"  {_lib.rel(out_path)}" + ("" if wrote else " (unchanged, not rewritten)"))
+    for w in warnings:
+        print(f"  WARN   {w}")
+    _lib.print_verdict("MAP", True, warn=bool(warnings))
+    return 0
+
+
 # --------------------------------------------------------------------------- show
 
 def cmd_show(args) -> int:
@@ -1351,13 +1595,17 @@ def cmd_context(args) -> int:
 # --------------------------------------------------------------------------- cli
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="mapctl.py", description="The system map: scan / lint / compile / architecture / show / context.")
+    p = argparse.ArgumentParser(prog="mapctl.py", description="The system map: scan / lint / compile / architecture / anatomy / show / context.")
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("scan", help="auto-discover components and create/refresh stub cards")
     sub.add_parser("lint", help="two-tier validation of the card set (ERROR fails, WARN informs)")
     sub.add_parser("compile", help="write .claude/system-map/map.json (write-gated)")
     sub.add_parser("architecture", help="write system-map/architecture.json and docs/ARCHITECTURE.md "
                                         "(Mermaid, one diagram per scope; write-gated)")
+    ap = sub.add_parser("anatomy", help="write the interactive anatomy page (layers, one component, "
+                                        "its file; write-gated)")
+    ap.add_argument("--out", default=None,
+                    help=f"output path, relative to the project root (default {ANATOMY_DEFAULT_OUT})")
     sp = sub.add_parser("show", help="human-readable summary of the map or one card")
     sp.add_argument("--id", default=None)
     cp = sub.add_parser("context", help="guides and rules that load for a path (none: list all)")
@@ -1369,7 +1617,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 COMMANDS = {"scan": cmd_scan, "lint": cmd_lint, "compile": cmd_compile, "show": cmd_show,
-            "context": cmd_context, "architecture": cmd_architecture}
+            "context": cmd_context, "architecture": cmd_architecture, "anatomy": cmd_anatomy}
 
 
 def main(argv: list) -> int:

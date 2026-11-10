@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anatomy map</title>
+<!-- Derived file: written by `python3 .claude/tools/mapctl.py anatomy` from the system map
+     (map.json, layers.json, architecture.json and the cards) into the template
+     .claude/console/anatomy.template.html (the generator anatomy_build, run by
+     /project-memory). Hand edits are lost on the next build: change the cards or the template. -->
+<script>
+(function () {
+  var root = document.documentElement;
+  try {
+    if (/(?:^|&)embed=1(?:&|$)/.test(location.search.slice(1))) root.className += " am-embed";
+  } catch (e) {}
+  try {
+    var t = localStorage.getItem("iff-docs-theme");
+    if (t === "light" || t === "dark") root.setAttribute("data-theme", t);
+  } catch (e) {}
+})();
+</script>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="tour.css">
+<style>
+/* The page reads with tour.css missing: every token below falls back to the docs-site value,
+   in both themes. The two dark blocks must define the same set of tokens (test_anatomy). */
+:root {
+  --am-bg: var(--bg, #FAF9F6); --am-panel: var(--panel, #ffffff); --am-sunken: var(--sunken, #F1F5F9);
+  --am-ink: var(--ink, #1E293B); --am-dim: var(--dim, #64748B); --am-heading: var(--heading, #0F172A);
+  --am-line: var(--line, #E2E8F0); --am-line-strong: var(--line-strong, #b9c0cc);
+  --am-accent: var(--accent, #2563EB);
+  --am-agent: var(--agent, #d97a2b); --am-code: var(--code, #3272c8);
+  --am-data: var(--data, #4a8f4e); --am-human: var(--human, #b8922e);
+  --am-agent-t: var(--agent-t, rgba(217,122,43,.10)); --am-code-t: var(--code-t, rgba(37,99,235,.08));
+  --am-data-t: var(--data-t, rgba(5,150,105,.10)); --am-human-t: var(--human-t, rgba(217,119,6,.12));
+  --am-shadow: rgba(15,23,42,.14);
+  --am-mono: var(--mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  --am-sans: var(--sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --am-bg: var(--bg, #15171b); --am-panel: var(--panel, #1c1f24); --am-sunken: var(--sunken, #101214);
+    --am-ink: var(--ink, #e5e4e0); --am-dim: var(--dim, #989ea8); --am-heading: var(--heading, #f1f0ec);
+    --am-line: var(--line, #2c3037); --am-line-strong: var(--line-strong, #454b54);
+    --am-accent: var(--accent, #7aaeea);
+    --am-agent: var(--agent, #e8955a); --am-code: var(--code, #7aaeea);
+    --am-data: var(--data, #7bc47f); --am-human: var(--human, #d9bc5e);
+    --am-agent-t: var(--agent-t, rgba(232,149,90,.12)); --am-code-t: var(--code-t, rgba(122,174,234,.10));
+    --am-data-t: var(--data-t, rgba(123,196,127,.11)); --am-human-t: var(--human-t, rgba(217,188,94,.13));
+    --am-shadow: rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"] {
+  --am-bg: var(--bg, #15171b); --am-panel: var(--panel, #1c1f24); --am-sunken: var(--sunken, #101214);
+  --am-ink: var(--ink, #e5e4e0); --am-dim: var(--dim, #989ea8); --am-heading: var(--heading, #f1f0ec);
+  --am-line: var(--line, #2c3037); --am-line-strong: var(--line-strong, #454b54);
+  --am-accent: var(--accent, #7aaeea);
+  --am-agent: var(--agent, #e8955a); --am-code: var(--code, #7aaeea);
+  --am-data: var(--data, #7bc47f); --am-human: var(--human, #d9bc5e);
+  --am-agent-t: var(--agent-t, rgba(232,149,90,.12)); --am-code-t: var(--code-t, rgba(122,174,234,.10));
+  --am-data-t: var(--data-t, rgba(123,196,127,.11)); --am-human-t: var(--human-t, rgba(217,188,94,.13));
+  --am-shadow: rgba(0,0,0,.5);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { background: var(--am-bg); color: var(--am-ink); font-family: var(--am-sans);
+       font-size: 15px; line-height: 1.5; overflow-x: hidden; }
+.am-wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px 40px; }
+.am-embed .am-wrap { padding: 8px 4px 16px; }
+
+/* top bar (hidden with ?embed=1) */
+.am-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 14px 0;
+          border-bottom: 1px solid var(--am-line); margin-bottom: 18px; }
+.am-embed .am-top, .am-embed .am-h1, .am-embed .am-foot { display: none; }
+.am-brand { font-weight: 700; font-size: 15px; color: var(--am-ink); text-decoration: none; }
+.am-brand .am-iff { color: var(--am-accent); }
+.am-logo { height: 20px; width: auto; vertical-align: -5px; margin-right: 7px; }
+.am-page { font-size: 14px; color: var(--am-dim); }
+.am-links { margin-left: auto; display: flex; gap: 14px; font-size: 13px; }
+.am-links a { color: var(--am-dim); text-decoration: none; }
+.am-links a:hover { color: var(--am-accent); text-decoration: underline; }
+.am-theme { background: var(--am-sunken); border: 1px solid var(--am-line); border-radius: 999px;
+            width: 34px; height: 34px; cursor: pointer; color: var(--am-ink); font: inherit; }
+
+/* intro: title, the one-line hint, the kind legend */
+.am-h1 { font-size: 26px; letter-spacing: -.015em; margin: 4px 0 4px; color: var(--am-heading); }
+.am-hint { margin: 0 0 8px; max-width: none; font-size: 14px; color: var(--am-dim); }
+.am-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 14px; padding: 0; max-width: none;
+             list-style: none; font-size: 12.5px; color: var(--am-dim); }
+.am-legend li { margin: 0; display: inline-flex; align-items: center; gap: 6px; }
+.am-legend b { color: var(--am-ink); font-weight: 650; }
+
+/* the stage: tiles on the left, the detail panel on the right (a sheet on a phone) */
+.am-stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.am-stage.is-open { grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); }
+.am-tiles { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+.am-tile { display: grid; grid-template-columns: minmax(120px, 12rem) minmax(0, 1fr); gap: 6px 16px;
+           background: var(--am-panel); border: 1px solid var(--am-line); border-radius: 12px;
+           padding: 12px 14px; transition: opacity 150ms ease, border-color 150ms ease; }
+.am-tile.is-zoom { border-color: var(--am-accent); box-shadow: 0 0 0 1px var(--am-accent); }
+.am-tile.is-dim { opacity: .38; }
+.am-tile-head { min-width: 0; }
+.am-tile-title { display: inline-flex; align-items: baseline; gap: 8px; background: none; border: 0;
+                 padding: 0; margin: 0; cursor: pointer; font: inherit; color: var(--am-heading);
+                 font-weight: 800; font-size: 14px; letter-spacing: .07em; text-align: left; }
+.am-tile-title:hover, .am-tile-title:focus-visible { color: var(--am-accent); }
+.am-tile-title::after { content: "\203A"; color: var(--am-dim); font-weight: 400; }
+.am-count { font-family: var(--am-mono); font-size: 11px; font-weight: 400; letter-spacing: 0;
+            color: var(--am-dim); }
+.am-blurb { margin: 4px 0 0; max-width: none; font-size: 12.5px; line-height: 1.45; color: var(--am-dim); }
+.am-chips { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; min-width: 0; }
+.am-empty { font-size: 12.5px; color: var(--am-dim); font-style: italic; }
+
+/* chips: text-sized, wrap inside their row, never overflow it */
+.am-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin: 0;
+           font: inherit; font-size: 12.5px; line-height: 1.3; font-weight: 600; color: var(--am-ink);
+           background: var(--am-sunken); border: 1px solid transparent; border-radius: 999px;
+           padding: 3px 10px 3px 8px; cursor: pointer; text-align: left; overflow-wrap: anywhere;
+           transition: opacity 150ms ease, border-color 150ms ease, box-shadow 150ms ease; }
+.am-chip::before { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%;
+                   background: var(--am-k, var(--am-dim)); }
+.am-chip:hover, .am-chip:focus-visible { border-color: var(--am-k, var(--am-line-strong)); outline: none; }
+.k-agent { --am-k: var(--am-agent); --am-kt: var(--am-agent-t); }
+.k-code { --am-k: var(--am-code); --am-kt: var(--am-code-t); }
+.k-data { --am-k: var(--am-data); --am-kt: var(--am-data-t); }
+.k-human { --am-k: var(--am-human); --am-kt: var(--am-human-t); }
+.am-chip.k-agent, .am-chip.k-code, .am-chip.k-data, .am-chip.k-human { background: var(--am-kt); }
+.am-chip.is-sel { border-color: var(--am-k); box-shadow: 0 0 0 2px var(--am-k); font-weight: 800; }
+.am-chip.is-near { border-color: var(--am-k); }
+.am-chip.is-dim { opacity: .28; }
+
+/* the detail panel */
+.am-panel { display: none; min-width: 0; background: var(--am-panel); border: 1px solid var(--am-line);
+            border-radius: 12px; position: sticky; top: 12px; max-height: calc(100vh - 24px);
+            overflow-y: auto; overscroll-behavior: contain; }
+.am-stage.is-open .am-panel { display: block; animation: am-in 150ms ease-out; }
+@keyframes am-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes am-up { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+.am-panel-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: flex-start; gap: 8px;
+                 padding: 10px 12px 8px 16px; background: var(--am-panel); border-bottom: 1px solid var(--am-line); }
+.am-crumbs { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px;
+             font-size: 12.5px; color: var(--am-dim); padding-top: 4px; }
+.am-crumbs button { background: none; border: 0; padding: 0; margin: 0; font: inherit; cursor: pointer;
+                    color: var(--am-accent); text-decoration: underline; text-underline-offset: 2px; }
+.am-crumbs .am-sep { color: var(--am-line-strong); }
+.am-crumbs [aria-current] { color: var(--am-ink); font-weight: 650; overflow-wrap: anywhere; }
+.am-close { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--am-line);
+            background: var(--am-sunken); color: var(--am-ink); font: inherit; font-size: 18px;
+            line-height: 1; cursor: pointer; }
+.am-close:hover { border-color: var(--am-accent); color: var(--am-accent); }
+.am-body { padding: 12px 16px 16px; }
+.am-kind { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700;
+           letter-spacing: .08em; text-transform: uppercase; color: var(--am-k, var(--am-dim)); }
+.am-kind::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--am-k, var(--am-dim)); }
+.am-ptitle { font-size: 20px; line-height: 1.25; letter-spacing: -.01em; margin: 2px 0 2px;
+             color: var(--am-heading); overflow-wrap: anywhere; }
+.am-id { font-family: var(--am-mono); font-size: 12px; color: var(--am-dim); margin: 0 0 12px;
+         overflow-wrap: anywhere; }
+.am-file { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin: 0 0 14px;
+           padding: 10px 12px; background: var(--am-sunken); border: 1px solid var(--am-line); border-radius: 10px; }
+.am-path { font-family: var(--am-mono); font-size: 12.5px; background: none; border: 0; padding: 0;
+           color: var(--am-ink); overflow-wrap: anywhere; word-break: break-word; }
+.am-open { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-weight: 700;
+           font-size: 14px; border-radius: 9px; padding: 8px 14px; background: var(--am-accent);
+           color: var(--am-bg); border: 1px solid var(--am-accent); }
+.am-open:hover { opacity: .9; }
+.am-note { margin: 0 0 12px; max-width: none; font-size: 13px; color: var(--am-dim); }
+.am-note a { color: var(--am-accent); }
+.am-note code { font-family: var(--am-mono); font-size: 12px; }
+.am-desc { margin: 0 0 6px; max-width: none; font-size: 13.5px; line-height: 1.55; overflow-wrap: anywhere; }
+.am-desc.is-clamped { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5;
+                      line-clamp: 5; overflow: hidden; }
+.am-more { background: none; border: 0; padding: 0; margin: 0 0 12px; font: inherit; font-size: 12.5px;
+           color: var(--am-accent); cursor: pointer; text-decoration: underline; }
+.am-rel { margin: 12px 0 0; }
+.am-rel-h { margin: 0 0 6px; font-size: 11.5px; font-weight: 700; letter-spacing: .08em;
+            text-transform: uppercase; color: var(--am-dim); }
+.am-rel-h .am-count { margin-left: 4px; }
+
+.am-foot { margin: 22px 0 0; max-width: none; font-size: 12.5px; color: var(--am-dim); }
+.am-foot a { color: var(--am-accent); }
+.am-foot code { font-family: var(--am-mono); font-size: 12px; }
+
+/* a phone (or a narrow iframe): tiles stack, the panel becomes a sheet below them */
+@media (max-width: 720px) {
+  .am-wrap { padding: 0 12px 28px; }
+  .am-stage.is-open { grid-template-columns: minmax(0, 1fr); }
+  .am-tile { grid-template-columns: minmax(0, 1fr); }
+  .am-panel { position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 20; max-height: 62vh;
+              border-radius: 16px 16px 0 0; border-bottom: 0; box-shadow: 0 -10px 30px var(--am-shadow); }
+  .am-stage.is-open .am-panel { animation-name: am-up; }
+  .am-stage.is-open .am-tiles { padding-bottom: 62vh; }
+  .am-links { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .am-tile, .am-chip { transition: none; }
+  .am-stage.is-open .am-panel { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="am-wrap">
+  <div class="am-top">
+    <a class="am-brand" href="index.html"><img class="am-logo" src="assets/logo-small.png" alt="">dot-claude-<span class="am-iff">iff</span></a>
+    <span class="am-page">Anatomy map</span>
+    <nav class="am-links" aria-label="Site"><a href="index.html">Start</a><a href="understand.html">Tour</a></nav>
+    <button class="am-theme" id="am-theme" type="button" title="toggle theme">&#9680;</button>
+  </div>
+
+  <h1 class="am-h1">The anatomy, live</h1>
+  <p class="am-hint">Click a component to see what it reads, writes and invokes; click a layer name to zoom in. Esc steps back.</p>
+  <ul class="am-legend" aria-label="Component kinds">
+    <li class="k-agent"><span class="am-kind">agent</span> sub-agents</li>
+    <li class="k-code"><span class="am-kind">code</span> hooks, tools, skills</li>
+    <li class="k-data"><span class="am-kind">data</span> stores, config, protocols</li>
+    <li class="k-human"><span class="am-kind">human</span> the people</li>
+  </ul>
+
+  <div class="am-stage" id="am-stage">
+    <div class="am-tiles" id="am-tiles"></div>
+    <aside class="am-panel" id="am-panel" aria-label="Detail">
+      <div class="am-panel-head">
+        <nav class="am-crumbs" id="am-crumbs" aria-label="Breadcrumb"></nav>
+        <button class="am-close" id="am-close" type="button" aria-label="Back to the anatomy" title="Back to the anatomy (Esc)">&times;</button>
+      </div>
+      <div class="am-body" id="am-body"></div>
+    </aside>
+  </div>
+
+  <p class="am-foot" id="am-foot"></p>
+</div>
+
+<script id="am-data" type="application/json">__ANATOMY_DATA__</script>
+<script>
+(function () {
+  "use strict";
+  var THEME_KEY = "iff-docs-theme";
+  var HASH_NODE = "#node=";
+  var HASH_LAYER = "#layer=";
+  var SHEET_QUERY = "(max-width: 720px)";
+  var KIND_NAMES = { agent: "Agents", code: "Code", data: "Data", human: "Human" };
+  var KIND_ORDER = ["agent", "code", "data", "human"];
+  // [relation type, heading, direction]: "out" is what this card declares, "in" what declares it.
+  var RELATIONS = [["reads", "Reads", "out"], ["writes", "Writes", "out"], ["invokes", "Invokes", "out"],
+                   ["reads", "Read by", "in"], ["writes", "Written by", "in"], ["invokes", "Invoked by", "in"]];
+  var root = document.documentElement;
+  var stage = document.getElementById("am-stage");
+  var tilesEl = document.getElementById("am-tiles");
+  var panel = document.getElementById("am-panel");
+  var crumbsEl = document.getElementById("am-crumbs");
+  var bodyEl = document.getElementById("am-body");
+  var footEl = document.getElementById("am-foot");
+
+  function el(tag, attrs, kids) {
+    var node = document.createElement(tag);
+    if (attrs) {
+      for (var k in attrs) {
+        if (Object.prototype.hasOwnProperty.call(attrs, k) && attrs[k] !== null && attrs[k] !== undefined) {
+          if (k === "className") node.className = attrs[k];
+          else node.setAttribute(k, attrs[k]);
+        }
+      }
+    }
+    (kids || []).forEach(function (kid) {
+      if (kid === null || kid === undefined) return;
+      node.appendChild(typeof kid === "string" ? document.createTextNode(kid) : kid);
+    });
+    return node;
+  }
+
+  // ------------------------------------------------------------------ theme (the docs site's key)
+  function initTheme() {
+    var btn = document.getElementById("am-theme");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        var cur = root.getAttribute("data-theme");
+        var next = cur === "dark" ? "light" : cur === "light" ? "dark"
+          : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+      });
+    }
+    // Embedded in the landing page: follow its toggle (same origin, so the storage event fires here).
+    window.addEventListener("storage", function (e) {
+      if (e.key === THEME_KEY && (e.newValue === "light" || e.newValue === "dark")) {
+        root.setAttribute("data-theme", e.newValue);
+      }
+    });
+  }
+
+  // ------------------------------------------------------------------ data
+  var DATA = null;
+  try { DATA = JSON.parse(document.getElementById("am-data").textContent); } catch (e) { DATA = null; }
+  initTheme();
+  if (!DATA || !Array.isArray(DATA.nodes) || !Array.isArray(DATA.layers)) {
+    tilesEl.appendChild(el("p", { className: "am-note" },
+      ["The map data is missing or unreadable. Rebuild it: python3 .claude/tools/mapctl.py anatomy"]));
+    return;
+  }
+
+  var layers = {}, layerOrder = [], nodes = {}, order = [], outRel = {}, inRel = {};
+  DATA.layers.forEach(function (l) {
+    if (l && l.id && !layers[l.id]) { layers[l.id] = l; layerOrder.push(l.id); }
+  });
+  if (!layers.UNPLACED) {
+    layers.UNPLACED = { id: "UNPLACED", title: "unplaced", blurb: "" };
+    layerOrder.push("UNPLACED");
+  }
+  DATA.nodes.forEach(function (n) {
+    if (!n || !n.id || nodes[n.id]) return;
+    if (!layers[n.layer]) n.layer = "UNPLACED";
+    if (!KIND_NAMES[n.kind]) n.kind = "data";
+    nodes[n.id] = n;
+    order.push(n.id);
+    outRel[n.id] = { reads: [], writes: [], invokes: [] };
+    inRel[n.id] = { reads: [], writes: [], invokes: [] };
+  });
+  (DATA.edges || []).forEach(function (e) {
+    // Self-check: a relation to a component the page does not carry is dropped, never drawn.
+    if (!Array.isArray(e) || !nodes[e[0]] || !nodes[e[1]] || e[0] === e[1] || !outRel[e[0]][e[2]]) return;
+    if (outRel[e[0]][e[2]].indexOf(e[1]) === -1) outRel[e[0]][e[2]].push(e[1]);
+    if (inRel[e[1]][e[2]].indexOf(e[0]) === -1) inRel[e[1]][e[2]].push(e[0]);
+  });
+
+  function neighbours(id) {
+    var seen = {};
+    ["reads", "writes", "invokes"].forEach(function (t) {
+      outRel[id][t].forEach(function (x) { seen[x] = true; });
+      inRel[id][t].forEach(function (x) { seen[x] = true; });
+    });
+    return seen;
+  }
+
+  function membersOf(layerId) {
+    return order.filter(function (id) { return nodes[id].layer === layerId; });
+  }
+
+  // ------------------------------------------------------------------ level 1: the anatomy
+  var chipEls = {}, tileEls = {};
+
+  function chip(id) {
+    var n = nodes[id];
+    return el("button", { type: "button", className: "am-chip k-" + n.kind, "data-id": id,
+                          title: (n.title || id) + " (" + id + ")" }, [n.label || id]);
+  }
+
+  function renderTiles() {
+    layerOrder.forEach(function (lid) {
+      var l = layers[lid], members = membersOf(lid);
+      var chips = el("div", { className: "am-chips" });
+      members.forEach(function (id) {
+        var c = chip(id);
+        c.setAttribute("aria-pressed", "false");
+        chipEls[id] = c;
+        chips.appendChild(c);
+      });
+      if (!members.length) chips.appendChild(el("span", { className: "am-empty" }, ["none yet"]));
+      var head = el("div", { className: "am-tile-head" }, [
+        el("button", { type: "button", className: "am-tile-title", "data-layer": lid,
+                       title: "Zoom into " + (l.title || lid) }, [
+          l.title || lid, el("span", { className: "am-count" }, [String(members.length)])]),
+        l.blurb ? el("p", { className: "am-blurb" }, [l.blurb]) : null
+      ]);
+      var tile = el("div", { className: "am-tile", id: "layer-" + lid }, [head, chips]);
+      tileEls[lid] = tile;
+      tilesEl.appendChild(tile);
+    });
+  }
+
+  // ------------------------------------------------------------------ state, hash, history
+  var state = { layer: null, node: null };
+
+  function normalise(next) {
+    if (next && next.node && nodes[next.node]) return { layer: nodes[next.node].layer, node: next.node };
+    if (next && next.layer && layers[next.layer]) return { layer: next.layer, node: null };
+    return { layer: null, node: null };
+  }
+
+  function readHash() {
+    var h = location.hash || "";
+    try {
+      if (h.indexOf(HASH_NODE) === 0) return { node: decodeURIComponent(h.slice(HASH_NODE.length)) };
+      if (h.indexOf(HASH_LAYER) === 0) return { layer: decodeURIComponent(h.slice(HASH_LAYER.length)) };
+    } catch (e) {}
+    return {};
+  }
+
+  function writeHash() {
+    var h = state.node ? HASH_NODE + encodeURIComponent(state.node)
+      : state.layer ? HASH_LAYER + encodeURIComponent(state.layer) : "";
+    if ((location.hash || "") === h) return;
+    try {
+      history.replaceState(null, "", h || (location.pathname + location.search));
+    } catch (e) {
+      try { location.hash = h; } catch (e2) {}
+    }
+  }
+
+  function go(next, opts) {
+    state = normalise(next);
+    apply();
+    writeHash();
+    if (state.node && opts && opts.reveal) reveal(chipEls[state.node]);
+  }
+
+  function back() {
+    if (state.node) go({ layer: state.layer });
+    else if (state.layer) go({});
+  }
+
+  function isSheet() {
+    return !!(window.matchMedia && window.matchMedia(SHEET_QUERY).matches);
+  }
+
+  // Keep the lit chip in view: above the sheet on a phone, inside the viewport on a desktop.
+  function reveal(target) {
+    if (!target || !target.getBoundingClientRect) return;
+    var r = target.getBoundingClientRect();
+    var bottom = window.innerHeight - (isSheet() ? panel.offsetHeight : 0);
+    if (r.top >= 8 && r.bottom <= bottom - 8) return;
+    var delta = r.top - Math.max(8, (bottom - r.height) / 3);
+    var smooth = !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    try { window.scrollBy({ top: delta, behavior: smooth ? "smooth" : "auto" }); }
+    catch (e) { window.scrollBy(0, delta); }
+  }
+
+  // ------------------------------------------------------------------ level 2: the zoom
+  function apply() {
+    var sel = state.node, lid = state.layer;
+    var lit = sel ? neighbours(sel) : {};
+    if (sel) lit[sel] = true;
+    stage.classList.toggle("is-open", !!(sel || lid));
+    order.forEach(function (id) {
+      var c = chipEls[id];
+      if (!c) return;
+      c.classList.toggle("is-sel", id === sel);
+      c.classList.toggle("is-near", !!sel && id !== sel && !!lit[id]);
+      c.classList.toggle("is-dim", !!sel && !lit[id]);
+      c.setAttribute("aria-pressed", id === sel ? "true" : "false");
+    });
+    layerOrder.forEach(function (l) {
+      var t = tileEls[l], dim = false;
+      if (sel) dim = !membersOf(l).some(function (id) { return lit[id]; });
+      else if (lid) dim = l !== lid;
+      t.classList.toggle("is-dim", dim);
+      t.classList.toggle("is-zoom", !sel && l === lid);
+    });
+    renderPanel();
+  }
+
+  function crumbs() {
+    crumbsEl.textContent = "";
+    var parts = [el("button", { type: "button", "data-home": "1" }, ["Anatomy"])];
+    var l = state.layer ? layers[state.layer] : null;
+    if (l) {
+      parts.push(state.node
+        ? el("button", { type: "button", "data-layer": l.id }, [l.title || l.id])
+        : el("span", { "aria-current": "page" }, [l.title || l.id]));
+    }
+    if (state.node) {
+      var n = nodes[state.node];
+      parts.push(el("span", { "aria-current": "page" }, [n.label || n.id]));
+    }
+    parts.forEach(function (p, i) {
+      if (i) crumbsEl.appendChild(el("span", { className: "am-sep", "aria-hidden": "true" }, ["›"]));
+      crumbsEl.appendChild(p);
+    });
+  }
+
+  function chipRow(ids) {
+    var row = el("div", { className: "am-chips" });
+    ids.forEach(function (id) { row.appendChild(chip(id)); });
+    return row;
+  }
+
+  function group(heading, ids) {
+    return el("div", { className: "am-rel" }, [
+      el("h3", { className: "am-rel-h" }, [heading, el("span", { className: "am-count" }, [String(ids.length)])]),
+      chipRow(ids)
+    ]);
+  }
+
+  // Level 3: the file itself, one button away.
+  function fileBlock(n) {
+    if (!n.path) {
+      return el("p", { className: "am-note" }, [n.kind === "human"
+        ? "A person, not a file: nothing to open."
+        : "Lives outside the repository (by design), so there is no file to open."]);
+    }
+    var kids = [el("code", { className: "am-path" }, [n.path])];
+    if (n.url) {
+      var onGithub = n.url.indexOf("https://github.com/") === 0;
+      kids.push(el("a", { className: "am-open", href: n.url, target: "_blank", rel: "noopener" },
+        [onGithub ? "Open on GitHub ↗" : "Open the file ↗"]));
+    } else if (n.local) {
+      kids.push(el("span", { className: "am-note" },
+        ["Machine-local (gitignored): every checkout writes its own copy, so it is not on GitHub."]));
+    } else {
+      kids.push(el("span", { className: "am-note" }, ["Not written yet in this checkout: no link."]));
+    }
+    return el("div", { className: "am-file" }, kids);
+  }
+
+  function description(text) {
+    var p = el("p", { className: "am-desc is-clamped" }, [text]);
+    var more = el("button", { type: "button", className: "am-more", hidden: "hidden" }, ["Show all"]);
+    more.addEventListener("click", function () {
+      var clamped = p.classList.toggle("is-clamped");
+      more.textContent = clamped ? "Show all" : "Show less";
+    });
+    // Measured after layout: the button only appears when the clamp actually hides text.
+    window.requestAnimationFrame(function () {
+      if (p.scrollHeight > p.clientHeight + 2) more.removeAttribute("hidden");
+      else p.classList.remove("is-clamped");
+    });
+    return [p, more];
+  }
+
+  function renderNode(n) {
+    var kids = [
+      el("div", { className: "am-kind k-" + n.kind }, [n.kind]),
+      el("h2", { className: "am-ptitle" }, [n.title || n.label || n.id]),
+      el("p", { className: "am-id" }, [n.id]),
+      fileBlock(n)
+    ];
+    if (n.description) kids = kids.concat(description(n.description));
+    if (n.box) {
+      var note = el("p", { className: "am-note" }, ["In the architecture diagram it sits inside the box ",
+        el("code", null, [n.box]), "."]);
+      if (DATA.arch_url) {
+        note.appendChild(document.createTextNode(" "));
+        note.appendChild(el("a", { href: DATA.arch_url, target: "_blank", rel: "noopener" }, ["See the diagram ↗"]));
+      }
+      kids.push(note);
+    }
+    var any = false;
+    RELATIONS.forEach(function (r) {
+      var ids = (r[2] === "out" ? outRel : inRel)[n.id][r[0]];
+      if (ids.length) { any = true; kids.push(group(r[1], ids)); }
+    });
+    if (!any) kids.push(el("p", { className: "am-note" }, ["No recorded relations."]));
+    return kids;
+  }
+
+  function renderLayer(l) {
+    var members = membersOf(l.id);
+    var kids = [el("div", { className: "am-kind" }, ["layer"]),
+                el("h2", { className: "am-ptitle" }, [l.title || l.id])];
+    if (l.blurb) kids.push(el("p", { className: "am-desc" }, [l.blurb]));
+    if (!members.length) {
+      kids.push(el("p", { className: "am-note" }, ["No components placed here yet."]));
+      return kids;
+    }
+    kids.push(el("p", { className: "am-note" }, ["Click a component to open it."]));
+    KIND_ORDER.forEach(function (k) {
+      var ids = members.filter(function (id) { return nodes[id].kind === k; });
+      if (ids.length) kids.push(group(KIND_NAMES[k], ids));
+    });
+    return kids;
+  }
+
+  function renderPanel() {
+    bodyEl.textContent = "";
+    if (!state.node && !state.layer) { crumbsEl.textContent = ""; return; }
+    crumbs();
+    var kids = state.node ? renderNode(nodes[state.node]) : renderLayer(layers[state.layer]);
+    kids.forEach(function (k) { if (k) bodyEl.appendChild(k); });
+    panel.scrollTop = 0;
+  }
+
+  // ------------------------------------------------------------------ wiring
+  function renderFoot() {
+    var edges = 0;
+    order.forEach(function (id) {
+      edges += outRel[id].reads.length + outRel[id].writes.length + outRel[id].invokes.length;
+    });
+    footEl.appendChild(document.createTextNode("Built by "));
+    footEl.appendChild(el("code", null, ["mapctl.py anatomy"]));
+    footEl.appendChild(document.createTextNode(" from the system map" +
+      (DATA.compiled ? " compiled " + DATA.compiled : "") + ": " + order.length + " components, " +
+      edges + " relations."));
+    if (DATA.arch_url) {
+      footEl.appendChild(document.createTextNode(" The same system as one diagram: "));
+      footEl.appendChild(el("a", { href: DATA.arch_url, target: "_blank", rel: "noopener" }, ["ARCHITECTURE.md ↗"]));
+    }
+  }
+
+  document.addEventListener("click", function (e) {
+    var t = e.target && e.target.closest ? e.target : null;
+    if (!t) return;
+    var hit = t.closest("[data-id]");
+    if (hit && nodes[hit.getAttribute("data-id")]) {
+      go({ node: hit.getAttribute("data-id") }, { reveal: true });
+      return;
+    }
+    hit = t.closest("[data-layer]");
+    if (hit && layers[hit.getAttribute("data-layer")]) {
+      go({ layer: hit.getAttribute("data-layer") });
+      return;
+    }
+    if (t.closest("[data-home]") || t.closest("#am-close")) go({});
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if ((e.key === "Escape" || e.key === "Esc") && (state.node || state.layer)) {
+      e.preventDefault();
+      back();
+    }
+  });
+
+  window.addEventListener("hashchange", function () { go(readHash(), { reveal: true }); });
+
+  renderTiles();
+  renderFoot();
+  document.title = (DATA.project ? DATA.project + " · " : "") + "Anatomy map";
+  go(readHash(), { reveal: true });
+})();
+</script>
+</body>
+</html>

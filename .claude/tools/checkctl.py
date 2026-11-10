@@ -125,6 +125,16 @@ GENERATORS = {
                    ".claude/Project-log.jsonl"],
         "output": "docs/demo/console.html",
     },
+    # The interactive anatomy page on the docs site (layers, one component, its file), from the
+    # system map. Home-repo-only like demo_build: it renders this repo's system into docs/.
+    "anatomy_build": {
+        "tool": "mapctl.py",
+        "args": ["anatomy", "--out", "docs/anatomy.html"],
+        "inputs": [".claude/system-map/architecture.json", ".claude/system-map/map.json",
+                   ".claude/system-map/layers.json", ".claude/system-map/cards",
+                   ".claude/console/anatomy.template.html"],
+        "output": "docs/anatomy.html",
+    },
     # Inputs deliberately enumerate the component trees rather than saying ".claude": the
     # output lives inside .claude/dist, and an output inside its own input set would hash
     # itself stale forever.
@@ -135,18 +145,18 @@ GENERATORS = {
                    ".claude/protocols", ".claude/config", ".claude/reference",
                    ".claude/system-map/layers.json", ".claude/system-map/cards",
                    ".claude/console/console.template.html", ".claude/console/console.py",
-                   ".claude/settings.json", ".claude/README.md", ".claude-iff/README.md"],
+                   ".claude/console/anatomy.template.html", ".claude/settings.json", ".claude/README.md", ".claude-iff/README.md"],
         "output": ".claude/dist",
     },
 }
 
-# The two home-repo-only generators: meaningful where publishing the kit and the docs demo
-# is the point (dot-claude-iff's own source repo), a privacy leak everywhere else - in an
-# adopting project they would package THAT project's private .claude/ into redistributable
-# zips and render its real session state into docs/. Gated by memory.json's
-# distribution.enabled; an ABSENT key reads as false so the leak fails closed. Kits ship
-# the knob false; this repo's own config carries true.
-HOME_ONLY_GENERATORS = ("demo_build", "dist_build")
+# The home-repo-only generators: meaningful where publishing the kit, the docs demo and the
+# docs anatomy page is the point (dot-claude-iff's own source repo), a privacy leak everywhere
+# else - in an adopting project they would package THAT project's private .claude/ into
+# redistributable zips and render its real session state and system into docs/. Gated by
+# memory.json's distribution.enabled; an ABSENT key reads as false so the leak fails closed.
+# Kits ship the knob false; this repo's own config carries true.
+HOME_ONLY_GENERATORS = ("demo_build", "anatomy_build", "dist_build")
 
 
 def distribution_enabled() -> bool:
@@ -1677,6 +1687,7 @@ def probe() -> list:
         ("config.orchestration", ".claude/config/orchestration.json"),
         ("map.layers", ".claude/system-map/layers.json"),
         ("console.template", ".claude/console/console.template.html"),
+        ("console.anatomy-template", ".claude/console/anatomy.template.html"),
         ("console.server", ".claude/console/console.py"),
         ("guide.claude-md", ".claude/CLAUDE.md"),
         ("guide.readme", ".claude/README.md"),

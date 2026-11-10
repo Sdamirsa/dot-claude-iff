@@ -69,6 +69,7 @@
       ".claude/system-map/architecture.json",
     ".claude/system-map/code-graph.json",
       "docs/ARCHITECTURE.md",
+      "docs/anatomy.html",
       ".claude/console/console.html"
     ]
   },
