@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-09T15:33:17Z",
+  "generated_at": "2026-11-10T07:57:14Z",
   "clock": {
     "wall_min": "2026-08-25",
     "wall_max": "2026-11-09",
@@ -351,6 +351,13 @@
       "kind": "tooling",
       "text": "checkctl doctor smart_app_control row (Windows 11): Smart App Control state from the registry; WARN when enforcing and python3 resolves to a uv-managed CPython build or a venv built on one, with the python.org + only-system remedy; session-start prints one line when the console launch raised instead of swallowing it; five tests in test_secrets",
       "ref": "maintainer's report 2026-11-09 from a sibling project: Smart App Control moved to enforcing on this machine and blocked uv's unsigned Python (astral-sh/uv#22869, open; maintainers intend to sign). This repo's python3 is the python.org build (row OK here)"
+    },
+    {
+      "date": "2026-11-09",
+      "t_tokens_cum": 202669,
+      "kind": "decision",
+      "text": "v0.3.0-beta.1 re-tagged on the fixed commit after its first release run failed; the pushed tag was deleted rather than cutting beta.2",
+      "ref": ""
     }
   ]
 }

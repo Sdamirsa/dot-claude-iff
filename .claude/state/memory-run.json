@@ -1,18 +1,18 @@
 {
-  "run_id": "20261109T152321Z-9f2fe3",
-  "started": "2026-11-09T15:23:21Z",
-  "status": "done",
+  "run_id": "20261110T074617Z-16829a",
+  "started": "2026-11-10T07:46:17Z",
+  "status": "running",
   "phase": "publish",
-  "step": null,
+  "step": "obs_anchor",
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-11-09T15:32:58Z",
+      "ts": "2026-11-10T07:55:43Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "247 events parse",
+          "message": "258 events parse",
           "details": []
         },
         {
@@ -24,12 +24,10 @@
         {
           "name": "generator_freshness",
           "status": "WARN",
-          "message": "8 generator(s) need a POLISH rebuild",
+          "message": "6 generator(s) need a POLISH rebuild",
           "details": [
             "map_scan: inputs changed since the last run (POLISH will rebuild)",
-            "map_compile: inputs changed since the last run (POLISH will rebuild)",
             "code_graph_build: inputs changed since the last run (POLISH will rebuild)",
-            "architecture_build: inputs changed since the last run (POLISH will rebuild)",
             "story_build: inputs changed since the last run (POLISH will rebuild)",
             "console_build: inputs changed since the last run (POLISH will rebuild)",
             "demo_build: inputs changed since the last run (POLISH will rebuild)",
@@ -41,13 +39,12 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 7 warning(s)",
+            "MAP LINT: 0 error(s), 6 warning(s)",
             "  WARN   config.brainstorm: layer is null (unplaced)",
-            "  WARN   hook.session-start: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
             "  WARN   skill.adhd: layer is null (unplaced)",
+            "  WARN   tool._lib: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   tool._lib: layer is null (unplaced)",
-            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   tool.consolectl: auto.hash is stale (source changed since last scan; description may be stale)"
           ]
         },
@@ -72,15 +69,15 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 70.1 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "message": "record is 71.2 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
-            "raw: 57.4 MB",
+            "raw: 58.3 MB",
             "graph: 11.1 MB",
             "segments: 1.2 MB",
+            "spool: 310.4 KB",
             "sealed-raw: 251.4 KB",
-            "spool: 196.3 KB",
-            "cursors.json: 10.9 KB",
-            "console.pid: 5 B",
+            "cursors.json: 11.3 KB",
+            "console.pid: 6 B",
             "console.log: 0 B"
           ]
         },
@@ -128,8 +125,8 @@
         },
         {
           "name": "deploy_drift",
-          "status": "SKIP",
-          "message": "phase is review, not deploy",
+          "status": "OK",
+          "message": "no new files outside tests/docs since deploy began (2026-11-09T16:24:11Z)",
           "details": []
         },
         {
@@ -142,7 +139,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-11-09T15:33:18Z",
+      "ts": "2026-11-10T07:57:15Z",
       "results": [
         {
           "name": "map_scan",
@@ -196,7 +193,7 @@
     },
     "publish": {
       "status": "OK",
-      "ts": "2026-11-09T15:33:18Z",
+      "ts": "2026-11-10T07:57:22Z",
       "results": [
         {
           "name": "polish_complete",
@@ -232,10 +229,9 @@
     }
   },
   "last_completed": "2026-11-09T15:43:28Z",
-  "updated": "2026-11-09T15:43:28Z",
+  "updated": "2026-11-10T07:57:22Z",
   "invoked_by": "user-ticket",
-  "ticket_ts": "2026-11-09T14:39:18Z",
+  "ticket_ts": "2026-11-10T07:46:12Z",
   "ticket_skill": "project-memory",
-  "ticket_session": "9538a1cb-0f96-4274-b177-2f59f8d00916",
-  "ticket_consumed": "2026-11-09T14:39:18Z"
+  "ticket_session": "9538a1cb-0f96-4274-b177-2f59f8d00916"
 }

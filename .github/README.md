@@ -2,7 +2,7 @@
 
 **What makes us human, built into Claude:** *adapt to context · evolve to challenge · communicate to partner.*
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24089281.svg)](https://doi.org/10.5281/zenodo.24089281) · Newest: [v0.3.0-beta.1](https://github.com/Sdamirsa/dot-claude-iff/releases/tag/v0.3.0-beta.1) (pre-release). GitHub's "Latest" label stays on v0.2.2 until the stable 0.3.0.
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24089281.svg)](https://doi.org/10.5281/zenodo.24089281) · Latest: [v0.3.0-beta.1](https://github.com/Sdamirsa/dot-claude-iff/releases/latest), a beta: use it, report what breaks, the stable 0.3.0 follows.
 
 Agent sessions forget, work unseen, ask badly, and rot - so you re-explain context every
 morning, catch problems three sessions late, and answer "should I?" with no situation attached.
@@ -15,7 +15,7 @@ harnesses the agent, records everything locally, and hands you one live page to 
 
 <p align="center">
   <a href="https://sdamirsa.github.io/dot-claude-iff/demo/console.html"><img src="../docs/assets/btn-demo.svg" alt="Open the demo - the real console, real data, zero setup" width="31%"></a>
-  <a href="https://github.com/Sdamirsa/dot-claude-iff/releases"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="31%"></a>
+  <a href="https://github.com/Sdamirsa/dot-claude-iff/releases/latest"><img src="../docs/assets/btn-release.svg" alt="Get the release - fresh-start zip and adopt-kit zip" width="31%"></a>
   <a href="https://sdamirsa.github.io/dot-claude-iff/"><img src="../docs/assets/btn-tour.svg" alt="Take the tour - understand, set up, learn by doing" width="31%"></a>
 </p>
 

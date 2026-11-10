@@ -13,7 +13,8 @@ this project's own release history structurally never reaches an adopting repo.
 
 ## v0.3.0-beta.1 - 2026-11-09
 
-Pre-release for testing, cut from `dev`; "latest" does not move. The alpha checklist
+Beta for testing, cut from `dev`. Published as a pre-release, then marked the latest release
+on 2026-11-10 by the maintainer so the front page points at it; `main` carries it too. The alpha checklist
 (`docs/alpha-test-checklist.md`) has now been run live end to end: every item is evidenced by a
 session or by this repo's own history, and the fixes that run produced are in this cut.
 
