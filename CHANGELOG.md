@@ -11,6 +11,15 @@ this project's own release history structurally never reaches an adopting repo.
 
 ## Unreleased
 
+- Interactive anatomy map on the docs site (`docs/anatomy.html`, embedded on the landing
+  page): every layer of the system as a tile with its components, one click opens a
+  component with what it reads, writes and invokes, a second opens its file on GitHub.
+  Rendered by `mapctl.py anatomy` from the system map, registered as the home-only
+  generator `anatomy_build` so the published map is rebuilt by every ritual and can never
+  lag the cards.
+- v0.3.0-beta.1 was marked the latest release on GitHub by the maintainer (2026-11-10);
+  the README's release and citation line moved to its end.
+
 ## v0.3.0-beta.1 - 2026-11-09
 
 Beta for testing, cut from `dev`. Published as a pre-release, then marked the latest release
