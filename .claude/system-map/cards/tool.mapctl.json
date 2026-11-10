@@ -5,7 +5,7 @@
   "package": null,
   "title": "Mapctl",
   "path": ".claude/tools/mapctl.py",
-  "description": "mapctl.py - the anatomy tool: scan stubs cards, lint checks the map, compile builds the node/edge map, context audits guides and rules, architecture renders the code graph, anatomy renders the docs site's interactive anatomy page (docs/anatomy.html: layers, one component, its file). cap_boxes marks a fold whose members are all lazy as lazy.",
+  "description": "mapctl.py - the anatomy tool: scan stubs cards, lint checks the map, compile builds the node/edge map, context audits guides and rules, architecture renders the code graph, anatomy reads the map, cards, layers, architecture.json and console.anatomy-template and renders the docs site's interactive anatomy page; its output docs/anatomy.html is a docs artifact, not a store. cap_boxes marks a fold whose members are all lazy as lazy.",
   "reads": [
     "store.cards",
     "map.layers",

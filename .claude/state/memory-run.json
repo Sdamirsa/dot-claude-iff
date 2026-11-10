@@ -1,9 +1,9 @@
 {
   "run_id": "20261110T095841Z-19480a",
   "started": "2026-11-10T09:58:41Z",
-  "status": "running",
+  "status": "done",
   "phase": "publish",
-  "step": "obs_anchor",
+  "step": null,
   "phases": {
     "check": {
       "status": "WARN",
@@ -241,10 +241,11 @@
       ]
     }
   },
-  "last_completed": "2026-11-10T07:59:06Z",
-  "updated": "2026-11-10T10:10:24Z",
+  "last_completed": "2026-11-10T10:29:31Z",
+  "updated": "2026-11-10T10:29:31Z",
   "invoked_by": "user-ticket",
   "ticket_ts": "2026-11-10T09:58:33Z",
   "ticket_skill": "project-memory",
-  "ticket_session": "9538a1cb-0f96-4274-b177-2f59f8d00916"
+  "ticket_session": "9538a1cb-0f96-4274-b177-2f59f8d00916",
+  "ticket_consumed": "2026-11-10T09:58:33Z"
 }

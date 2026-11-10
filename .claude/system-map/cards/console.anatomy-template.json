@@ -5,7 +5,7 @@
   "package": null,
   "title": "Anatomy Template",
   "path": ".claude/console/anatomy.template.html",
-  "description": "The anatomy page's HTML shell (the docs site's three-level map: layers, one component, its file) with one JSON token replaced by mapctl anatomy's payload at build time.",
+  "description": "HTML shell of the docs site's anatomy page (layers, one component, its file), kept in CONSOLE as a sibling of the console's own template; read by tool.mapctl anatomy, which fills one JSON token and writes docs/anatomy.html (a docs artifact).",
   "reads": [],
   "writes": [],
   "invokes": [],
