@@ -1,0 +1,73 @@
+{
+  "agent_id": "builder-031-anatomy-map",
+  "task_id": "031-anatomy-map",
+  "status": "done",
+  "agent": "builder",
+  "model": "opus",
+  "RESULT": "`mapctl.py anatomy [--out]` renders docs/anatomy.html, a single standalone page built from map.json, layers.json, architecture.json and the cards via the template .claude/console/anatomy.template.html with the payload inlined. It has three levels: layer tiles with kind-coloured chips, a zoom panel with grouped clickable relations and a breadcrumb, and an 'Open on GitHub' link to main. It supports Escape, #node=/#layer= deep links, ?embed=1, both themes and a phone bottom sheet. anatomy_build is registered (GENERATORS, home-only, polish after demo_build), the landing page embeds it, understand.html links it, and the docs, the cards and the probe name it.",
+  "files_changed": [
+    ".claude/console/anatomy.template.html",
+    ".claude/tools/mapctl.py",
+    ".claude/tools/checkctl.py",
+    ".claude/config/memory.json",
+    ".claude/config/registry.json",
+    ".claude/config/policy.json",
+    ".claude/system-map/cards/console.anatomy-template.json",
+    ".claude/system-map/cards/tool.mapctl.json",
+    ".claude/tools/tests/test_anatomy.py",
+    ".claude/tools/tests/test_dist.py",
+    ".claude/tools/tests/test_contracts.py",
+    ".claude/README.md",
+    ".claude/CLAUDE.md",
+    ".claude/reference/distribution-boundary.md",
+    ".claude/skills/adopt/SKILL.md",
+    "docs/index.html",
+    "docs/understand.html",
+    "docs/tour.css",
+    ".claude/state/handshakes/031-anatomy-map.json"
+  ],
+  "tests": [
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q test_anatomy test_ritual test_dist test_architecture",
+      "exit_code": 0,
+      "summary": "148 passed · 0 failed · 0 errored · 1 skipped"
+    },
+    {
+      "command": "python3 .claude/tools/tests/run_tests.py -q",
+      "exit_code": 0,
+      "summary": "928 passed · 0 failed · 0 errored · 2 skipped"
+    }
+  ],
+  "EVIDENCE": [
+    "python3 .claude/tools/mapctl.py anatomy -> MAP ANATOMY: 73 components in 6 layers, 179 relations, file links on GitHub; the only WARN is that console.anatomy-template is not in map.json yet (it will be after the ritual's map_compile)",
+    "Headless Chrome screenshots of the built page: level 1 at 1280px, level 2 (#node=tool.mapctl) with the right-hand panel, a 400px iframe with tiles stacked and the bottom sheet with no horizontal overflow, the embed (topbar and title hidden) and the dark theme",
+    "Headless Chrome driver page reading results back with --dump-dom: a chip click sets #node= with the crumbs Anatomy›MEMORY›statectl and dims and lights the chips; a relation chip moves the cascade on; Escape goes node -> layer -> anatomy, and a third Escape does nothing; the tile title zooms; breadcrumb buttons and the close button work; the GitHub link has target=_blank rel=noopener; an outside hashchange and a deep link on load both open the component",
+    "Mutation run: escaping removed, a CDN link base, anatomy_build dropped from HOME_ONLY_GENERATORS and disambiguation disabled -> each of the 5 matching test_anatomy tests FAILED",
+    "checkctl probe -> console.anatomy-template ok, 54 ok 0 fail; checkctl generators -> anatomy_build: has never run through the ritual; mapctl lint -> 0 errors (stale-hash WARNs only, on the cards of the files edited here)",
+    "node --check on both page scripts -> syntax OK"
+  ],
+  "DEVIATIONS": [
+    "link_base gained an optional `branch` parameter (the page pins `main`; architecture keeps the checked-out branch); the old signature still works.",
+    "On a phone the detail panel is a fixed bottom sheet (62vh, slides up) rather than an in-flow block after the last tile. The chosen chip is scrolled to stay above it, which reads as a zoom instead of a jump to the bottom of six stacked tiles. This is an interpretation of 'a sheet below the tiles'.",
+    "Beyond the card: when the link base is GitHub, a path that exists but is untracked (gitignored stores such as session.json, heartbeat.json, code-graph.json) gets no link and the label 'machine-local'. A GitHub link to it would 404 on the published page. Tracked paths are read with `git ls-files` through _lib.git_output; without git, linking falls back to the file existing on disk.",
+    "Chip labels that read alike (three 'orchestration', two 'heartbeat', ritual-ticket/ritual_ticket) carry their id prefix, e.g. 'orchestration (config)'.",
+    "Added because of the brief's rules, not the DoD: a SINGLETON plus card plus probe entry for the new template (console.anatomy-template); docs/anatomy.html added to policy.json derived_files; the template added to dist_build inputs (it ships in the kits); test_contracts COMMANDS now names `mapctl anatomy`; the gating tests in test_dist.py extended to anatomy_build (assertions added, none removed).",
+    "The probe does not enumerate generator outputs, so docs/anatomy.html is not probed (the DoD made that conditional).",
+    "docs/anatomy.html removed from the worktree by the lead before the merge: the ritual's anatomy_build renders the first real page (the builder's copy showed the then-untracked template as machine-local)"
+  ],
+  "UNCERTAINTIES": [
+    "Browsers checked: headless Chrome only (screenshots plus a scripted DOM driver). Not checked: real touch input on a phone, Safari or Firefox, and real keyboard focus order.",
+    "In the worktree the new template file is untracked, so the docs/anatomy.html built here marks console.anatomy-template as 'machine-local'. A ritual rebuild on dev after the merge links it normally.",
+    "The 560px iframe on the landing page was rendered as a standalone 840px iframe, not inside the served docs site."
+  ],
+  "needs_main": [
+    "docs/anatomy.html in this worktree is a builder build, kept so you can open it. Main's policy.json does not list it as derived yet, so accept would commit it: delete it before accept or let it merge, since the ritual's anatomy_build rebuilds it either way.",
+    "Run the ritual after the merge: map_scan refreshes the stale card hashes (mapctl, checkctl, memory, policy, registry, adopt) and compiles the new console.anatomy-template card into map.json; anatomy_build then builds the real page.",
+    "Rebuild the dist zips at release: a new shipped file (.claude/console/anatomy.template.html), plus memory.json, policy.json and checkctl.py changes.",
+    "The CHANGELOG bullet."
+  ],
+  "SUGGESTIONS": [
+    "skills/adopt/CLAUDE.template.md lists mapctl subcommands without `anatomy`. Left alone on purpose (home-only command, adopter guide); worth a decision.",
+    "dist_build inputs did not list the shipped console template's sibling files generically; any future file under .claude/console/ must be added by hand or the kit freshness misses it."
+  ]
+}

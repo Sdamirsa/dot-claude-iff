@@ -15,7 +15,7 @@ for exactly this reason. Use when the content does not need to live inside `.cla
 ## 2. The `distribution.enabled` knob
 
 For behavior that ships everywhere (the code is fine to distribute) but must only ACT in the
-home repo: the `demo_build`/`dist_build` generators (`checkctl.py`'s `HOME_ONLY_GENERATORS`,
+home repo: the `demo_build`/`anatomy_build`/`dist_build` generators (`checkctl.py`'s `HOME_ONLY_GENERATORS`,
 `distribution_enabled()`) and the `changelog_parity` CHECK step (`check_changelog_parity`). Reads
 `.claude/config/memory.json`'s `distribution.enabled`; an absent key reads false, so an adopting
 project fails closed. Use when the component must not RUN outside the source repo.

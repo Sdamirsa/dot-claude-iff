@@ -53,7 +53,9 @@ Each item with the one command to try it.
   output (an extraction you run in your own terminal; `build` prints the command) or, without
   it, a stdlib walker; `mapctl.py architecture` renders the system-map cards as a diagram
   spec; the console's MAP tab shows one architecture diagram per scope, with a scope switcher.
-  The ritual's POLISH rebuilds both. `python3 .claude/tools/graphctl.py build`
+  The ritual's POLISH rebuilds both. `python3 .claude/tools/graphctl.py build`. In the home
+  repo, `mapctl.py anatomy` also renders the docs site's interactive anatomy page
+  (`docs/anatomy.html`: layers, then one component, then its file), a home-only generator.
 - **Secrets check and doctor**: can this machine run the system, and are keys where they
   belong (`reference/secrets.md`)? `python3 .claude/tools/checkctl.py doctor`. Its
   `gitattributes` row checks that the hooks are pinned to LF; its `smart_app_control` row
@@ -258,7 +260,7 @@ python3 .claude/tools/checkctl.py   run --phase check|polish|publish (inside the
                                     handoff <task_id> [--run] [--root <worktree>]
                                     ticket --grant   # you, in your own terminal; never an agent
 python3 .claude/tools/distctl.py    export --to <checkout> [--dry-run] · gitignore · verify
-python3 .claude/tools/mapctl.py     scan|lint|compile|show|context|architecture
+python3 .claude/tools/mapctl.py     scan|lint|compile|show|context|architecture|anatomy
 python3 .claude/tools/graphctl.py   build|update|status   # code graph; extraction is yours
 python3 .claude/tools/obsctl.py     ingest|seal|rollup|anchor|report|story|size|analyze
 python3 .claude/tools/consolectl.py build|payload|serve|stop   # stop frees the folder (Windows)

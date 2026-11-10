@@ -482,17 +482,22 @@ class TestDistributionGate(DistCase):
         self._set_knob(False)
         self.assertTrue(checkctl.generator_gated_off("dist_build"))
         self.assertTrue(checkctl.generator_gated_off("demo_build"))
+        self.assertTrue(checkctl.generator_gated_off("anatomy_build"))
         self.assertFalse(checkctl.generator_gated_off("console_build"))
-        report = {name: status for name, status, _msg in checkctl.generator_freshness_report()}
-        self.assertEqual(report["dist_build"], checkctl.SKIP)
-        self.assertEqual(report["demo_build"], checkctl.SKIP)
+        self.assertFalse(checkctl.generator_gated_off("architecture_build"))
+        report = {name: (status, msg) for name, status, msg in checkctl.generator_freshness_report()}
+        self.assertEqual(report["dist_build"][0], checkctl.SKIP)
+        self.assertEqual(report["demo_build"][0], checkctl.SKIP)
+        self.assertEqual(report["anatomy_build"][0], checkctl.SKIP)
+        self.assertIn("home-repo-only", report["anatomy_build"][1],
+                      "the gate, not a missing tool, must be what skips the anatomy page")
 
     def test_polish_complete_does_not_demand_a_gated_generator(self):
         import checkctl
         self._set_knob(False)
         # Stage stand-in tools so tool_path().exists() is true and the gate (not the missing
         # tool) is what exempts the two home-only generators.
-        for tool in ("distctl.py", "consolectl.py"):
+        for tool in ("distctl.py", "consolectl.py", "mapctl.py"):
             stub = self.root / ".claude" / "tools" / tool
             stub.parent.mkdir(parents=True, exist_ok=True)
             stub.write_text("# stand-in\n", encoding="utf-8")
@@ -504,6 +509,8 @@ class TestDistributionGate(DistCase):
         self.assertIn("console_build", why)
         self.assertNotIn("dist_build", why)
         self.assertNotIn("demo_build", why)
+        self.assertNotIn("anatomy_build", why)
+        self.assertIn("architecture_build", why, "an ungated mapctl generator is still demanded")
 
     def test_private_reference_excluded_even_without_git(self):
         private = self.root / ".claude" / "reference" / "private"

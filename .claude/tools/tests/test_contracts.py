@@ -743,7 +743,7 @@ class TestGuidesNameEveryCommand(unittest.TestCase):
         "statectl": ("mode", "phase", "proposal", "dispatch", "accept", "progress"),
         "checkctl": ("doctor", "phase-exit", "handoff", "ticket"),
         "distctl": ("export", "gitignore", "verify"),
-        "mapctl": ("context",),
+        "mapctl": ("context", "anatomy"),
     }
 
     def test_each_new_command_is_named(self):
