@@ -1,6 +1,6 @@
 # Task: interactive anatomy map on the docs landing page
 
-_Created 2026-11-10 · Status: todo_
+_Created 2026-11-10 · Status: done_
 
 Milestone: M-0.3.0
 
@@ -84,24 +84,26 @@ surface, so the published map can never lag the system.
 
 ## Plan
 
-- [ ] Renderer `mapctl.py anatomy` + template, done when: the command writes the page from
+- [x] Renderer `mapctl.py anatomy` + template, done when: the command writes the page from
       this repo's own map and `test_anatomy.py` builds it from the fixture.
-- [ ] Cascade UI (three levels, breadcrumb, Escape, `#node=`, `?embed=1`, phone layout),
+- [x] Cascade UI (three levels, breadcrumb, Escape, `#node=`, `?embed=1`, phone layout),
       done when: opened in a browser from `docs/anatomy.html`, all three levels work by click
       and the embed hides the topbar.
-- [ ] Generator registration (`GENERATORS`, `HOME_ONLY_GENERATORS`, `memory.json` polish
+- [x] Generator registration (`GENERATORS`, `HOME_ONLY_GENERATORS`, `memory.json` polish
       list, probe), done when: `checkctl generators` lists `anatomy_build` and the parity and
       gating tests pass.
-- [ ] Landing page section + understand link + command docs + card, done when: the files
+- [x] Landing page section + understand link + command docs + card, done when: the files
       named above carry the text and `grep -n anatomy docs/index.html` shows the iframe.
-- [ ] Task Test and the whole suite green, envelope written, `checkctl handoff` exits 0.
+- [x] Task Test and the whole suite green, envelope written, `checkctl handoff` exits 0.
 
 ## Checkpoint
 
-- **Last completed:** nothing yet; card written 2026-11-10.
-- **Next action:** dispatch the builder (lead), builder reads the card and the sources.
-- **State files:** `.claude/state/handshakes/031-anatomy-map.json` (builder's envelope, in
-  the worktree), `docs/anatomy.html` (output), `.claude/system-map/cards/tool.mapctl.json`.
+- **Last completed:** builder's branch merged into dev (a7ad6e5) after `statectl accept`
+  reran both recorded tests green; changelog bullet added (f33028e).
+- **Next action:** the ritual renders `docs/anatomy.html` (anatomy_build) and rebuilds the
+  zips; push dev and main after `distctl.py verify`; the human reviews the live page.
+- **State files:** `.claude/state/handshakes/031-anatomy-map.json`, `docs/anatomy.html`,
+  `.claude/console/anatomy.template.html`, `.claude/system-map/cards/console.anatomy-template.json`.
 - **Updated:** 2026-11-10
 
 ## NEEDS-HUMAN
@@ -111,3 +113,13 @@ surface, so the published map can never lag the system.
 
 ## Outcome
 
+Shipped 2026-11-10 by an opus builder in a worktree, merged a7ad6e5. `mapctl.py anatomy`
+renders the three-level page from map.json, the cards, layers.json and architecture.json
+through `.claude/console/anatomy.template.html`; `anatomy_build` is a home-only generator in
+POLISH (after demo_build), `docs/anatomy.html` a derived file, the template in the kits; the
+landing page embeds the page in an iframe and understand.html links it. Beyond the card: the
+template got its own card and probe row; gitignored stores are labelled machine-local instead
+of linking to a 404; colliding chip names carry their prefix; `link_base` takes a branch.
+The builder checked the page in headless Chrome at desktop, phone, embed and dark; Safari,
+Firefox and real touch are untested. Tests: `test_anatomy.py` plus parity and gating rows in
+`test_ritual.py` and `test_dist.py`.

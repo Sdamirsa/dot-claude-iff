@@ -26,7 +26,6 @@ flowchart LR
   end
   subgraph g_govern["GOVERN"]
     agent_builder(["builder"])
-    agent_verifier(["verifier"])
     hook_handoff_guard["handoff-guard"]
     hook_policy_gate["policy-gate"]
     hook_post_write_validate["post-write-validate"]
@@ -34,7 +33,7 @@ flowchart LR
     protocol_evolution[("evolution")]
     folder_config[[".claude/config/"]]
     folder_state[[".claude/state/"]]
-    other_govern[["other (7)"]]
+    other_govern[["other (8)"]]
   end
   subgraph g_observe["OBSERVE"]
     hook_heartbeat["heartbeat"]
@@ -51,6 +50,7 @@ flowchart LR
     tool_mapctl["mapctl"]
     tool_progress["progress"]
     tool_sysmon["sysmon"]
+    console_anatomy_template[("anatomy-template")]
     console_template[("template")]
     folder_system_map[[".claude/system-map/"]]
   end
@@ -82,7 +82,6 @@ flowchart LR
   agent_retro_analyst -.->|reads| protocol_evolution
   agent_retro_analyst -.->|reads| store_lessons
   agent_retro_analyst -.->|reads| store_project_log
-  agent_verifier -->|writes| folder_state
   console_server -.->|reads| folder_config
   console_server -.->|reads| folder_system_map
   console_server -->|invokes| tool_consolectl
@@ -111,7 +110,7 @@ flowchart LR
   hook_session_start -.->|reads x3| folder_state
   hook_session_start -->|invokes| tool__lib
   hook_session_start -->|invokes| tool_statectl
-  other_govern -->|writes| folder_state
+  other_govern -->|writes x2| folder_state
   skill_adhd -.->|reads| folder_config
   skill_adopt -->|invokes| agent_anatomist
   skill_adopt -->|writes| folder_config
@@ -158,8 +157,9 @@ flowchart LR
   tool_graphctl -->|writes| folder_system_map
   tool_graphctl -->|invokes| tool__lib
   tool_graphctl -->|invokes| tool_ctxmap
+  tool_mapctl -.->|reads| console_anatomy_template
   tool_mapctl -.->|reads| folder_config
-  tool_mapctl -.->|reads x3| folder_system_map
+  tool_mapctl -.->|reads x5| folder_system_map
   tool_mapctl -->|writes x3| folder_system_map
   tool_mapctl -->|invokes| tool_graphctl
   tool_obsctl -.->|reads| folder_claude_iff
@@ -186,7 +186,6 @@ flowchart LR
   click store_lessons "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/LESSONS.jsonl"
   click store_project_log "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/Project-log.jsonl"
   click agent_builder "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/agents/builder.md"
-  click agent_verifier "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/agents/verifier.md"
   click hook_handoff_guard "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/hooks/handoff-guard.sh"
   click hook_policy_gate "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/hooks/policy-gate.sh"
   click hook_post_write_validate "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/hooks/post-write-validate.sh"
@@ -206,6 +205,7 @@ flowchart LR
   click tool_mapctl "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/mapctl.py"
   click tool_progress "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/progress.py"
   click tool_sysmon "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/sysmon.py"
+  click console_anatomy_template "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/console/anatomy.template.html"
   click console_template "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/console/console.template.html"
   click folder_system_map "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/system-map"
   click agent_anatomist "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/agents/anatomist.md"
@@ -230,7 +230,7 @@ Folded boxes:
 
 - `.claude/config/`: `config.brainstorm`, `config.console`, `config.memory`, `config.model-prices`, `config.observe`, `config.orchestration`, `config.phases`, `config.policy`, `config.publish`, `config.registry`
 - `.claude/state/`: `store.generators`, `store.handoff`, `store.handshakes`, `store.heartbeat`, `store.journal`, `store.machine`, `store.memory_run`, `store.needs_human`, `store.orchestration`, `store.proposals`, `store.ritual_ticket`, `store.session`, `store.story`
-- `other (7)`: `agent.scout`, `protocol.handshake`, `protocol.honesty`, `protocol.human-gates`, `protocol.orchestration`, `reference.public-private`, `reference.secrets`
+- `other (8)`: `agent.scout`, `agent.verifier`, `protocol.handshake`, `protocol.honesty`, `protocol.human-gates`, `protocol.orchestration`, `reference.public-private`, `reference.secrets`
 - `.claude-iff/`: `store.anchor`, `store.rollups`
 - `record root`: `store.record`
 - `.claude/system-map/`: `map.layers`, `store.architecture`, `store.cards`, `store.code_graph`, `store.map`

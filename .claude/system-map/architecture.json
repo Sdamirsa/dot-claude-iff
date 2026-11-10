@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-09T08:58:13Z",
+  "generated_at": "2026-11-10T10:10:14Z",
   "project": "dot-claude-iff",
   "scopes": [
     {
@@ -91,13 +91,6 @@
           "kind": "agent"
         },
         {
-          "id": "agent.verifier",
-          "group": "govern",
-          "label": "verifier",
-          "path": ".claude/agents/verifier.md",
-          "kind": "agent"
-        },
-        {
           "id": "hook.handoff-guard",
           "group": "govern",
           "label": "handoff-guard",
@@ -176,11 +169,12 @@
         {
           "id": "other.govern",
           "group": "govern",
-          "label": "other (7)",
+          "label": "other (8)",
           "path": ".claude",
           "kind": "folder",
           "members": [
             "agent.scout",
+            "agent.verifier",
             "protocol.handshake",
             "protocol.honesty",
             "protocol.human-gates",
@@ -279,6 +273,13 @@
           "label": "sysmon",
           "path": ".claude/tools/sysmon.py",
           "kind": "code"
+        },
+        {
+          "id": "console.anatomy-template",
+          "group": "console",
+          "label": "anatomy-template",
+          "path": ".claude/console/anatomy.template.html",
+          "kind": "data"
         },
         {
           "id": "console.template",
@@ -469,13 +470,6 @@
           "to": "store.project_log",
           "label": "reads",
           "style": "dashed",
-          "weight": 1
-        },
-        {
-          "from": "agent.verifier",
-          "to": "folder.state",
-          "label": "writes",
-          "style": "solid",
           "weight": 1
         },
         {
@@ -679,7 +673,7 @@
           "to": "folder.state",
           "label": "writes",
           "style": "solid",
-          "weight": 1
+          "weight": 2
         },
         {
           "from": "skill.adhd",
@@ -1005,6 +999,13 @@
         },
         {
           "from": "tool.mapctl",
+          "to": "console.anatomy-template",
+          "label": "reads",
+          "style": "dashed",
+          "weight": 1
+        },
+        {
+          "from": "tool.mapctl",
           "to": "folder.config",
           "label": "reads",
           "style": "dashed",
@@ -1015,7 +1016,7 @@
           "to": "folder.system-map",
           "label": "reads",
           "style": "dashed",
-          "weight": 3
+          "weight": 5
         },
         {
           "from": "tool.mapctl",
@@ -1154,7 +1155,7 @@
       "stats": {
         "nodes": 40,
         "edges": 111,
-        "folded": 38
+        "folded": 39
       }
     },
     {

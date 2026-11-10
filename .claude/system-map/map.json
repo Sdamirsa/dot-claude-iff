@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-09T15:33:16Z",
+  "generated_at": "2026-11-10T10:10:14Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -649,7 +649,7 @@
       "package": null,
       "title": "Mapctl",
       "path": ".claude/tools/mapctl.py",
-      "description": "mapctl.py - the anatomy tool: scan stubs cards, lint checks the map, compile builds the node/edge map, context audits guides and rules, architecture renders the code graph. cap_boxes marks a fold whose members are all lazy as lazy.",
+      "description": "mapctl.py - the anatomy tool: scan stubs cards, lint checks the map, compile builds the node/edge map, context audits guides and rules, architecture renders the code graph, anatomy renders the docs site's interactive anatomy page (docs/anatomy.html: layers, one component, its file). cap_boxes marks a fold whose members are all lazy as lazy.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -686,6 +686,18 @@
       "title": "Console",
       "path": ".claude/config/console.json",
       "description": "Console serving.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "console.anatomy-template",
+      "kind": "data",
+      "layer": "CONSOLE",
+      "package": null,
+      "title": "Anatomy Template",
+      "path": ".claude/console/anatomy.template.html",
+      "description": "The anatomy page's HTML shell (the docs site's three-level map: layers, one component, its file) with one JSON token replaced by mapctl anatomy's payload at build time.",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -1634,6 +1646,21 @@
     },
     {
       "from": "tool.mapctl",
+      "to": "store.map",
+      "type": "reads"
+    },
+    {
+      "from": "tool.mapctl",
+      "to": "store.architecture",
+      "type": "reads"
+    },
+    {
+      "from": "tool.mapctl",
+      "to": "console.anatomy-template",
+      "type": "reads"
+    },
+    {
+      "from": "tool.mapctl",
       "to": "store.cards",
       "type": "writes"
     },
@@ -1824,16 +1851,16 @@
     }
   ],
   "stats": {
-    "nodes": 72,
-    "edges": 176,
+    "nodes": 73,
+    "edges": 179,
     "by_kind": {
       "agent": 5,
       "code": 23,
-      "data": 43,
+      "data": 44,
       "human": 1
     },
     "by_layer": {
-      "CONSOLE": 14,
+      "CONSOLE": 15,
       "EVOLVE": 10,
       "GOVERN": 23,
       "MEMORY": 11,

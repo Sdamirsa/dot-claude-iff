@@ -1,52 +1,58 @@
 {
   "generators": {
     "map_scan": {
-      "ran_at": "2026-11-10T07:57:14Z",
-      "run_id": "20261110T074617Z-16829a",
-      "inputs_hash": "671c0b73723c7d81e0a041ecdcec0251750ddd84c7b0265f346f2e2b6b6a91a4",
-      "output_hash": "76005a0bc981d4d190225ce85b13141562b209a4c0d74a7a2a1848c02f469118"
+      "ran_at": "2026-11-10T10:10:13Z",
+      "run_id": "20261110T095841Z-19480a",
+      "inputs_hash": "acf33a35b8a3b5f9487a94ecafc41e64af9f8b8e998f04ea031872a194582dbc",
+      "output_hash": "19fabd85965ac438bc913b15004c32f5feb4e4d4ddb4d12de19ba4d8d495670c"
     },
     "map_compile": {
-      "ran_at": "2026-11-10T07:57:14Z",
-      "run_id": "20261110T074617Z-16829a",
-      "inputs_hash": "92ccd23d3784ebb04f890b83abae4e889b32236625232ab32156595d083733ce",
-      "output_hash": "2e8b183b49644da535701e595f056d6e646e49b8b815810f2f574036887a857f"
+      "ran_at": "2026-11-10T10:10:14Z",
+      "run_id": "20261110T095841Z-19480a",
+      "inputs_hash": "50cc5bb6ac7fb3dbc6470994ca6ec48ed9c947f905120eada75ecdbf24e4ef0c",
+      "output_hash": "66ded38939b58a6372e668f2afd002b81f2c87d71633c9460633bddf27230366"
     },
     "story_build": {
-      "ran_at": "2026-11-10T07:57:14Z",
-      "run_id": "20261110T074617Z-16829a",
-      "inputs_hash": "c2dd7e2379a1ff509b70cce2efa511be797e604cd3589affb6b851f0219e4552",
-      "output_hash": "66de94375aa94bdd44c89123b01d39401f41271bbe2d9ca624edcc36b6bd42f6"
+      "ran_at": "2026-11-10T10:10:14Z",
+      "run_id": "20261110T095841Z-19480a",
+      "inputs_hash": "5323798be27981aeef0a8c0f8b99e979d22d400523241837b8b38dc2cdc3563d",
+      "output_hash": "e34387ab0d9717de3b5100d29c3c7c91d171188dc210240d32237100d43176fe"
     },
     "console_build": {
-      "ran_at": "2026-11-10T07:57:15Z",
-      "run_id": "20261110T074617Z-16829a",
-      "inputs_hash": "e149eb87bf5d656c19975d3996a9787a837fccbc03395cca3c8ebafaf56425de",
-      "output_hash": "87c544141d744c39fde4e7ba963523895581f18889a6f865c384e9788a0b0ab5"
+      "ran_at": "2026-11-10T10:10:14Z",
+      "run_id": "20261110T095841Z-19480a",
+      "inputs_hash": "a3aae022f246eb0bc0c86987780532fa89b11a3c5cf8b0e647fefc88c181eb77",
+      "output_hash": "dcf20cc3249546143ba9bdabeabeceb30fcc0d744ca7f7f89107450438577957"
     },
     "dist_build": {
-      "ran_at": "2026-11-10T07:57:15Z",
-      "run_id": "20261110T074617Z-16829a",
-      "inputs_hash": "a39d44ac330e05fc7b20ce5a1432fa99e72cd3265986c589190cf7f67a333b3b",
-      "output_hash": "1318243d0ff1b8dfeffc215cca3f7d12f01fcf3fb93d8e22e821a0b4a2b692e2"
+      "ran_at": "2026-11-10T10:10:15Z",
+      "run_id": "20261110T095841Z-19480a",
+      "inputs_hash": "eeb9e5bac2b2324d24c8e0985cf2044d81a27f8d47fa795755d198282df791b0",
+      "output_hash": "f91fb2f0c68c3211b16b015b82824a002409bb5e4267ff6f65d339f27d49c330"
     },
     "demo_build": {
-      "ran_at": "2026-11-10T07:57:15Z",
-      "run_id": "20261110T074617Z-16829a",
-      "inputs_hash": "e149eb87bf5d656c19975d3996a9787a837fccbc03395cca3c8ebafaf56425de",
-      "output_hash": "7ee9ab748b50de88f5bd7293c855d4a7d28b8819f34ed040e3a28708b73c1c37"
+      "ran_at": "2026-11-10T10:10:15Z",
+      "run_id": "20261110T095841Z-19480a",
+      "inputs_hash": "a3aae022f246eb0bc0c86987780532fa89b11a3c5cf8b0e647fefc88c181eb77",
+      "output_hash": "b5d91b9234547ce3f47faa98ee12e844a58be0bd0bb12ec45ba5e578f52ff47e"
     },
     "code_graph_build": {
-      "ran_at": "2026-11-10T07:57:15Z",
-      "run_id": "20261110T074617Z-16829a",
-      "inputs_hash": "8508117aada376ca038200108b645a52db6bf9a907106c74a0293f0c78fd4683",
-      "output_hash": "193a93452110441bf8af513264fe543a16377060eff81a4ff0cd980893d9c82c"
+      "ran_at": "2026-11-10T10:10:14Z",
+      "run_id": "20261110T095841Z-19480a",
+      "inputs_hash": "7520a49ad8d540d06cd6ca8072d3b8c502dec20b1ee18e4b6b96ad757a8ad8f9",
+      "output_hash": "5d712f8bc73a2901f22bd91c342436676a0958c76733c706bc3e88cef18d670a"
     },
     "architecture_build": {
-      "ran_at": "2026-11-10T07:57:15Z",
-      "run_id": "20261110T074617Z-16829a",
-      "inputs_hash": "37eb361f31d2bafa1ec8297dcd14157c5e421d24ba2bb75de18fc888d62174e2",
-      "output_hash": "cba01085fcc766acd5e8cc7ad246a47e23fb87ceb4087b98881d2e5d4668b9e5"
+      "ran_at": "2026-11-10T10:10:14Z",
+      "run_id": "20261110T095841Z-19480a",
+      "inputs_hash": "eb9eb8fc60320eb1203a34fd00ff3671cfce0b0526c32b3641a9727d40ecd8cb",
+      "output_hash": "2a954d6ffcc0eff80836fa1308fca27a1efc23c939d391d33b54ae7ad6456644"
+    },
+    "anatomy_build": {
+      "ran_at": "2026-11-10T10:10:15Z",
+      "run_id": "20261110T095841Z-19480a",
+      "inputs_hash": "ba74c80e9034696578bbca379fdbf1ea38a49917aba9f8f5d0d42073145a5fe3",
+      "output_hash": "428264588091f0adc3659ea548d47ff45f44763188d7c36f959441ee8ba1f07d"
     }
   }
 }
