@@ -54,8 +54,8 @@
     } catch (e) {}
   }
 
-  // The three-surface navigation: every tour page links to the demo and the repo (and the
-  // demo banner links back here). Injected once into the shared topbar so all pages agree.
+  // The site navigation: every tour page links to the anatomy map, the demo and the repo (and
+  // the demo banner links back here). Injected once into the shared topbar so all pages agree.
   var REPO_URL = "https://github.com/Sdamirsa/dot-claude-iff";
 
   function initTopbarLinks() {
@@ -65,7 +65,7 @@
     var box = document.createElement("nav");
     box.className = "topbar-links";
     box.setAttribute("aria-label", "Site");
-    [["demo/console.html", "Demo ↗", true], [REPO_URL, "Repo ↗", true],
+    [["anatomy.html", "Anatomy", false], ["demo/console.html", "Demo ↗", true], [REPO_URL, "Repo ↗", true],
      [REPO_URL + "/blob/main/.claude/README.md", "Partner guide ↗", true]].forEach(function (it) {
       var a = document.createElement("a");
       a.href = it[0]; a.textContent = it[1];
