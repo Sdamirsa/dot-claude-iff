@@ -1,18 +1,18 @@
 {
-  "run_id": "20261110T095841Z-19480a",
-  "started": "2026-11-10T09:58:41Z",
-  "status": "done",
+  "run_id": "20261110T104252Z-5cc954",
+  "started": "2026-11-10T10:42:52Z",
+  "status": "running",
   "phase": "publish",
-  "step": null,
+  "step": "obs_anchor",
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-11-10T10:09:55Z",
+      "ts": "2026-11-10T10:51:44Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "271 events parse",
+          "message": "274 events parse",
           "details": []
         },
         {
@@ -24,16 +24,15 @@
         {
           "name": "generator_freshness",
           "status": "WARN",
-          "message": "9 generator(s) need a POLISH rebuild",
+          "message": "8 generator(s) need a POLISH rebuild",
           "details": [
-            "map_scan: inputs changed since the last run (POLISH will rebuild)",
+            "map_scan: output changed since the last run (hand-edited or rebuilt outside the ritual)",
             "map_compile: inputs changed since the last run (POLISH will rebuild)",
-            "code_graph_build: inputs changed since the last run (POLISH will rebuild)",
             "architecture_build: inputs changed since the last run (POLISH will rebuild)",
             "story_build: inputs changed since the last run (POLISH will rebuild)",
             "console_build: inputs changed since the last run (POLISH will rebuild)",
             "demo_build: inputs changed since the last run (POLISH will rebuild)",
-            "anatomy_build: has never run through the ritual",
+            "anatomy_build: inputs changed since the last run (POLISH will rebuild)",
             "dist_build: inputs changed since the last run (POLISH will rebuild)"
           ]
         },
@@ -42,17 +41,11 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 10 warning(s)",
+            "MAP LINT: 0 error(s), 4 warning(s)",
             "  WARN   config.brainstorm: layer is null (unplaced)",
-            "  WARN   config.memory: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   config.policy: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   config.registry: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
             "  WARN   skill.adhd: layer is null (unplaced)",
-            "  WARN   skill.adopt: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool._lib: layer is null (unplaced)",
-            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)",
-            "  WARN   tool.mapctl: auto.hash is stale (source changed since last scan; description may be stale)"
+            "  WARN   tool._lib: layer is null (unplaced)"
           ]
         },
         {
@@ -76,14 +69,14 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 76.1 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "message": "record is 81.9 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
-            "raw: 63.2 MB",
+            "raw: 69.0 MB",
             "graph: 11.1 MB",
             "segments: 1.4 MB",
             "sealed-raw: 317.2 KB",
-            "spool: 51.0 KB",
-            "cursors.json: 11.8 KB",
+            "spool: 135.5 KB",
+            "cursors.json: 12.2 KB",
             "console.pid: 6 B",
             "console.log: 0 B"
           ]
@@ -127,13 +120,13 @@
         {
           "name": "secrets_placement",
           "status": "OK",
-          "message": "247 file(s) scanned (tracked + unignored files), no key-shaped strings",
+          "message": "248 file(s) scanned (tracked + unignored files), no key-shaped strings",
           "details": []
         },
         {
           "name": "deploy_drift",
           "status": "SKIP",
-          "message": "phase is build, not deploy",
+          "message": "Freestyle: no phase contract to drift from",
           "details": []
         },
         {
@@ -146,7 +139,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-11-10T10:10:15Z",
+      "ts": "2026-11-10T10:52:08Z",
       "results": [
         {
           "name": "map_scan",
@@ -206,7 +199,7 @@
     },
     "publish": {
       "status": "OK",
-      "ts": "2026-11-10T10:10:24Z",
+      "ts": "2026-11-10T10:52:09Z",
       "results": [
         {
           "name": "polish_complete",
@@ -242,10 +235,9 @@
     }
   },
   "last_completed": "2026-11-10T10:29:31Z",
-  "updated": "2026-11-10T10:29:31Z",
+  "updated": "2026-11-10T10:52:09Z",
   "invoked_by": "user-ticket",
-  "ticket_ts": "2026-11-10T09:58:33Z",
+  "ticket_ts": "2026-11-10T10:42:34Z",
   "ticket_skill": "project-memory",
-  "ticket_session": "9538a1cb-0f96-4274-b177-2f59f8d00916",
-  "ticket_consumed": "2026-11-10T09:58:33Z"
+  "ticket_session": "9538a1cb-0f96-4274-b177-2f59f8d00916"
 }

@@ -11,6 +11,12 @@ this project's own release history structurally never reaches an adopting repo.
 
 ## Unreleased
 
+## v0.3.0-beta.2 - 2026-11-10
+
+Second beta, cut from `dev` one day after beta.1 with the same system plus the anatomy map;
+tagged so the newest kits and the release page line up with the docs site. Marked the latest
+release by the maintainer after the run, as beta.1 was.
+
 - Interactive anatomy map on the docs site (`docs/anatomy.html`, embedded on the landing
   page): every layer of the system as a tile with its components, one click opens a
   component with what it reads, writes and invokes, a second opens its file on GitHub.

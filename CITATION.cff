@@ -25,8 +25,8 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.24089282
     description: "Version DOI for v0.3.0-beta.1"
-version: 0.3.0-beta.1
-date-released: 2026-11-09
+version: 0.3.0-beta.2
+date-released: 2026-11-10
 keywords:
   - Claude Code
   - agent operating system
