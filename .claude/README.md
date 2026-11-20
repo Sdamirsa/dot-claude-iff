@@ -72,6 +72,9 @@ Each item with the one command to try it.
   `python3 .claude/tools/mapctl.py context`
 - **`/adhd`**: a divergent brainstorm you invoke yourself; the agent may suggest it in one line,
   never run it. Type `/adhd <question>`.
+- **`/code-walk`**: the code walk of a version, built only when you type it: one offline HTML
+  page, a chapter per change, each a diagram plus short notes that point at `file:line`. Fed
+  by a short hand-off note; everything it needs sits in `.claude/skills/code-walk/`.
 
 **The policy gate is a tripwire for honest mistakes, not a sandbox.** It reads every Write,
 Edit, Bash and PowerShell call and refuses writes into the record, the ritual ticket and (for

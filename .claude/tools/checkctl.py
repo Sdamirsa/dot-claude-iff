@@ -1670,6 +1670,7 @@ def probe() -> list:
         ("skill.plan-task", ".claude/skills/plan-task/SKILL.md"),
         ("skill.adopt", ".claude/skills/adopt/SKILL.md"),
         ("skill.adhd", ".claude/skills/adhd/SKILL.md"),
+        ("skill.code-walk", ".claude/skills/code-walk/SKILL.md"),
         ("protocol.handshake", ".claude/protocols/handshake.md"),
         ("protocol.human-gates", ".claude/protocols/human-gates.md"),
         ("protocol.honesty", ".claude/protocols/honesty.md"),
