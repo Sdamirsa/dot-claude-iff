@@ -146,6 +146,8 @@ flowchart TD
 - **Visibility and export**: `python3 .claude/tools/distctl.py export --to <checkout> --dry-run`
 - **Folder context**: `python3 .claude/tools/mapctl.py context`
 - **`/adhd`**: a brainstorm you invoke; the agent may suggest it, never run it.
+- **`/code-walk`**: you invoke it; one offline HTML page per version, a chapter per change,
+  each a diagram plus short notes that point at `file:line`.
 
 The policy gate is a **tripwire for honest mistakes, not a sandbox**: a script written then run,
 a payload decoded at run time, or a path assembled inside interpreter code passes it. The full
@@ -281,7 +283,7 @@ examples live in [the Partner Guide](../.claude/README.md#for-humans-how-to-coll
 **Licence and credits.** Apache-2.0 ([LICENSE](../LICENSE), [NOTICE](../NOTICE)); the projects
 this system was built with or borrowed from are thanked in [CREDITS.md](../CREDITS.md).
 
-**Release and citation.** Latest: [v0.3.0-beta.2](https://github.com/Sdamirsa/dot-claude-iff/releases/latest), a beta: use it, report what breaks, the stable 0.3.0 follows. Cite it by the concept DOI, which always resolves to the newest archived release: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24089281.svg)](https://doi.org/10.5281/zenodo.24089281) (details in [CITATION.cff](../CITATION.cff)).
+**Release and citation.** Latest: [v0.3.1-beta.1](https://github.com/Sdamirsa/dot-claude-iff/releases/latest), a beta: use it, report what breaks, the stable release follows. Cite it by the concept DOI, which always resolves to the newest archived release: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24089281.svg)](https://doi.org/10.5281/zenodo.24089281) (details in [CITATION.cff](../CITATION.cff)).
 
 
 ---

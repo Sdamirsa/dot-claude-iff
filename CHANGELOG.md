@@ -11,6 +11,25 @@ this project's own release history structurally never reaches an adopting repo.
 
 ## Unreleased
 
+## v0.3.1-beta.1 - 2026-11-20
+
+Beta cut from `dev`: beta.2's system plus one new skill. Marked the latest release by the
+maintainer after the run.
+
+- `/code-walk`, a user-invoked skill: the code walk of a version as one offline HTML page.
+  One chapter per change; a chapter opens with a diagram, then a few short steps that light
+  part of it and mark their lines in the real code. On a phone the picture comes first and
+  the code sits under it. A walk is fed by a short walk note (base commit, new commit,
+  the `git diff -M` command, about three lines on what the version is, a row per changed
+  file) whose skeleton `walk.py note <version>` writes, starting from the commit the last
+  walk was built on. One command, `walk.py changes|note|build`, is typed the same by the
+  user and the agent. The build fails when a step points at lines that moved or a box its
+  diagram lacks.
+- The skill is self-contained in `.claude/skills/code-walk/` (standard library only) and
+  costs the agent's context nothing until typed: its description is not loaded and
+  `CLAUDE.md` does not mention it. Adapted from the maintainer's own vllmme project;
+  `UPSTREAM.md` in the folder records what was kept, changed and left out.
+
 ## v0.3.0-beta.2 - 2026-11-10
 
 Second beta, cut from `dev` one day after beta.1 with the same system plus the anatomy map;

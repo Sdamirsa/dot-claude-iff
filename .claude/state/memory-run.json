@@ -1,18 +1,18 @@
 {
-  "run_id": "20261110T104252Z-5cc954",
-  "started": "2026-11-10T10:42:52Z",
-  "status": "done",
+  "run_id": "20261120T124722Z-dd3598",
+  "started": "2026-11-20T12:47:22Z",
+  "status": "running",
   "phase": "publish",
-  "step": null,
+  "step": "obs_anchor",
   "phases": {
     "check": {
       "status": "WARN",
-      "ts": "2026-11-10T10:51:44Z",
+      "ts": "2026-11-20T12:53:56Z",
       "results": [
         {
           "name": "journal_parses",
           "status": "OK",
-          "message": "274 events parse",
+          "message": "281 events parse",
           "details": []
         },
         {
@@ -24,10 +24,11 @@
         {
           "name": "generator_freshness",
           "status": "WARN",
-          "message": "8 generator(s) need a POLISH rebuild",
+          "message": "9 generator(s) need a POLISH rebuild",
           "details": [
-            "map_scan: output changed since the last run (hand-edited or rebuilt outside the ritual)",
+            "map_scan: inputs changed since the last run (POLISH will rebuild)",
             "map_compile: inputs changed since the last run (POLISH will rebuild)",
+            "code_graph_build: inputs changed since the last run (POLISH will rebuild)",
             "architecture_build: inputs changed since the last run (POLISH will rebuild)",
             "story_build: inputs changed since the last run (POLISH will rebuild)",
             "console_build: inputs changed since the last run (POLISH will rebuild)",
@@ -41,11 +42,15 @@
           "status": "WARN",
           "message": "mapctl lint says WARN",
           "details": [
-            "MAP LINT: 0 error(s), 4 warning(s)",
+            "MAP LINT: 0 error(s), 8 warning(s)",
             "  WARN   config.brainstorm: layer is null (unplaced)",
+            "  WARN   config.registry: auto.hash is stale (source changed since last scan; description may be stale)",
             "  WARN   human.maintainer: layer is null (unplaced)",
             "  WARN   skill.adhd: layer is null (unplaced)",
-            "  WARN   tool._lib: layer is null (unplaced)"
+            "  WARN   skill.code-walk: auto.hash is stale (source changed since last scan; description may be stale)",
+            "  WARN   skill.code-walk: layer is null (unplaced)",
+            "  WARN   tool._lib: layer is null (unplaced)",
+            "  WARN   tool.checkctl: auto.hash is stale (source changed since last scan; description may be stale)"
           ]
         },
         {
@@ -69,15 +74,15 @@
         {
           "name": "record_size",
           "status": "OK",
-          "message": "record is 81.9 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
+          "message": "record is 83.0 MB at ~/Documents/GIT/dot-claude-iff_claude_iff",
           "details": [
-            "raw: 69.0 MB",
+            "raw: 70.0 MB",
             "graph: 11.1 MB",
             "segments: 1.4 MB",
             "sealed-raw: 317.2 KB",
-            "spool: 135.5 KB",
-            "cursors.json: 12.2 KB",
-            "console.pid: 6 B",
+            "spool: 195.0 KB",
+            "cursors.json: 12.7 KB",
+            "console.pid: 5 B",
             "console.log: 0 B"
           ]
         },
@@ -102,7 +107,7 @@
         {
           "name": "gitignore_shadowing",
           "status": "OK",
-          "message": "240 shippable path(s), none shadowed",
+          "message": "249 shippable path(s), none shadowed",
           "details": []
         },
         {
@@ -114,13 +119,13 @@
         {
           "name": "changelog_parity",
           "status": "OK",
-          "message": "8 version(s) pinned in CHANGELOG.md, CITATION.cff in step",
+          "message": "10 version(s) pinned in CHANGELOG.md, CITATION.cff in step",
           "details": []
         },
         {
           "name": "secrets_placement",
           "status": "OK",
-          "message": "248 file(s) scanned (tracked + unignored files), no key-shaped strings",
+          "message": "256 file(s) scanned (tracked + unignored files), no key-shaped strings",
           "details": []
         },
         {
@@ -139,7 +144,7 @@
     },
     "polish": {
       "status": "WARN",
-      "ts": "2026-11-10T10:52:08Z",
+      "ts": "2026-11-20T12:54:38Z",
       "results": [
         {
           "name": "map_scan",
@@ -199,7 +204,7 @@
     },
     "publish": {
       "status": "OK",
-      "ts": "2026-11-10T10:52:09Z",
+      "ts": "2026-11-20T12:54:44Z",
       "results": [
         {
           "name": "polish_complete",
@@ -235,10 +240,9 @@
     }
   },
   "last_completed": "2026-11-10T10:54:55Z",
-  "updated": "2026-11-10T10:54:55Z",
+  "updated": "2026-11-20T12:54:44Z",
   "invoked_by": "user-ticket",
-  "ticket_ts": "2026-11-10T10:42:34Z",
+  "ticket_ts": "2026-11-20T12:47:18Z",
   "ticket_skill": "project-memory",
-  "ticket_session": "9538a1cb-0f96-4274-b177-2f59f8d00916",
-  "ticket_consumed": "2026-11-10T10:42:34Z"
+  "ticket_session": "2873bff7-7583-47d4-955d-70e7e115e955"
 }

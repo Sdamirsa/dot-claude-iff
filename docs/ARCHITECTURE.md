@@ -66,7 +66,7 @@ flowchart LR
   subgraph g_unplaced["unplaced"]
     skill_adhd["/adhd"]
     tool__lib["_lib"]
-    human_maintainer(("maintainer"))
+    other_unplaced[["other (2)"]]
   end
   agent_anatomist -->|writes| folder_state
   agent_anatomist -.->|reads x2| folder_system_map
@@ -217,6 +217,7 @@ flowchart LR
   click store_dist "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/dist"
   click skill_adhd "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/skills/adhd/SKILL.md"
   click tool__lib "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/tools/_lib.py"
+  click other_unplaced "https://github.com/Sdamirsa/dot-claude-iff/blob/dev/.claude/skills/code-walk/SKILL.md"
 ```
 
 - **MEMORY**: Durable project memory: status, decision log, lessons, tasks, research, reference.
@@ -234,6 +235,7 @@ Folded boxes:
 - `.claude-iff/`: `store.anchor`, `store.rollups`
 - `record root`: `store.record`
 - `.claude/system-map/`: `map.layers`, `store.architecture`, `store.cards`, `store.code_graph`, `store.map`
+- `other (2)`: `human.maintainer`, `skill.code-walk`
 
 ## .claude/tools (`tools`)
 

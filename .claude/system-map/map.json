@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-10T10:52:07Z",
+  "generated_at": "2026-11-20T12:54:37Z",
   "project": "dot-claude-iff",
   "layers": {
     "spines": [
@@ -912,6 +912,18 @@
       "title": "adhd",
       "path": ".claude/skills/adhd/SKILL.md",
       "description": "Parallel divergent ideation - isolated branches under different cognitive frames, then a separate critic pass that clusters, flags traps and shortlists. User-invoked only (/adhd), because one run costs about ten agent calls. For an open, divergent question (architecture, public API or SDK surface, schema, naming a real product, a fuzzy bug with no known root cause) you may SUGGEST \"/adhd <problem>\" in one line; never run it unasked. Not for lookups, syntax, bugs with a known root cause, or asks phrased \"quick\", \"just\", \"standard\" or \"textbook\". UPSTREAM.md documents the branch model as our own choice.",
+      "glyphs": [],
+      "flows": [],
+      "exists": true
+    },
+    {
+      "id": "skill.code-walk",
+      "kind": "code",
+      "layer": null,
+      "package": null,
+      "title": "code-walk",
+      "path": ".claude/skills/code-walk/SKILL.md",
+      "description": "Build the code walk of a version - one offline HTML page, a chapter per change, each a diagram plus short notes that point at file:line. User-invoked only (/code-walk).",
       "glyphs": [],
       "flows": [],
       "exists": true
@@ -1851,11 +1863,11 @@
     }
   ],
   "stats": {
-    "nodes": 73,
+    "nodes": 74,
     "edges": 179,
     "by_kind": {
       "agent": 5,
-      "code": 23,
+      "code": 24,
       "data": 44,
       "human": 1
     },
@@ -1865,9 +1877,9 @@
       "GOVERN": 23,
       "MEMORY": 11,
       "OBSERVE": 10,
-      "UNPLACED": 4
+      "UNPLACED": 5
     },
-    "unplaced": 4
+    "unplaced": 5
   },
   "lint": {
     "errors": [],
@@ -1875,6 +1887,7 @@
       "config.brainstorm: layer is null (unplaced)",
       "human.maintainer: layer is null (unplaced)",
       "skill.adhd: layer is null (unplaced)",
+      "skill.code-walk: layer is null (unplaced)",
       "tool._lib: layer is null (unplaced)"
     ]
   },

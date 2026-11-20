@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-10T10:10:14Z",
+  "generated_at": "2026-11-20T12:54:37Z",
   "project": "dot-claude-iff",
   "scopes": [
     {
@@ -366,11 +366,15 @@
           "kind": "code"
         },
         {
-          "id": "human.maintainer",
+          "id": "other.unplaced",
           "group": "unplaced",
-          "label": "maintainer",
-          "path": null,
-          "kind": "human"
+          "label": "other (2)",
+          "path": ".claude/skills/code-walk/SKILL.md",
+          "kind": "folder",
+          "members": [
+            "human.maintainer",
+            "skill.code-walk"
+          ]
         }
       ],
       "edges": [
@@ -1155,7 +1159,7 @@
       "stats": {
         "nodes": 40,
         "edges": 111,
-        "folded": 39
+        "folded": 41
       }
     },
     {

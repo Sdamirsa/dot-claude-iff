@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-11-10T10:52:09Z",
-  "last_sealed_date": "2026-11-09",
-  "segment": "2026-11-09.jsonl",
-  "sha256": "8be9bfed8d603261bfb8ac20d937cf852516c158c997b5ecfe73a63a197b98c9",
+  "generated_at": "2026-11-20T12:54:44Z",
+  "last_sealed_date": "2026-11-10",
+  "segment": "2026-11-10.jsonl",
+  "sha256": "419e2dd56034537b3201b25ce1b0fb5712c23db1bc19f4489fb3914ab998b4da",
   "chain": [
     {
       "date": "2026-08-26",
@@ -78,6 +78,11 @@
       "date": "2026-11-09",
       "sha256": "8be9bfed8d603261bfb8ac20d937cf852516c158c997b5ecfe73a63a197b98c9",
       "events": 466
+    },
+    {
+      "date": "2026-11-10",
+      "sha256": "419e2dd56034537b3201b25ce1b0fb5712c23db1bc19f4489fb3914ab998b4da",
+      "events": 267
     }
   ]
 }

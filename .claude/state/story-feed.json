@@ -1,6 +1,6 @@
 {
   "v": 1,
-  "generated_at": "2026-11-10T10:52:07Z",
+  "generated_at": "2026-11-20T12:54:37Z",
   "clock": {
     "wall_min": "2026-08-25",
     "wall_max": "2026-11-10",
@@ -19,11 +19,11 @@
       },
       "anatomy": {
         "agents": 5,
-        "skills": 4,
+        "skills": 5,
         "hooks": 8,
         "tools": 10,
-        "cards": 73,
-        "components": 100
+        "cards": 74,
+        "components": 102
       },
       "data": {},
       "analysis": {}
@@ -40,11 +40,11 @@
       },
       "anatomy": {
         "agents": 5,
-        "skills": 4,
+        "skills": 5,
         "hooks": 8,
         "tools": 10,
-        "cards": 73,
-        "components": 100
+        "cards": 74,
+        "components": 102
       },
       "data": {},
       "analysis": {}
@@ -61,11 +61,11 @@
       },
       "anatomy": {
         "agents": 5,
-        "skills": 4,
+        "skills": 5,
         "hooks": 8,
         "tools": 10,
-        "cards": 73,
-        "components": 100
+        "cards": 74,
+        "components": 102
       },
       "data": {},
       "analysis": {}
@@ -82,11 +82,11 @@
       },
       "anatomy": {
         "agents": 5,
-        "skills": 4,
+        "skills": 5,
         "hooks": 8,
         "tools": 10,
-        "cards": 73,
-        "components": 100
+        "cards": 74,
+        "components": 102
       },
       "data": {},
       "analysis": {}
@@ -103,11 +103,11 @@
       },
       "anatomy": {
         "agents": 5,
-        "skills": 4,
+        "skills": 5,
         "hooks": 8,
         "tools": 10,
-        "cards": 73,
-        "components": 100
+        "cards": 74,
+        "components": 102
       },
       "data": {},
       "analysis": {}
@@ -124,11 +124,11 @@
       },
       "anatomy": {
         "agents": 5,
-        "skills": 4,
+        "skills": 5,
         "hooks": 8,
         "tools": 10,
-        "cards": 73,
-        "components": 100
+        "cards": 74,
+        "components": 102
       },
       "data": {},
       "analysis": {}
@@ -145,11 +145,11 @@
       },
       "anatomy": {
         "agents": 5,
-        "skills": 4,
+        "skills": 5,
         "hooks": 8,
         "tools": 10,
-        "cards": 73,
-        "components": 100
+        "cards": 74,
+        "components": 102
       },
       "data": {},
       "analysis": {}
