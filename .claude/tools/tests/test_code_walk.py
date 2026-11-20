@@ -20,6 +20,7 @@ from _fixture import CLAUDE_DIR  # noqa: E402
 
 SKILL_DIR = CLAUDE_DIR / "skills" / "code-walk"
 SCRIPTS = SKILL_DIR / "scripts"
+WALK_PY = SKILL_DIR / "walk.py"
 
 WALK = '''TITLE = "demo code walk"
 VERSION = "v-test"
@@ -51,7 +52,7 @@ class UserInvokedAndSelfContained(unittest.TestCase):
 
     def test_scripts_import_only_the_stdlib_and_each_other(self):
         local = {p.stem for p in SCRIPTS.glob("*.py")}
-        for script in SCRIPTS.glob("*.py"):
+        for script in [WALK_PY, *SCRIPTS.glob("*.py")]:
             for line in script.read_text(encoding="utf-8").splitlines():
                 if line.startswith(("import ", "from ")):
                     name = line.split()[1].split(".")[0]
@@ -100,22 +101,56 @@ class BuildAndDiff(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("no box or edge", result.stderr)
 
-    def test_handoff_starts_from_the_commit_the_last_walk_was_built_on(self):
+    def test_walk_note_starts_from_the_commit_the_last_walk_was_built_on(self):
         self.assertEqual(self.build("hello").returncode, 0)
         base = self.git("rev-parse", "HEAD")
         (self.repo / "new.py").write_text("x = 1\n", encoding="utf-8")
         (self.repo / "app.py").write_text("def hello():\n    return 'hello'\n", encoding="utf-8")
         self.commit("second")
-        result = run(sys.executable, SCRIPTS / "walk_diff.py", "--handoff", "--new-rev", "HEAD",
-                     cwd=self.repo)
+        self.git("tag", "v2")
+        result = run(sys.executable, WALK_PY, "note", "v2", cwd=self.repo / "docs")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(f"- base: `{base}`", result.stdout)
-        self.assertIn(f"git diff -M {base} ", result.stdout)
-        self.assertIn("| `new.py` | added | |", result.stdout)
-        self.assertIn("| `app.py` | changed | |", result.stdout)
-        self.assertNotIn("code-walk.html", result.stdout, "the walks folder is left out")
-        report = run(sys.executable, SCRIPTS / "walk_diff.py", "--new-rev", "HEAD", cwd=self.repo)
+        note = (self.repo / "docs" / "code-walk" / "v2" / "WALK-NOTE.md").read_text(encoding="utf-8")
+        self.assertIn(f"- base: `{base}`", note)
+        self.assertIn(f"git diff -M {base} ", note)
+        self.assertIn("| `new.py` | added | |", note)
+        self.assertIn("| `app.py` | changed | |", note)
+        self.assertNotIn("code-walk.html", note, "the walks folder is left out")
+        again = run(sys.executable, WALK_PY, "note", "v2", cwd=self.repo)
+        self.assertNotEqual(again.returncode, 0, "a filled-in note is never replaced silently")
+        self.assertIn("--force", again.stderr)
+        report = run(sys.executable, WALK_PY, "changes", "v2", cwd=self.repo)
         self.assertIn("changed: `hello`", report.stdout)
+
+    def test_the_one_command_builds_a_tagged_version_from_its_own_code(self):
+        tagged = self.git("rev-parse", "--short", "HEAD")
+        self.git("tag", "v-test")
+        (self.repo / "app.py").write_text("def hello():\n    return 'later'\n", encoding="utf-8")
+        self.commit("after the tag")
+        self.walk.write_text(WALK.replace("KEY", "hello"), encoding="utf-8")
+        result = run(sys.executable, WALK_PY, "build", "v-test", cwd=self.repo)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        page = (self.walk.parent / "code-walk.html").read_text(encoding="utf-8")
+        self.assertIn(f'"commit":"{tagged}"', page)
+        self.assertIn("'hi'", page)
+        self.assertNotIn("'later'", page, "a tagged version shows its own code")
+        missing = run(sys.executable, WALK_PY, "build", "v-none", cwd=self.repo)
+        self.assertNotEqual(missing.returncode, 0)
+        self.assertIn("no walk file", missing.stderr)
+
+    def test_handoff_keeps_one_meaning_in_this_system(self):
+        """A handoff is the builder's envelope and the resume note; the walk's note is not one."""
+        for path in [WALK_PY, *SKILL_DIR.glob("*.md"), *SCRIPTS.glob("*.py")]:
+            text = path.read_text(encoding="utf-8").lower()
+            if path.name != "UPSTREAM.md":
+                self.assertNotIn("hand-off", text, path.name)
+            self.assertNotIn("handoff", text, path.name)
+
+    def test_a_crlf_checkout_of_an_unchanged_file_is_not_a_change(self):
+        (self.repo / "app.py").write_bytes(b"def hello():\r\n    return 'hi'\r\n")
+        report = run(sys.executable, WALK_PY, "changes", "--base", "HEAD", cwd=self.repo)
+        self.assertEqual(report.returncode, 0, report.stderr)
+        self.assertIn("0 changed", report.stdout)
 
     def test_no_walk_and_no_base_is_an_error_not_a_guess(self):
         result = run(sys.executable, SCRIPTS / "walk_diff.py", cwd=self.repo)

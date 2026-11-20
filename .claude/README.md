@@ -74,7 +74,8 @@ Each item with the one command to try it.
   never run it. Type `/adhd <question>`.
 - **`/code-walk`**: the code walk of a version, built only when you type it: one offline HTML
   page, a chapter per change, each a diagram plus short notes that point at `file:line`. Fed
-  by a short hand-off note; everything it needs sits in `.claude/skills/code-walk/`.
+  by a short walk note; everything it needs sits in `.claude/skills/code-walk/`, behind one
+  command: `python3 .claude/skills/code-walk/walk.py changes|note|build <version>`.
 
 **The policy gate is a tripwire for honest mistakes, not a sandbox.** It reads every Write,
 Edit, Bash and PowerShell call and refuses writes into the record, the ritual ticket and (for

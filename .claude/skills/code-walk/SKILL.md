@@ -17,36 +17,47 @@ Everything the skill needs is in this folder. It runs only when the user types `
 
 | Path | What it is |
 |---|---|
-| `scripts/walk_diff.py` | what changed since the last walk was built; `--handoff` writes the hand-off note |
-| `scripts/walk_build.py` | builds the page from a walk file, and checks every step against the code |
+| `walk.py` | the one command: `changes`, `note`, `build` |
+| `scripts/walk_diff.py` | behind `changes` and `note`: what changed since the last walk was built |
+| `scripts/walk_build.py` | behind `build`: makes the page from a walk file, and checks every step against the code |
 | `scripts/walklib.py` | `W`: read the repo at one revision, find lines, draw diagrams |
 | `scripts/page.html` | the page: layout, colours, script |
 
-Scripts are Python standard library only; run them from the repo root as
-`python3 .claude/skills/code-walk/scripts/<name>.py`.
+One command does everything, typed the same by the user and by the agent, from anywhere in
+the repo (Python standard library only):
+
+```
+python3 .claude/skills/code-walk/walk.py changes            # what changed since the last walk
+python3 .claude/skills/code-walk/walk.py note  <version>    # start the walk note
+python3 .claude/skills/code-walk/walk.py build <version>    # build the page
+```
+
+`<version>` names the walk's folder. When it is also a git tag or commit, that is the code
+read; otherwise the working tree is. `--base <rev>` sets where the comparison starts (needed
+for a first walk), `--root <dir>` the walks folder, `--skip <prefix>` leaves paths out.
 
 ## Where walks live
 
 One folder per version under the walks folder: `docs/code-walk/<version>/` unless the user
-names another folder or the repo already keeps its walks elsewhere (then pass `--root` to
-`walk_diff.py`). Each holds:
+names another folder or the repo already keeps its walks elsewhere (then pass `--root`).
+Each holds:
 
-- `HANDOFF.md`: the hand-off note the walk is fed from;
+- `WALK-NOTE.md`: the walk note the page is made from;
 - `code-walk.py`: the walk file, the source of the page;
 - `code-walk.html`: the built page, stamped with the commit it was built from.
 
 Older versions' folders are never edited: each page matches its own code.
 
-## 1. The hand-off note
+## 1. The walk note
 
-When a version ships, whoever built it writes `HANDOFF.md` in the version's folder:
+When a version ships, whoever built it starts `WALK-NOTE.md` in the version's folder:
 
 ```
-python3 .claude/skills/code-walk/scripts/walk_diff.py --handoff --new-rev <new> --out <walks>/<version>/HANDOFF.md
+python3 .claude/skills/code-walk/walk.py note <version>
 ```
 
 The base is the commit the newest walk was built from; for a first walk give
-`--old-rev <base>`. The script fills in the base commit, the new commit, the
+`--base <rev>`. The command fills in the base commit, the new commit, the
 `git diff -M` command and a row per changed file. The builder then writes, by hand:
 
 - **What this version is**: about three lines. What is new, what behaves differently, what
@@ -59,7 +70,7 @@ diff, and show the three lines to the user before going on.
 
 ## 2. Understand the change
 
-Read the note, then run `walk_diff.py` (same arguments, without `--handoff`) for the
+Read the note, then run `walk.py changes <version>` for the
 commits, the changed functions and the imports that moved, then read
 `git diff -M <base> <new> -- <file>` for every file the note says to look at. A step can
 build and still be wrong, so read the code before writing about it.
@@ -113,12 +124,12 @@ CHAPTERS = [ch_login]
 ## 4. Build and check
 
 ```
-python3 .claude/skills/code-walk/scripts/walk_build.py <walks>/<version>/code-walk.py --rev <new>
+python3 .claude/skills/code-walk/walk.py build <version>
 ```
 
-`--rev` builds from that commit, so the page matches the released code and carries its
-hash; without it the working tree is used. `--fragment FILE` also writes the page without
-`<html>`, `<head>` and `<body>`, for a host that adds its own.
+When `<version>` is a tag or commit the page is built from that code and carries its hash;
+otherwise from the working tree. (`scripts/walk_build.py` itself takes `--out FILE`, and
+`--fragment FILE` for a page without `<html>`, `<head>` and `<body>`.)
 
 The build fails, and says where, when a step's lines are outside its file, a looked-up
 line is gone, or a step lights a box its diagram does not have. Fix the walk; never

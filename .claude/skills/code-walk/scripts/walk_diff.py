@@ -2,10 +2,10 @@
 """code-walk: what changed since the last walk was built.
 
   python3 .claude/skills/code-walk/scripts/walk_diff.py [--root DIR]
-      [--old-rev REV] [--new-rev REV] [--skip PREFIX]... [--handoff]
+      [--old-rev REV] [--new-rev REV] [--skip PREFIX]... [--note]
       [--out FILE]
 
-Run it from anywhere inside the repo. OLD is the commit the newest walk
+walk.py, one folder up, is the short way in. OLD is the commit the newest walk
 under --root (default docs/code-walk) was built from: the "commit" in
 its code-walk.html. Give --old-rev for a first walk or another base.
 NEW is the working tree unless --new-rev is given. It writes Markdown:
@@ -15,7 +15,7 @@ NEW is the working tree unless --new-rev is given. It writes Markdown:
   - each changed Python file: functions added, removed and changed;
   - imports between sibling Python files that appeared or went away.
 
---handoff writes the hand-off note instead: base, new, the diff
+--note writes the walk note instead: base, new, the diff
 command, three lines to fill in, and a row per changed file.
 --skip leaves out a path prefix (the walks folder always is).
 It changes nothing in the repo. Standard library only.
@@ -52,10 +52,13 @@ def read(rev, path):
     if key not in CACHE:
         try:
             if rev:
-                CACHE[key] = git("show", f"{rev}:{path}")
+                CACHE[key] = git("show", f"{rev}:{path}").replace(
+                    "\r\n", "\n")
             else:
+                # universal newlines: a CRLF checkout must compare equal
+                # to the LF copy git holds
                 with open(os.path.join(REPO, path), encoding="utf-8",
-                          errors="replace", newline="") as f:
+                          errors="replace") as f:
                     CACHE[key] = f.read()
         except (subprocess.CalledProcessError, OSError):
             CACHE[key] = None
@@ -137,11 +140,11 @@ def changes(old, new, skip):
     return a, b, added, removed, renames, changed
 
 
-def handoff(old, new, skip):
+def note(old, new, skip):
     _, _, added, removed, renames, changed = changes(old, new, skip)
     full = git("rev-parse", old).strip()
     tip = git("rev-parse", new).strip() if new else ""
-    R = [f"# Hand-off: {old} to {new or 'the working tree'}", "",
+    R = [f"# Walk note: {old} to {new or 'the working tree'}", "",
          f"- base: `{full}`",
          f"- new: `{tip or 'the working tree (commit, then put the hash here)'}`",
          f"- diff: `git diff -M {full}{' ' + tip if tip else ''}`", "",
@@ -214,7 +217,7 @@ def main(argv):
     ap.add_argument("--old-rev")
     ap.add_argument("--new-rev")
     ap.add_argument("--skip", action="append", default=[])
-    ap.add_argument("--handoff", action="store_true")
+    ap.add_argument("--note", action="store_true")
     ap.add_argument("--out")
     a = ap.parse_args(argv)
     REPO = subprocess.run(["git", "rev-parse", "--show-toplevel"],
@@ -230,7 +233,7 @@ def main(argv):
               + (" (built with changes not committed)" if dirty else ""),
               file=sys.stderr)
     skip = tuple([a.root.rstrip("/") + "/"] + a.skip)
-    text = (handoff if a.handoff else report)(old, a.new_rev, skip)
+    text = (note if a.note else report)(old, a.new_rev, skip)
     if a.out:
         with open(a.out, "w", encoding="utf-8", newline="\n") as f:
             f.write(text)
