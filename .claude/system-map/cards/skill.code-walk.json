@@ -1,0 +1,20 @@
+{
+  "id": "skill.code-walk",
+  "kind": "code",
+  "layer": null,
+  "package": null,
+  "title": "code-walk",
+  "path": ".claude/skills/code-walk/SKILL.md",
+  "description": "Build the code walk of a version - one offline HTML page, a chapter per change, each a diagram plus short notes that point at file:line. User-invoked only (/code-walk).",
+  "reads": [],
+  "writes": [],
+  "invokes": [],
+  "flows": [],
+  "glyphs": [],
+  "auto": {
+    "discovered": "2026-11-20",
+    "hash": "49247c2a951760e95e4e9b8c184337b40759fb2818f83e1b2fd8e399cfe139b4",
+    "suggested_reads": [],
+    "suggested_writes": []
+  }
+}

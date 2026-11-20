@@ -1,0 +1,433 @@
+<!-- code-walk page template. walk_build.py fills {{TITLE}} and {{DATA}}. -->
+<!--HEAD-->
+<title>{{TITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Two halves: the picture and the step on the left, the code on the
+   right; a grip between them moves the split. One column on a phone. */
+:root {
+  --bg: #f3f5f8; --panel: #ffffff; --ink: #1a1f29; --soft: #5b6576;
+  --line: #d9dee6; --accent: #2453c9; --accent-soft: #e4ebfb;
+  --on-accent: #ffffff; --mark: #fff2c9; --mark-bar: #d99a00;
+  --ext: #eef1f5; --bad: #b3261e; --bad-soft: #fbe7e5;
+  --k: #8a2ca8; --s: #0b7a43; --c: #737c8c; --n: #b25500; --f: #1d5bbf;
+  --b: #9b3d0c; --d: #4f6f1f;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas,
+    "Liberation Mono", monospace;
+  --split: 50%;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101318; --panel: #171b22; --ink: #e5e8ee; --soft: #98a1b0;
+    --line: #2a303b; --accent: #86a7ff; --accent-soft: #1c2740;
+    --on-accent: #0d1220; --mark: #362d12; --mark-bar: #f0bd45;
+    --ext: #1d222b; --bad: #ff9a90; --bad-soft: #3a1c1a;
+    --k: #d29bf0; --s: #8fd19e; --c: #7c8596; --n: #f0ae6c; --f: #8ab4f8;
+    --b: #f2a679; --d: #b5cf86; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101318; --panel: #171b22; --ink: #e5e8ee; --soft: #98a1b0;
+  --line: #2a303b; --accent: #86a7ff; --accent-soft: #1c2740;
+  --on-accent: #0d1220; --mark: #362d12; --mark-bar: #f0bd45;
+  --ext: #1d222b; --bad: #ff9a90; --bad-soft: #3a1c1a;
+  --k: #d29bf0; --s: #8fd19e; --c: #7c8596; --n: #f0ae6c; --f: #8ab4f8;
+  --b: #f2a679; --d: #b5cf86; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 var(--sans); }
+#app { height: 100%; display: flex; flex-direction: column; }
+header { flex: none; background: var(--panel);
+  border-bottom: 1px solid var(--line); padding-block: 10px 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top { display: flex; flex-wrap: wrap; align-items: baseline;
+  gap: 2px 14px; }
+h1 { margin: 0; font-size: 17px; font-weight: 700;
+  letter-spacing: -0.01em; }
+.stamp, .keys { color: var(--soft); font-size: 12.5px;
+  font-variant-numeric: tabular-nums; }
+.keys { margin-left: auto; }
+kbd { font: 11.5px var(--mono); border: 1px solid var(--line);
+  border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; }
+nav { display: flex; align-items: center; gap: 2px; margin-top: 4px;
+  overflow-x: auto; scrollbar-width: thin; }
+nav button { border: 0; background: none; cursor: pointer;
+  padding: 8px 12px; color: var(--soft); white-space: nowrap;
+  font: 600 14px var(--sans); border-bottom: 2px solid transparent; }
+nav button:hover { color: var(--ink); }
+nav button[aria-current="true"] { color: var(--ink);
+  border-bottom-color: var(--accent); }
+nav .grp { flex: none; color: var(--soft); font: 700 10.5px var(--sans);
+  letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+  padding: 8px 2px 8px 12px; margin-left: 6px;
+  border-left: 1px solid var(--line); }
+nav .grp.first { margin-left: 0; padding-left: 0; border-left: 0; }
+nav .later { color: var(--soft); font-size: 12.5px; white-space: nowrap;
+  padding: 8px 4px 8px 10px; }
+#split { flex: 1; min-height: 0; display: grid;
+  grid-template-columns: minmax(0, var(--split)) 9px minmax(0, 1fr); }
+#left { min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); }
+#diagram { flex: 1 1 auto; min-height: 220px; display: flex;
+  padding: 12px 6px 6px 0; }
+#diagram svg { width: 100%; height: 100%; display: block; }
+#card { flex: 0 1 auto; max-height: 48%; overflow: auto;
+  border-top: 1px solid var(--line); padding: 12px 12px 18px 0; }
+#grip { cursor: col-resize; touch-action: none;
+  background: linear-gradient(var(--line), var(--line)) center / 1px 100%
+    no-repeat; }
+#grip:hover, #grip.drag, #grip:focus-visible {
+  background: linear-gradient(var(--accent), var(--accent)) center / 3px
+    100% no-repeat; outline: none; }
+#right { min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  background: var(--panel); border-left: 1px solid var(--line); }
+#codehead { flex: none; display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px 10px; padding: 8px 12px; border-bottom: 1px solid var(--line);
+  padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+#path { font: 600 13px var(--mono); overflow-wrap: anywhere; }
+.chip { font: 12px var(--mono); border: 1px solid var(--line);
+  background: var(--ext); color: var(--ink); border-radius: 999px;
+  padding: 2px 9px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+select { font: 13px var(--sans); color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px;
+  max-width: 100%; }
+#codehead .push { margin-left: auto; }
+#code { flex: 1; min-height: 0; overflow: auto; position: relative;
+  font: 12.5px/1.6 var(--mono); padding: 6px 0 45vh; tab-size: 4; }
+.ln { display: flex; white-space: pre; min-width: max-content;
+  border-left: 3px solid transparent; padding-right: 16px; }
+.ln .no { flex: none; width: 4.4em; padding-right: 1.3em; text-align: right;
+  color: var(--c); user-select: none; -webkit-user-select: none; }
+.ln.on { background: var(--mark); border-left-color: var(--mark-bar); }
+.ln.on .no { color: var(--ink); font-weight: 700; }
+#code i { font-style: normal; }
+#code i.k { color: var(--k); } #code i.s { color: var(--s); }
+#code i.c { color: var(--c); } #code i.n { color: var(--n); }
+#code i.f { color: var(--f); font-weight: 600; } #code i.b { color: var(--b); }
+#code i.d { color: var(--d); font-style: italic; }
+.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+  font-size: 12.5px; color: var(--soft); }
+.count { font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  font-variant-numeric: tabular-nums; }
+.where { font-family: var(--mono); background: var(--ext); color: var(--ink);
+  border-radius: 5px; padding: 1px 7px; overflow-wrap: anywhere; }
+h2 { margin: 6px 0 6px; font-size: 19px; line-height: 1.3;
+  letter-spacing: -0.01em; text-wrap: balance; }
+#card p { margin: 0 0 10px; max-width: 68ch; }
+#card code { font: 0.88em var(--mono); background: var(--ext);
+  border-radius: 4px; padding: 1px 4px; overflow-wrap: anywhere; }
+#card .aside { border-left: 3px solid var(--accent);
+  background: var(--accent-soft); border-radius: 0 6px 6px 0;
+  padding: 8px 12px; font-size: 14px; }
+.pager { display: flex; gap: 8px; margin: 12px 0 10px; }
+.pager + ol.steps { margin-top: 2px; }
+.btn { min-height: 38px; padding: 0 14px; border-radius: 7px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font: 600 14px var(--sans); cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent);
+  color: var(--on-accent); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+ol.steps { list-style: none; margin: 0; padding: 0; display: flex;
+  flex-wrap: wrap; gap: 4px; }
+ol.steps button { min-width: 32px; height: 30px; padding: 0 6px;
+  border: 1px solid var(--line); background: var(--panel);
+  border-radius: 6px; color: var(--soft); cursor: pointer;
+  font: 600 13px var(--sans); font-variant-numeric: tabular-nums; }
+ol.steps button:hover { color: var(--ink); border-color: var(--accent); }
+ol.steps button[aria-current="true"] { background: var(--accent);
+  border-color: var(--accent); color: var(--on-accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* the pictures */
+#diagram .node rect { fill: var(--panel); stroke: var(--line);
+  stroke-width: 1.2; }
+#diagram .node.ext rect { fill: var(--ext); stroke-dasharray: 4 3; }
+#diagram .node.bad rect { fill: var(--bad-soft); stroke: var(--bad); }
+#diagram .node.group rect { fill: none; stroke: var(--soft);
+  stroke-opacity: 0.45; }
+#diagram .zone rect { fill: none; stroke: var(--line);
+  stroke-dasharray: 3 4; }
+#diagram .t { fill: var(--ink); font: 600 12.5px var(--sans); }
+#diagram .u { fill: var(--soft); font: 10.5px var(--sans); }
+#diagram .zl { fill: var(--soft); font: 700 10px var(--sans);
+  letter-spacing: 0.08em; }
+#diagram .edge path { fill: none; stroke: var(--soft); stroke-width: 1.3; }
+#diagram .edge polygon { fill: var(--soft); }
+#diagram .edge.dash path { stroke-dasharray: 4 3; }
+#diagram .el { fill: var(--soft); font: 10.5px var(--sans);
+  paint-order: stroke; stroke: var(--bg); stroke-width: 3px;
+  stroke-linejoin: round; }
+#diagram .node, #diagram .edge { transition: opacity 0.2s; }
+#diagram svg.focus .node:not(.on):not(.group),
+#diagram svg.focus .edge:not(.on) { opacity: 0.3; }
+#diagram .node.on rect { fill: var(--accent-soft); stroke: var(--accent);
+  stroke-width: 2; }
+#diagram .node.group.on rect { fill: none; }
+#diagram .edge.on path { stroke: var(--accent); stroke-width: 2.2; }
+#diagram .edge.on polygon { fill: var(--accent); }
+#diagram .edge.on .el { fill: var(--accent); font-weight: 600; }
+#diagram .node.go { cursor: pointer; }
+#diagram .node.go:hover rect { stroke: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  #diagram .node, #diagram .edge { transition: none; }
+}
+@media (max-width: 860px) {
+  html, body, #app { height: auto; }
+  #split { display: block; }
+  #grip, .keys { display: none; }
+  #left { padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  #diagram { padding-right: 0; }
+  #diagram svg { height: auto; }
+  #card { max-height: none; padding-right: 0; }
+  #right { height: 78vh; border-left: 0; border-top: 1px solid var(--line); }
+}
+</style>
+<!--BODY-->
+<div id="app">
+<header>
+<div class="top">
+<h1 id="title"></h1>
+<span class="stamp" id="stamp"></span>
+<span class="keys"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> steps &middot; click a
+box &middot; drag the middle line</span>
+</div>
+<nav id="tabs" aria-label="Chapters"></nav>
+</header>
+<main id="split">
+<section id="left" aria-label="Picture and explanation">
+<div id="diagram"></div>
+<article id="card" aria-live="polite"></article>
+</section>
+<div id="grip" role="separator" aria-orientation="vertical" tabindex="0"
+aria-label="Move the split between explanation and code" aria-valuemin="25"
+aria-valuemax="75" aria-valuenow="50"></div>
+<section id="right" aria-label="Code">
+<div id="codehead"></div>
+<div id="code" tabindex="0"></div>
+</section>
+</main>
+</div>
+<script type="application/json" id="walk-data">{{DATA}}</script>
+<script>
+(() => {
+  "use strict";
+  // The data is built from the repo by walk_build.py; the HTML strings in
+  // it (code lines, pictures, step text) are made and escaped there.
+  const D = JSON.parse(document.getElementById("walk-data").textContent);
+  const $ = (id) => document.getElementById(id);
+  const S = {c: 0, s: 0, svg: null, file: null, browse: null};
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const files = Object.keys(D.files);
+
+  function h(tag, attrs, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v === null || v === undefined || v === false) continue;
+      if (k === "click") e.addEventListener("click", v);
+      else if (k === "html") e.innerHTML = v;
+      else if (k === "class") e.className = v;
+      else e.setAttribute(k, v === true ? "" : String(v));
+    }
+    for (const kid of kids.flat()) {
+      if (kid !== null && kid !== undefined && kid !== false) {
+        e.append(kid instanceof Node ? kid : document.createTextNode(kid));
+      }
+    }
+    return e;
+  }
+  function put(el, ...kids) {
+    el.replaceChildren(...kids.flat(Infinity).filter((k) => k !== null && k !== undefined && k !== false));
+  }
+  const ch = () => D.chapters[S.c];
+  const step = () => ch().steps[S.s];
+  const rng = (r) => r.map(([a, b]) => a === b ? String(a) : a + "–" + b);
+
+  function go(c, s) {
+    c = Math.max(0, Math.min(D.chapters.length - 1, c));
+    s = Math.max(0, Math.min(D.chapters[c].steps.length - 1, s));
+    S.c = c; S.s = s; S.browse = null;
+    const want = "#" + D.chapters[c].id + "-" + (s + 1);
+    if (location.hash !== want) {
+      try { location.hash = want; } catch (e) { /* a frame may refuse */ }
+    }
+    render();
+  }
+  function fromHash() {
+    const m = /^#([a-z0-9-]+?)-([0-9]+)$/.exec(location.hash || "");
+    const c = m ? D.chapters.findIndex((x) => x.id === m[1]) : -1;
+    return c < 0 ? null : [c, Number(m[2]) - 1];
+  }
+  function next(d) {
+    const n = ch().steps.length;
+    if (S.s + d >= 0 && S.s + d < n) go(S.c, S.s + d);
+    else if (d > 0 && S.c + 1 < D.chapters.length) go(S.c + 1, 0);
+    else if (d < 0 && S.c > 0) go(S.c - 1, D.chapters[S.c - 1].steps.length - 1);
+  }
+
+  function renderTabs() {
+    const nav = $("tabs");
+    put(nav, D.chapters.map((c, i) => [
+      c.group && (i === 0 || D.chapters[i - 1].group !== c.group)
+        ? h("span", {class: "grp" + (i ? "" : " first")}, c.group) : null,
+      h("button", {type: "button", "aria-current": i === S.c ? "true" : "false",
+                   click: () => go(i, 0)}, c.title)]));
+    if (D.next && D.next.length) {
+      nav.append(h("span", {class: "later"}, "Later: " + D.next.join(" · ")));
+    }
+    const cur = nav.querySelector('[aria-current="true"]');
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({block: "nearest", inline: "nearest"});
+  }
+
+  function renderDiagram() {
+    const st = step(), d = st.d || 0, key = S.c + ":" + d;
+    const box = $("diagram");
+    if (S.svg !== key) {
+      box.innerHTML = ch().svgs[d];
+      S.svg = key;
+      const used = new Set();
+      ch().steps.forEach((x) => { if ((x.d || 0) === d) x.hl.forEach((k) => used.add(k)); });
+      box.querySelectorAll(".node[data-k]").forEach((n) => {
+        if (used.has(n.dataset.k)) n.classList.add("go");
+      });
+    }
+    const svg = box.querySelector("svg"), on = new Set(st.hl);
+    svg.classList.toggle("focus", on.size > 0);
+    svg.querySelectorAll("[data-k]").forEach((e) => {
+      e.classList.toggle("on", on.has(e.dataset.k));
+    });
+  }
+
+  function renderCard() {
+    const c = ch(), st = step(), n = c.steps.length;
+    const last = S.c === D.chapters.length - 1 && S.s === n - 1;
+    put($("card"),
+      h("div", {class: "meta"},
+        h("span", {class: "count"}, "Step " + (S.s + 1) + " of " + n),
+        h("span", {class: "where"}, st.f + (st.r.length ? " · " + rng(st.r).join(", ") : ""))),
+      h("h2", {}, st.t),
+      h("p", {html: st.b}),
+      st.w ? h("p", {class: "aside", html: st.w}) : null,
+      h("div", {class: "pager"},
+        h("button", {type: "button", class: "btn", disabled: S.c === 0 && S.s === 0,
+                     click: () => next(-1)}, "← Back"),
+        h("button", {type: "button", class: "btn primary", disabled: last,
+                     click: () => next(1)},
+          S.s === n - 1 && !last ? "Next chapter →" : "Next →")),
+      h("ol", {class: "steps", "aria-label": "Steps of this chapter"},
+        c.steps.map((x, i) => h("li", {},
+          h("button", {type: "button", title: (i + 1) + ". " + x.t,
+                       "aria-label": "Step " + (i + 1) + ": " + x.t,
+                       "aria-current": i === S.s ? "true" : "false",
+                       click: () => go(S.c, i)}, String(i + 1))))));
+    $("card").scrollTop = 0;
+  }
+
+  function lineEl(n) { return document.getElementById("L" + n); }
+  function scrollTo(n, smooth) {
+    const e = lineEl(n), box = $("code");
+    if (!e) return;
+    const top = Math.max(0, e.offsetTop - box.clientHeight * 0.16);
+    const near = Math.abs(top - box.scrollTop) < box.clientHeight * 2;
+    box.scrollTo({top, behavior: smooth && near && !calm ? "smooth" : "auto"});
+  }
+
+  function showFile(path, ranges) {
+    const box = $("code"), fresh = S.file !== path;
+    if (fresh) {
+      box.innerHTML = D.files[path].lines.map((t, i) =>
+        '<div class="ln" id="L' + (i + 1) + '"><span class="no">' + (i + 1) +
+        '</span><span class="tx">' + (t || " ") + "</span></div>").join("");
+      S.file = path;
+    }
+    box.querySelectorAll(".ln.on").forEach((e) => e.classList.remove("on"));
+    ranges.forEach(([a, b]) => {
+      for (let i = a; i <= b; i++) { const e = lineEl(i); if (e) e.classList.add("on"); }
+    });
+    if (ranges.length) scrollTo(ranges[0][0], !fresh);
+    else box.scrollTop = 0;
+    const sel = h("select", {"aria-label": "Open any file"},
+      files.map((f) => h("option", {value: f}, f)));
+    sel.value = path;
+    sel.addEventListener("change", () => { S.browse = sel.value; showFile(sel.value, []); });
+    put($("codehead"),
+      h("span", {id: "path"}, path),
+      ...ranges.map((r) => h("button", {type: "button", class: "chip",
+        title: "Scroll to these lines", click: () => scrollTo(r[0], true)},
+        rng([r])[0])),
+      S.browse ? h("button", {type: "button", class: "chip",
+        click: () => { S.browse = null; showFile(step().f, step().r); }},
+        "back to step " + (S.s + 1)) : null,
+      h("span", {class: "push"}), sel);
+  }
+
+  function render() {
+    renderTabs();
+    renderDiagram();
+    renderCard();
+    showFile(step().f, step().r);
+    document.title = step().t + " · " + D.title;
+  }
+
+  $("diagram").addEventListener("click", (e) => {
+    const g = e.target.closest(".node[data-k], .edge[data-k]");
+    if (!g) return;
+    const k = g.dataset.k, d = step().d || 0;
+    let best = -1;
+    ch().steps.forEach((x, i) => {
+      if ((x.d || 0) === d && x.hl.includes(k) &&
+          (best < 0 || x.hl.length < ch().steps[best].hl.length)) best = i;
+    });
+    if (best >= 0) go(S.c, best);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest("select, input, textarea, #grip")) return;
+    if (e.key === "ArrowRight") { e.preventDefault(); next(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); next(-1); }
+  });
+  addEventListener("hashchange", () => {
+    const p = fromHash();
+    if (p && (p[0] !== S.c || p[1] !== S.s)) go(p[0], p[1]);
+  });
+
+  // the split between the halves, remembered in this browser
+  const grip = $("grip"), split = $("split");
+  function setSplit(p) {
+    p = Math.max(25, Math.min(75, p));
+    split.style.setProperty("--split", p + "%");
+    grip.setAttribute("aria-valuenow", String(Math.round(p)));
+    try { localStorage.setItem("code-walk-split", String(p)); } catch (e) { /* none */ }
+  }
+  grip.addEventListener("pointerdown", (e) => {
+    grip.setPointerCapture(e.pointerId);
+    grip.classList.add("drag");
+  });
+  grip.addEventListener("pointermove", (e) => {
+    if (!grip.classList.contains("drag")) return;
+    const r = split.getBoundingClientRect();
+    setSplit((e.clientX - r.left) / r.width * 100);
+  });
+  grip.addEventListener("pointerup", () => grip.classList.remove("drag"));
+  grip.addEventListener("dblclick", () => setSplit(50));
+  grip.addEventListener("keydown", (e) => {
+    const now = Number(grip.getAttribute("aria-valuenow"));
+    if (e.key === "ArrowLeft") { e.preventDefault(); setSplit(now - 5); }
+    if (e.key === "ArrowRight") { e.preventDefault(); setSplit(now + 5); }
+  });
+  try {
+    const p = Number(localStorage.getItem("code-walk-split"));
+    if (p) setSplit(p);
+  } catch (e) { /* none */ }
+
+  $("title").textContent = D.title;
+  $("stamp").textContent = "version " + D.version + " · commit " + D.commit +
+    " · built " + D.built;
+  const p = fromHash() || [0, 0];
+  go(p[0], p[1]);
+})();
+</script>
